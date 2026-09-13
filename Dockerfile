@@ -43,4 +43,10 @@ EXPOSE 8080
 
 # Render assigns $PORT at runtime and expects the app to bind to it, so
 # this can't be baked in at build time -- migrate first, then serve.
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+#
+# db:seed runs on every start, not just the first -- safe here because
+# RolesAndPermissionsSeeder and DemoSchoolSeeder both use firstOrCreate
+# keyed on fixed names/emails, so re-running them is a no-op once the
+# data already exists. This only ever touches the 7 fixed demo accounts,
+# never anything a real user creates through the app.
+CMD php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
