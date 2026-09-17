@@ -77,4 +77,11 @@ class Student extends Model
             ->withPivot('relationship')
             ->withTimestamps();
     }
+
+    public function optionalServices(): BelongsToMany
+    {
+        return $this->belongsToMany(OptionalService::class, 'student_optional_service')
+            ->withPivot('enrolled_on')
+            ->withTimestamps();
+    }
 }

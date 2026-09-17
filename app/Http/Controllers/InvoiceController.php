@@ -6,6 +6,7 @@ use App\Exports\SimpleArrayExport;
 use App\Models\Enrollment;
 use App\Models\FeeStructure;
 use App\Models\Invoice;
+use App\Models\OptionalService;
 use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -135,6 +136,16 @@ class InvoiceController extends Controller
 
             foreach ($feeItems as $item) {
                 $invoice->items()->create(['description' => $item->name, 'amount' => $item->amount]);
+            }
+
+            // Optional services (tutoring, transportation, ...) only bill
+            // students who actually opted in -- never the whole grade.
+            $optedInServices = $enrollment->student->optionalServices()
+                ->where('optional_services.academic_year_id', $academicYear->id)
+                ->get();
+
+            foreach ($optedInServices as $service) {
+                $invoice->items()->create(['description' => $service->name, 'amount' => $service->amount]);
             }
 
             $created++;

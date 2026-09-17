@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SimpleArrayExport;
 use App\Models\Enrollment;
 use App\Models\Invoice;
+use App\Models\OptionalService;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\User;
@@ -56,7 +57,7 @@ class StudentController extends Controller
 
         $query = Student::query()
             ->where('school_id', $user->school_id)
-            ->with(['branch', 'currentEnrollment.section.grade', 'guardians']);
+            ->with(['branch', 'currentEnrollment.section.grade', 'guardians', 'optionalServices']);
 
         if (! $user->isOrgWide()) {
             $query->where('branch_id', $user->branch_id);
@@ -75,7 +76,7 @@ class StudentController extends Controller
         $rows = [
             [$user->school->name],
             ['Student List — '.now()->format('M j, Y')],
-            ['Student ID', 'Name', 'Gender', 'Status', 'Branch', 'Section', 'Guardian(s)', 'Fee Status'],
+            ['Student ID', 'Name', 'Gender', 'Status', 'Branch', 'Section', 'Guardian(s)', 'Fee Status', 'Optional Services'],
         ];
 
         foreach ($students as $s) {
@@ -89,6 +90,7 @@ class StudentController extends Controller
                 $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : 'Unassigned',
                 $s->guardians->pluck('name')->implode(', '),
                 $invoice ? str_replace('_', ' ', $invoice->statusLabel()) : 'No invoice',
+                $s->optionalServices->pluck('name')->implode(', ') ?: 'None',
             ];
         }
 
@@ -188,10 +190,26 @@ class StudentController extends Controller
 
     public function edit(Request $request, Student $student): Response
     {
-        $request->user()->canViewOrManage('manage-students') || abort(403);
-        $this->assertInScope($request->user(), $student);
+        $user = $request->user();
+        $user->canViewOrManage('manage-students') || abort(403);
+        $this->assertInScope($user, $student);
 
-        $student->load(['currentEnrollment.section.grade', 'guardians']);
+        $student->load(['currentEnrollment.section.grade', 'guardians', 'optionalServices']);
+
+        $currentYear = $user->school->academicYears()->where('is_current', true)->first();
+        $enrolledById = $student->optionalServices->keyBy('id');
+        $availableServices = $currentYear
+            ? OptionalService::where('branch_id', $student->branch_id)
+                ->where('academic_year_id', $currentYear->id)
+                ->get()
+                ->map(fn (OptionalService $s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'amount' => $s->amount,
+                    'enrolled' => $enrolledById->has($s->id),
+                    'enrolled_on' => $enrolledById->get($s->id)?->pivot->enrolled_on,
+                ])
+            : collect();
 
         return Inertia::render('Students/Edit', [
             'student' => [
@@ -218,7 +236,9 @@ class StudentController extends Controller
                     'relationship' => $g->pivot->relationship,
                 ]),
             ],
-            'canManage' => $request->user()->can('manage-students'),
+            'availableServices' => $availableServices,
+            'canManage' => $user->can('manage-students'),
+            'canManageServices' => $user->can('manage-invoices'),
         ]);
     }
 

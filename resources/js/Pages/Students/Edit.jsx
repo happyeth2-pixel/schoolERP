@@ -42,6 +42,43 @@ function PhotoForm({ studentId, photoUrl }) {
     );
 }
 
+function OptionalServicesForm({ studentId, services }) {
+    const [busyId, setBusyId] = useState(null);
+
+    const toggle = (service) => {
+        setBusyId(service.id);
+        const done = () => setBusyId(null);
+        if (service.enrolled) {
+            router.delete(route('students.optional-services.destroy', [studentId, service.id]), { onFinish: done, preserveScroll: true });
+        } else {
+            router.post(route('students.optional-services.store', studentId), { optional_service_id: service.id }, { onFinish: done, preserveScroll: true });
+        }
+    };
+
+    if (services.length === 0) {
+        return <p className="text-sm text-gray-400">No optional services set up for this branch/year yet.</p>;
+    }
+
+    return (
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {services.map((s) => (
+                <li key={s.id} className="flex items-center justify-between py-2 text-sm">
+                    <span>
+                        {s.name} <span className="text-gray-400">({Number(s.amount).toLocaleString()} ETB{s.enrolled_on ? ` — enrolled ${s.enrolled_on}` : ''})</span>
+                    </span>
+                    <button
+                        disabled={busyId === s.id}
+                        onClick={() => toggle(s)}
+                        className={`rounded-md px-3 py-1 text-xs font-medium disabled:opacity-50 ${s.enrolled ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300'}`}
+                    >
+                        {s.enrolled ? 'Remove' : 'Enroll'}
+                    </button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
 function AddGuardianForm({ studentId, onDone }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         guardian_mode: 'existing',
@@ -109,7 +146,7 @@ function AddGuardianForm({ studentId, onDone }) {
     );
 }
 
-export default function Edit({ student, canManage }) {
+export default function Edit({ student, canManage, availableServices, canManageServices }) {
     const { flash } = usePage().props;
     const [addingGuardian, setAddingGuardian] = useState(false);
     const { data, setData, patch, processing, errors } = useForm({
@@ -278,6 +315,22 @@ export default function Edit({ student, canManage }) {
 
                         {canManage && addingGuardian && (
                             <AddGuardianForm studentId={student.id} onDone={() => setAddingGuardian(false)} />
+                        )}
+                    </div>
+
+                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Optional Services</h3>
+                        {canManageServices ? (
+                            <OptionalServicesForm studentId={student.id} services={availableServices} />
+                        ) : (
+                            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {availableServices.filter((s) => s.enrolled).map((s) => (
+                                    <li key={s.id} className="py-2 text-sm text-gray-600 dark:text-gray-300">{s.name}</li>
+                                ))}
+                                {availableServices.filter((s) => s.enrolled).length === 0 && (
+                                    <li className="py-2 text-sm text-gray-400">Not enrolled in anything.</li>
+                                )}
+                            </ul>
                         )}
                     </div>
                 </div>

@@ -19,6 +19,7 @@ import {
     PresentationChartBarIcon,
     ShieldCheckIcon,
     Squares2X2Icon,
+    TruckIcon,
     UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
@@ -120,6 +121,7 @@ export function buildNavSections({ role, permissions = [] }) {
                 { label: 'Invoices', route: 'invoices.index', enabled: has('manage-invoices') || has('view-financial-reports'), show: has('manage-invoices') || has('view-financial-reports'), icon: DocumentTextIcon },
                 { label: 'Payment Verification', route: 'payments.pending', enabled: has('verify-payments'), show: has('verify-payments'), icon: BanknotesIcon },
                 { label: 'Fee Structures', route: 'fee-structures.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: CurrencyDollarIcon },
+                { label: 'Optional Services', route: 'optional-services.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: TruckIcon },
             ].filter((i) => i.show !== false),
         });
     }

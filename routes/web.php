@@ -15,6 +15,7 @@ use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MarkBatchController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OptionalServiceController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
@@ -97,6 +98,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy');
     Route::post('/students/{student}/photo', [StudentController::class, 'uploadPhoto'])->name('students.photo');
     Route::get('/students/{student}/id-card', [IdCardController::class, 'show'])->name('id-card.show');
+    Route::post('/students/{student}/optional-services', [OptionalServiceController::class, 'enrollStudent'])->name('students.optional-services.store');
+    Route::delete('/students/{student}/optional-services/{optionalService}', [OptionalServiceController::class, 'withdrawStudent'])->name('students.optional-services.destroy');
 
     Route::get('/parents', [ParentController::class, 'index'])->name('parents.index');
     Route::get('/parents/search', [ParentController::class, 'search'])->name('parents.search');
@@ -146,6 +149,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/fee-structures', [FeeStructureController::class, 'store'])->name('fee-structures.store');
     Route::patch('/fee-structures/{feeStructure}', [FeeStructureController::class, 'update'])->name('fee-structures.update');
     Route::delete('/fee-structures/{feeStructure}', [FeeStructureController::class, 'destroy'])->name('fee-structures.destroy');
+
+    Route::get('/optional-services', [OptionalServiceController::class, 'index'])->name('optional-services.index');
+    Route::post('/optional-services', [OptionalServiceController::class, 'store'])->name('optional-services.store');
+    Route::patch('/optional-services/{optionalService}', [OptionalServiceController::class, 'update'])->name('optional-services.update');
+    Route::delete('/optional-services/{optionalService}', [OptionalServiceController::class, 'destroy'])->name('optional-services.destroy');
 
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
