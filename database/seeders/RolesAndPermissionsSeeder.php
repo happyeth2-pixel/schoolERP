@@ -58,6 +58,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Communication
         'manage-announcements',
+        'manage-complaints',
 
         // Oversight
         'view-audit-log',
@@ -97,6 +98,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'verify-payments',
             'view-financial-reports',
             'manage-announcements',
+            'manage-complaints',
         ],
 
         'teacher' => [

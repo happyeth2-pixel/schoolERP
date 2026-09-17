@@ -49,4 +49,13 @@ EXPOSE 8080
 # keyed on fixed names/emails, so re-running them is a no-op once the
 # data already exists. This only ever touches the 7 fixed demo accounts,
 # never anything a real user creates through the app.
-CMD php artisan storage:link && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+#
+# permission:cache-reset runs after migrate (so the "cache" table it
+# writes to actually exists on a brand new database) and before seed
+# (so seeders see fresh permissions). It's needed because CACHE_STORE
+# is "database" -- that table lives in the same persistent Postgres
+# database and survives every redeploy. Without this, adding a brand
+# new permission (as a later change did) makes Spatie's stale cached
+# permission list throw PermissionDoesNotExist the moment any seeder
+# tries to grant it, which would crash this entire boot chain.
+CMD php artisan storage:link && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

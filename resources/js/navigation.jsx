@@ -6,6 +6,7 @@ import {
     BuildingOffice2Icon,
     CalendarIcon,
     ChartBarIcon,
+    ChatBubbleLeftRightIcon,
     CheckBadgeIcon,
     ClipboardDocumentCheckIcon,
     ClipboardDocumentListIcon,
@@ -126,6 +127,13 @@ export function buildNavSections({ role, permissions = [] }) {
         });
     }
 
+    if (has('manage-complaints') || isAuditor) {
+        sections.push({
+            label: 'Communication',
+            items: [{ label: 'Complaints', route: 'complaints.index', enabled: true, icon: ChatBubbleLeftRightIcon }],
+        });
+    }
+
     if (has('view-audit-log')) {
         sections.push({
             label: 'Oversight',
@@ -140,6 +148,7 @@ export function buildNavSections({ role, permissions = [] }) {
                 { label: 'Report Card', enabled: false, icon: DocumentChartBarIcon },
                 { label: 'Attendance', enabled: false, icon: ClipboardDocumentCheckIcon },
                 { label: 'Announcements', enabled: false, icon: MegaphoneIcon },
+                { label: 'Complaints', route: 'complaints.index', enabled: true, icon: ChatBubbleLeftRightIcon },
             ],
         });
     }

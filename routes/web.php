@@ -6,6 +6,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FeeStructureController;
@@ -144,6 +145,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
     Route::get('/audit-log/export', [AuditLogController::class, 'export'])->name('audit-log.export');
+
+    Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
+    Route::get('/complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
+    Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
+    Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::post('/complaints/{complaint}/status', [ComplaintController::class, 'updateStatus'])->name('complaints.status');
 
     Route::get('/fee-structures', [FeeStructureController::class, 'index'])->name('fee-structures.index');
     Route::post('/fee-structures', [FeeStructureController::class, 'store'])->name('fee-structures.store');
