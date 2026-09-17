@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SimpleArrayExport;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\RedirectResponse;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Manages staff accounts: owner, branch_admin, teacher, accountant,
@@ -61,6 +63,40 @@ class StaffController extends Controller
                 ? $user->school->branches()->orderBy('name')->get(['id', 'name'])
                 : $user->school->branches()->where('id', $user->branch_id)->get(['id', 'name']),
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $request->user()->canViewOrManage('manage-staff') || abort(403);
+        $user = $request->user();
+
+        $query = User::query()
+            ->where('school_id', $user->school_id)
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', self::STAFF_ROLES))
+            ->with(['roles', 'branch']);
+
+        if (! $user->isOrgWide()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $rows = [
+            [$user->school->name],
+            ['Staff List — '.now()->format('M j, Y')],
+            ['Name', 'Email', 'Title', 'Tier', 'Branch', 'Status'],
+        ];
+
+        foreach ($query->orderBy('name')->get() as $u) {
+            $rows[] = [
+                $u->name,
+                $u->email,
+                $u->title,
+                $u->getRoleNames()->first(),
+                $u->branch?->name ?? 'Org-wide',
+                $u->status,
+            ];
+        }
+
+        return Excel::download(new SimpleArrayExport($rows, 'Staff'), 'staff.xlsx');
     }
 
     public function store(Request $request): RedirectResponse

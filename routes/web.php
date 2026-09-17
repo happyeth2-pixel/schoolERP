@@ -77,10 +77,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+    Route::get('/staff/export', [StaffController::class, 'export'])->name('staff.export');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
     Route::patch('/staff/{staff}', [StaffController::class, 'update'])->name('staff.update');
 
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+    Route::get('/students/export', [StudentController::class, 'export'])->name('students.export');
     Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->name('students.edit');
@@ -98,6 +100,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/{section}', [AttendanceController::class, 'show'])->name('attendance.show');
+    Route::get('/attendance/{section}/export', [AttendanceController::class, 'exportRoster'])->name('attendance.export');
     Route::post('/attendance/{section}', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::get('/attendance-report', [AttendanceReportController::class, 'index'])->name('attendance-report.index');
 
@@ -129,6 +132,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/{student}/report-card.pdf', [ReportCardController::class, 'pdf'])->name('report-card.pdf');
 
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
+    Route::get('/audit-log/export', [AuditLogController::class, 'export'])->name('audit-log.export');
 
     Route::get('/fee-structures', [FeeStructureController::class, 'index'])->name('fee-structures.index');
     Route::post('/fee-structures', [FeeStructureController::class, 'store'])->name('fee-structures.store');
@@ -136,6 +140,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/fee-structures/{feeStructure}', [FeeStructureController::class, 'destroy'])->name('fee-structures.destroy');
 
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('/invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
     Route::post('/invoices/generate', [InvoiceController::class, 'generate'])->name('invoices.generate');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::patch('/invoices/{invoice}/discount', [InvoiceController::class, 'setDiscount'])->name('invoices.discount');

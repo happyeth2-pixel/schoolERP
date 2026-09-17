@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SimpleArrayExport;
 use App\Models\Enrollment;
 use App\Models\FeeStructure;
 use App\Models\Invoice;
@@ -10,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
@@ -45,6 +47,41 @@ class InvoiceController extends Controller
                 ? $user->school->branches()->orderBy('name')->get(['id', 'name'])
                 : $user->school->branches()->where('id', $user->branch_id)->get(['id', 'name']),
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $request->user()->can('manage-invoices') || $request->user()->can('view-financial-reports') || abort(403);
+        $user = $request->user();
+
+        $invoices = Invoice::whereHas('student', function ($q) use ($user) {
+            $q->whereIn('branch_id', $user->school->branches()->pluck('id'));
+            if (! $user->isOrgWide()) {
+                $q->where('branch_id', $user->branch_id);
+            }
+        })->whereHas('academicYear', fn ($q) => $q->where('is_current', true))
+          ->with(['student', 'items', 'payments'])
+          ->get();
+
+        $rows = [
+            [$user->school->name],
+            ['Invoices — '.now()->format('M j, Y')],
+            ['Invoice #', 'Student', 'Student ID', 'Total (ETB)', 'Paid (ETB)', 'Balance (ETB)', 'Status'],
+        ];
+
+        foreach ($invoices as $i) {
+            $rows[] = [
+                $i->invoice_number,
+                $i->student->fullName(),
+                $i->student->student_id_number,
+                $i->totalAmount(),
+                $i->paidAmount(),
+                $i->balance(),
+                str_replace('_', ' ', $i->statusLabel()),
+            ];
+        }
+
+        return Excel::download(new SimpleArrayExport($rows, 'Invoices'), 'invoices.xlsx');
     }
 
     /**

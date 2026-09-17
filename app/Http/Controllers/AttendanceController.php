@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SimpleArrayExport;
 use App\Models\AttendanceRecord;
 use App\Models\Section;
 use App\Notifications\StudentMarkedAbsent;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
 {
@@ -75,6 +77,59 @@ class AttendanceController extends Controller
                 'status' => $e->attendanceRecords->first()->status ?? null,
             ]),
         ]);
+    }
+
+    /**
+     * Exports a section's roster for a date -- if attendance hasn't
+     * been taken yet, the Status column is blank, so this doubles as a
+     * printable paper roster for a teacher without a device in class.
+     * If attendance HAS been recorded, it exports the actual result.
+     */
+    public function exportRoster(Request $request, Section $section)
+    {
+        $user = $request->user();
+        $canMark = $user->can('mark-attendance');
+        $canView = $user->can('view-attendance-reports');
+        abort_unless($canMark || $canView, 403);
+
+        if ($canMark) {
+            $this->assertCanMark($user, $section);
+        } else {
+            $branch = $user->school->branches()->whereKey($section->branch_id)->first();
+            abort_unless($branch, 403);
+            if (! $user->isOrgWide()) {
+                abort_unless($user->branch_id === $section->branch_id, 403);
+            }
+        }
+
+        $date = $request->query('date', now()->format('Y-m-d'));
+        $section->load('grade');
+
+        $enrollments = $section->enrollments()
+            ->where('status', 'active')
+            ->with(['student', 'attendanceRecords' => fn ($q) => $q->where('date', $date)])
+            ->get()
+            ->sortBy(fn ($e) => $e->student->first_name)
+            ->values();
+
+        $rows = [
+            [$user->school->name],
+            ["Attendance Roster — {$section->grade->name} {$section->name} — {$date}"],
+            ['Student ID', 'Name', 'Status'],
+        ];
+
+        foreach ($enrollments as $e) {
+            $rows[] = [
+                $e->student->student_id_number,
+                $e->student->fullName(),
+                $e->attendanceRecords->first()->status ?? '',
+            ];
+        }
+
+        return Excel::download(
+            new SimpleArrayExport($rows, 'Attendance'),
+            "attendance-{$section->grade->name}-{$section->name}-{$date}.xlsx"
+        );
     }
 
     public function store(Request $request, Section $section): RedirectResponse

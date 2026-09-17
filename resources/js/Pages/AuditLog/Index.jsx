@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Index({ logs }) {
@@ -10,6 +11,15 @@ export default function Index({ logs }) {
 
             <div className="py-8">
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-4 flex justify-end">
+                        <a
+                            href={route('audit-log.export')}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                        >
+                            <ArrowDownTrayIcon className="h-4 w-4" /> Export to Excel
+                        </a>
+                    </div>
+
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900/40">

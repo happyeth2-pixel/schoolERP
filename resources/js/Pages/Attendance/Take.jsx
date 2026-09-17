@@ -1,5 +1,6 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -53,20 +54,28 @@ export default function Take({ section, date, roster }) {
                         </div>
                     )}
 
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <input
                             type="date"
                             value={date}
                             onChange={(e) => changeDate(e.target.value)}
                             className="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         />
-                        <button
-                            type="button"
-                            className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
-                            onClick={() => markAll('present')}
-                        >
-                            Mark everyone present
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <a
+                                href={route('attendance.export', section.id) + `?date=${date}`}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                                <ArrowDownTrayIcon className="h-4 w-4" /> Export to Excel
+                            </a>
+                            <button
+                                type="button"
+                                className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                                onClick={() => markAll('present')}
+                            >
+                                Mark everyone present
+                            </button>
+                        </div>
                     </div>
 
                     <form onSubmit={submit} className="space-y-2">

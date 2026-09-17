@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SimpleArrayExport;
 use App\Models\Enrollment;
+use App\Models\Invoice;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\User;
@@ -12,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
@@ -42,6 +45,52 @@ class StudentController extends Controller
         ]);
 
         return Inertia::render('Students/Index', ['students' => $students]);
+    }
+
+    public function export(Request $request)
+    {
+        $request->user()->canViewOrManage('manage-students') || abort(403);
+        $user = $request->user();
+
+        $query = Student::query()
+            ->where('school_id', $user->school_id)
+            ->with(['branch', 'currentEnrollment.section.grade', 'guardians']);
+
+        if (! $user->isOrgWide()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $students = $query->orderBy('first_name')->get();
+
+        // One query for every current-year invoice rather than N+1 --
+        // matched back to each student by student_id below.
+        $invoicesByStudent = Invoice::whereIn('student_id', $students->pluck('id'))
+            ->whereHas('academicYear', fn ($q) => $q->where('is_current', true))
+            ->with('items', 'payments')
+            ->get()
+            ->keyBy('student_id');
+
+        $rows = [
+            [$user->school->name],
+            ['Student List — '.now()->format('M j, Y')],
+            ['Student ID', 'Name', 'Gender', 'Status', 'Branch', 'Section', 'Guardian(s)', 'Fee Status'],
+        ];
+
+        foreach ($students as $s) {
+            $invoice = $invoicesByStudent->get($s->id);
+            $rows[] = [
+                $s->student_id_number,
+                $s->fullName(),
+                $s->gender,
+                $s->status,
+                $s->branch->name,
+                $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : 'Unassigned',
+                $s->guardians->pluck('name')->implode(', '),
+                $invoice ? str_replace('_', ' ', $invoice->statusLabel()) : 'No invoice',
+            ];
+        }
+
+        return Excel::download(new SimpleArrayExport($rows, 'Students'), 'students.xlsx');
     }
 
     public function create(Request $request): Response

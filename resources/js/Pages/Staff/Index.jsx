@@ -3,11 +3,13 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchInput from '@/Components/SearchInput';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 const ROLE_LABELS = {
     owner: 'Owner',
@@ -213,6 +215,18 @@ export default function Index({ staff, assignableRoles, availablePermissions, my
     const { flash } = usePage().props;
     const [showCreate, setShowCreate] = useState(false);
     const [editing, setEditing] = useState(null);
+    const [search, setSearch] = useState('');
+
+    const filtered = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return staff;
+        return staff.filter((s) =>
+            s.name.toLowerCase().includes(q) ||
+            s.email.toLowerCase().includes(q) ||
+            (s.title ?? '').toLowerCase().includes(q) ||
+            (ROLE_LABELS[s.role] ?? s.role).toLowerCase().includes(q)
+        );
+    }, [search, staff]);
 
     return (
         <AuthenticatedLayout
@@ -228,11 +242,22 @@ export default function Index({ staff, assignableRoles, availablePermissions, my
                         </div>
                     )}
 
-                    {canManage && (
-                        <div className="mb-4 flex justify-end">
-                            <PrimaryButton onClick={() => setShowCreate(true)}>Add Staff Account</PrimaryButton>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div className="w-full max-w-xs">
+                            <SearchInput value={search} onChange={setSearch} placeholder="Search name, email, title, tier…" />
                         </div>
-                    )}
+                        <div className="flex gap-3">
+                            <a
+                                href={route('staff.export')}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                                <ArrowDownTrayIcon className="h-4 w-4" /> Export to Excel
+                            </a>
+                            {canManage && (
+                                <PrimaryButton onClick={() => setShowCreate(true)}>Add Staff Account</PrimaryButton>
+                            )}
+                        </div>
+                    </div>
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -247,7 +272,7 @@ export default function Index({ staff, assignableRoles, availablePermissions, my
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {staff.map((s) => (
+                                {filtered.map((s) => (
                                     <tr key={s.id}>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                                             {s.name}
@@ -268,9 +293,11 @@ export default function Index({ staff, assignableRoles, availablePermissions, my
                                         </td>
                                     </tr>
                                 ))}
-                                {staff.length === 0 && (
+                                {filtered.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">No staff accounts yet.</td>
+                                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">
+                                            {staff.length === 0 ? 'No staff accounts yet.' : 'No staff match your search.'}
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>
