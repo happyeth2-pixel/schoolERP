@@ -19,6 +19,7 @@ class Student extends Model
         'first_name',
         'father_name',
         'grandfather_name',
+        'mother_name',
         'gender',
         'date_of_birth',
         'photo_path',
@@ -27,6 +28,7 @@ class Student extends Model
         'previous_school',
         'enrollment_date',
         'status',
+        'id_card_token',
     ];
 
     protected function casts(): array

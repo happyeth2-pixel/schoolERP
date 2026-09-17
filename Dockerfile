@@ -49,4 +49,4 @@ EXPOSE 8080
 # keyed on fixed names/emails, so re-running them is a no-op once the
 # data already exists. This only ever touches the 7 fixed demo accounts,
 # never anything a real user creates through the app.
-CMD php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+CMD php artisan storage:link && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

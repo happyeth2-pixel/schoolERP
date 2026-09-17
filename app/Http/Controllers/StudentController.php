@@ -12,6 +12,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -125,6 +127,7 @@ class StudentController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'father_name' => ['required', 'string', 'max:255'],
             'grandfather_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female'],
             'date_of_birth' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -154,6 +157,7 @@ class StudentController extends Controller
                 'first_name' => $validated['first_name'],
                 'father_name' => $validated['father_name'],
                 'grandfather_name' => $validated['grandfather_name'] ?? null,
+                'mother_name' => $validated['mother_name'] ?? null,
                 'gender' => $validated['gender'],
                 'date_of_birth' => $validated['date_of_birth'] ?? null,
                 'address' => $validated['address'] ?? null,
@@ -161,6 +165,7 @@ class StudentController extends Controller
                 'previous_school' => $validated['previous_school'] ?? null,
                 'enrollment_date' => $validated['enrollment_date'],
                 'status' => 'active',
+                'id_card_token' => Str::random(40),
             ]);
 
             Enrollment::create([
@@ -195,12 +200,14 @@ class StudentController extends Controller
                 'first_name' => $student->first_name,
                 'father_name' => $student->father_name,
                 'grandfather_name' => $student->grandfather_name,
+                'mother_name' => $student->mother_name,
                 'gender' => $student->gender,
                 'date_of_birth' => $student->date_of_birth?->format('Y-m-d'),
                 'address' => $student->address,
                 'emergency_contact' => $student->emergency_contact,
                 'previous_school' => $student->previous_school,
                 'status' => $student->status,
+                'photo_url' => $student->photo_path ? Storage::disk('public')->url($student->photo_path) : null,
                 'section' => $student->currentEnrollment
                     ? "{$student->currentEnrollment->section->grade->name} {$student->currentEnrollment->section->name}"
                     : null,
@@ -224,6 +231,7 @@ class StudentController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'father_name' => ['required', 'string', 'max:255'],
             'grandfather_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female'],
             'date_of_birth' => ['nullable', 'date'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -235,6 +243,25 @@ class StudentController extends Controller
         $student->update($validated);
 
         return back()->with('success', 'Student record updated.');
+    }
+
+    public function uploadPhoto(Request $request, Student $student): RedirectResponse
+    {
+        $request->user()->can('manage-students') || abort(403);
+        $this->assertInScope($request->user(), $student);
+
+        $validated = $request->validate([
+            'photo' => ['required', 'image', 'max:2048'],
+        ]);
+
+        if ($student->photo_path) {
+            Storage::disk('public')->delete($student->photo_path);
+        }
+
+        $path = $validated['photo']->store('student-photos', 'public');
+        $student->update(['photo_path' => $path]);
+
+        return back()->with('success', 'Photo updated.');
     }
 
     public function addGuardian(Request $request, Student $student): RedirectResponse

@@ -20,6 +20,7 @@ export default function Create({ sections }) {
         first_name: '',
         father_name: '',
         grandfather_name: '',
+        mother_name: '',
         gender: 'male',
         date_of_birth: '',
         address: '',
@@ -77,6 +78,12 @@ export default function Create({ sections }) {
                                 </Field>
                                 <Field id="grandfather_name" label="Grandfather's Name">
                                     <TextInput id="grandfather_name" className="mt-1 block w-full" value={data.grandfather_name} onChange={(e) => setData('grandfather_name', e.target.value)} />
+                                </Field>
+                            </div>
+
+                            <div className="mt-4">
+                                <Field id="mother_name" label="Mother's Name (optional)">
+                                    <TextInput id="mother_name" className="mt-1 block w-full" value={data.mother_name} onChange={(e) => setData('mother_name', e.target.value)} />
                                 </Field>
                             </div>
 

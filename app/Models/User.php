@@ -4,12 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -31,7 +33,15 @@ class User extends Authenticatable
         'phone',
         'password',
         'status',
+        'profile_photo_path',
     ];
+
+    protected $appends = ['profile_photo_url'];
+
+    protected function profilePhotoUrl(): Attribute
+    {
+        return Attribute::get(fn () => $this->profile_photo_path ? Storage::disk('public')->url($this->profile_photo_path) : null);
+    }
 
     public function school(): BelongsTo
     {

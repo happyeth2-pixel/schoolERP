@@ -208,7 +208,11 @@ export default function AuthenticatedLayout({ header, children }) {
                                     type="button"
                                     className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
                                 >
-                                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                                    {user.profile_photo_url ? (
+                                        <img src={user.profile_photo_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                    ) : (
+                                        <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                                    )}
                                     <span className="hidden text-right leading-tight sm:block">
                                         <span className="block">
                                             {user.name}

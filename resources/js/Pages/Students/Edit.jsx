@@ -4,8 +4,43 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+
+function PhotoForm({ studentId, photoUrl }) {
+    const { data, setData, post, processing, errors, reset } = useForm({ photo: null });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(route('students.photo', studentId), {
+            forceFormData: true,
+            onSuccess: () => reset(),
+        });
+    };
+
+    return (
+        <form onSubmit={submit} className="flex items-center gap-4">
+            {photoUrl ? (
+                <img src={photoUrl} alt="" className="h-16 w-16 rounded-md object-cover" />
+            ) : (
+                <UserCircleIcon className="h-16 w-16 text-gray-300 dark:text-gray-600" />
+            )}
+            <div>
+                <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setData('photo', e.target.files[0])}
+                    className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm dark:text-gray-300 dark:file:bg-gray-700 dark:file:text-gray-200"
+                />
+                <InputError message={errors.photo} className="mt-1" />
+                <button type="submit" disabled={!data.photo || processing} className="mt-2 text-sm text-indigo-600 hover:underline disabled:opacity-50 dark:text-indigo-400">
+                    Upload
+                </button>
+            </div>
+        </form>
+    );
+}
 
 function AddGuardianForm({ studentId, onDone }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -81,6 +116,7 @@ export default function Edit({ student, canManage }) {
         first_name: student.first_name,
         father_name: student.father_name,
         grandfather_name: student.grandfather_name ?? '',
+        mother_name: student.mother_name ?? '',
         gender: student.gender,
         date_of_birth: student.date_of_birth ?? '',
         address: student.address ?? '',
@@ -114,9 +150,21 @@ export default function Edit({ student, canManage }) {
                         </div>
                     )}
 
-                    <a href={route('report-card.show', student.id)} className="inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-                        View Report Card
-                    </a>
+                    <div className="flex gap-4">
+                        <a href={route('report-card.show', student.id)} className="inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+                            View Report Card
+                        </a>
+                        <a href={route('id-card.show', student.id)} className="inline-block text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+                            Digital ID Card
+                        </a>
+                    </div>
+
+                    {canManage && (
+                        <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
+                            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Photo</h3>
+                            <PhotoForm studentId={student.id} photoUrl={student.photo_url} />
+                        </div>
+                    )}
 
                     {!canManage && (
                         <div className="rounded-md bg-gray-100 px-4 py-3 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-300">
@@ -141,6 +189,11 @@ export default function Edit({ student, canManage }) {
                                 <InputLabel htmlFor="grandfather_name" value="Grandfather's Name" />
                                 <TextInput id="grandfather_name" className="mt-1 block w-full" value={data.grandfather_name} onChange={(e) => setData('grandfather_name', e.target.value)} />
                             </div>
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="mother_name" value="Mother's Name (optional)" />
+                            <TextInput id="mother_name" className="mt-1 block w-full" value={data.mother_name} onChange={(e) => setData('mother_name', e.target.value)} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">

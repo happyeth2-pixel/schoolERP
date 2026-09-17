@@ -11,6 +11,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FeeStructureController;
 use App\Http\Controllers\GradeBandController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MarkBatchController;
 use App\Http\Controllers\NotificationController;
@@ -39,10 +40,15 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
+// Public, no-login ID card verification -- this is what a card's QR code
+// points to, so it deliberately lives outside the auth middleware group.
+Route::get('/verify/{token}', [IdCardController::class, 'verify'])->name('id-card.verify');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
     Route::get('/settings/school', [SchoolSettingsController::class, 'edit'])->name('school-settings.edit');
     Route::patch('/settings/school', [SchoolSettingsController::class, 'update'])->name('school-settings.update');
@@ -89,6 +95,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/students/{student}', [StudentController::class, 'update'])->name('students.update');
     Route::post('/students/{student}/guardians', [StudentController::class, 'addGuardian'])->name('students.guardians.store');
     Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy');
+    Route::post('/students/{student}/photo', [StudentController::class, 'uploadPhoto'])->name('students.photo');
+    Route::get('/students/{student}/id-card', [IdCardController::class, 'show'])->name('id-card.show');
 
     Route::get('/parents', [ParentController::class, 'index'])->name('parents.index');
     Route::get('/parents/search', [ParentController::class, 'search'])->name('parents.search');
