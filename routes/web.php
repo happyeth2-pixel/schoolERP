@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicStructureController;
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceReportController;
@@ -58,7 +59,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/terms/{term}', [TermController::class, 'update'])->name('terms.update');
     Route::delete('/terms/{term}', [TermController::class, 'destroy'])->name('terms.destroy');
 
-    Route::get('/grades', [GradeController::class, 'index'])->name('grades.index');
+    // Grades & Sections share one combined page now (testers correctly
+    // flagged the split as needless) -- the underlying store/update/
+    // destroy actions are unchanged, only the two GET index pages merged.
+    Route::get('/academic-structure', [AcademicStructureController::class, 'index'])->name('academic-structure.index');
     Route::post('/grades', [GradeController::class, 'store'])->name('grades.store');
     Route::patch('/grades/{grade}', [GradeController::class, 'update'])->name('grades.update');
     Route::delete('/grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
@@ -68,7 +72,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/subjects/{subject}', [SubjectController::class, 'update'])->name('subjects.update');
     Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
 
-    Route::get('/sections', [SectionController::class, 'index'])->name('sections.index');
     Route::post('/sections', [SectionController::class, 'store'])->name('sections.store');
     Route::patch('/sections/{section}', [SectionController::class, 'update'])->name('sections.update');
     Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');

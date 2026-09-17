@@ -5,35 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Section;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class SectionController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        $request->user()->canViewOrManage('manage-classes') || abort(403);
-        $user = $request->user();
-        $school = $user->school;
-
-        $sectionsQuery = Section::query()
-            ->whereIn('branch_id', $school->branches()->pluck('id'))
-            ->with(['branch', 'grade', 'academicYear']);
-
-        if (! $user->isOrgWide()) {
-            $sectionsQuery->where('branch_id', $user->branch_id);
-        }
-
-        return Inertia::render('Sections/Index', [
-            'sections' => $sectionsQuery->orderBy('grade_id')->orderBy('name')->get(),
-            'branches' => $user->isOrgWide()
-                ? $school->branches()->orderBy('name')->get()
-                : $school->branches()->where('id', $user->branch_id)->get(),
-            'grades' => $school->grades()->orderBy('sort_order')->get(),
-            'academicYears' => $school->academicYears()->orderByDesc('start_date')->get(),
-        ]);
-    }
-
     public function store(Request $request): RedirectResponse
     {
         $request->user()->can('manage-classes') || abort(403);

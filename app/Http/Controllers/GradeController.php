@@ -5,20 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Grade;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class GradeController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        $request->user()->can('manage-classes') || abort(403);
-
-        return Inertia::render('Grades/Index', [
-            'grades' => $request->user()->school->grades()->orderBy('sort_order')->get(),
-        ]);
-    }
-
     public function store(Request $request): RedirectResponse
     {
         $request->user()->can('manage-classes') || abort(403);

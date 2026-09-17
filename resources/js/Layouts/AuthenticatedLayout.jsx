@@ -1,8 +1,43 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import { buildNavSections } from '@/navigation';
+import { getStoredTheme, setTheme } from '@/theme';
+import {
+    Bars3Icon,
+    BellIcon,
+    ChevronDownIcon,
+    MagnifyingGlassIcon,
+    MoonIcon,
+    SunIcon,
+    UserCircleIcon,
+} from '@heroicons/react/24/outline';
 import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+function ThemeToggle() {
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        setIsDark(getStoredTheme() === 'dark');
+    }, []);
+
+    const toggle = () => {
+        const next = isDark ? 'light' : 'dark';
+        setTheme(next);
+        setIsDark(!isDark);
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={toggle}
+            className="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+            title={isDark ? 'Switch to light theme' : 'Switch to dim theme'}
+        >
+            {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+        </button>
+    );
+}
 
 function NotificationBell() {
     const { notifications } = usePage().props;
@@ -14,9 +49,7 @@ function NotificationBell() {
         <Dropdown>
             <Dropdown.Trigger>
                 <button type="button" className="relative rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
+                    <BellIcon className="h-5 w-5" />
                     {notifications.unreadCount > 0 && (
                         <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
                             {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
@@ -50,8 +83,8 @@ function NotificationBell() {
 }
 
 function SidebarLink({ item }) {
-    const base =
-        'block rounded-md px-3 py-2 text-sm font-medium transition';
+    const Icon = item.icon;
+    const base = 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition';
 
     if (!item.enabled) {
         return (
@@ -59,6 +92,7 @@ function SidebarLink({ item }) {
                 className={`${base} cursor-not-allowed text-gray-400 dark:text-gray-600`}
                 title="Coming in a later phase"
             >
+                {Icon && <Icon className="h-5 w-5 shrink-0" />}
                 {item.label}
             </span>
         );
@@ -69,12 +103,13 @@ function SidebarLink({ item }) {
     return (
         <Link
             href={route(item.route)}
-            className={`${base} ${
+            className={`${base} border-l-[3px] ${
                 active
-                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                    ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-700 dark:border-indigo-400 dark:bg-indigo-900/40 dark:text-indigo-300'
+                    : 'border-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
             }`}
         >
+            {Icon && <Icon className="h-5 w-5 shrink-0" />}
             {item.label}
         </Link>
     );
@@ -89,11 +124,11 @@ function Sidebar({ mobileOpen, onClose }) {
 
     return (
         <aside
-            className={`fixed inset-y-0 left-0 z-30 w-64 transform border-r border-gray-200 bg-white transition-transform dark:border-gray-700 dark:bg-gray-800 lg:static lg:translate-x-0 ${
+            className={`fixed inset-y-0 left-0 z-30 flex w-64 transform flex-col border-r border-gray-200 bg-white transition-transform dark:border-gray-700 dark:bg-gray-800 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
                 mobileOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
         >
-            <div className="flex h-16 items-center gap-2 border-b border-gray-100 px-4 dark:border-gray-700">
+            <div className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-100 px-4 dark:border-gray-700">
                 <Link href="/" onClick={onClose}>
                     <ApplicationLogo className="h-8 w-auto fill-current text-gray-800 dark:text-gray-200" />
                 </Link>
@@ -102,7 +137,7 @@ function Sidebar({ mobileOpen, onClose }) {
                 </span>
             </div>
 
-            <nav className="space-y-4 overflow-y-auto px-3 py-4">
+            <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
                 {sections.map((section) => (
                     <div key={section.label}>
                         <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -126,7 +161,7 @@ export default function AuthenticatedLayout({ header, children }) {
     const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 lg:flex">
+        <div className="min-h-screen bg-slate-200 dark:bg-gray-900 lg:flex">
             <Sidebar
                 mobileOpen={mobileOpen}
                 onClose={() => setMobileOpen(false)}
@@ -140,43 +175,41 @@ export default function AuthenticatedLayout({ header, children }) {
             )}
 
             <div className="flex min-h-screen flex-1 flex-col">
-                <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-800">
+                <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-800">
                     <div className="flex items-center gap-3">
                         <button
                             className="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
                             onClick={() => setMobileOpen(true)}
                         >
-                            <svg
-                                className="h-6 w-6"
-                                stroke="currentColor"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                />
-                            </svg>
+                            <Bars3Icon className="h-6 w-6" />
                         </button>
                         {header}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href="#"
+                            onClick={(e) => e.preventDefault()}
+                            className="hidden rounded-md p-2 text-gray-400 sm:block"
+                            title="Site-wide search — coming soon"
+                        >
+                            <MagnifyingGlassIcon className="h-5 w-5" />
+                        </Link>
                         {auth.branch?.name && (
                             <span className="hidden rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300 sm:inline">
                                 {auth.branch.name}
                             </span>
                         )}
+                        <ThemeToggle />
                         <NotificationBell />
                         <Dropdown>
                             <Dropdown.Trigger>
                                 <button
                                     type="button"
-                                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
+                                    className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
                                 >
-                                    <span className="text-right leading-tight">
+                                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                                    <span className="hidden text-right leading-tight sm:block">
                                         <span className="block">
                                             {user.name}
                                         </span>
@@ -186,17 +219,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                             </span>
                                         )}
                                     </span>
-                                    <svg
-                                        className="h-4 w-4"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
+                                    <ChevronDownIcon className="h-4 w-4" />
                                 </button>
                             </Dropdown.Trigger>
                             <Dropdown.Content>
