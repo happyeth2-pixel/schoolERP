@@ -95,6 +95,8 @@ class DashboardController extends Controller
             'today_attendance_rate' => $marked > 0 ? round($present / $marked * 100, 1) : null,
             'today_marked' => $marked,
             'fee_collection_rate' => $totalDue > 0 ? round($totalPaid / $totalDue * 100, 1) : null,
+            'fees_total' => round($totalDue, 2),
+            'fees_paid' => round($totalPaid, 2),
             'outstanding_fees' => round($totalDue - $totalPaid, 2),
             'pending_payments_count' => $this->pendingPaymentsCount($user),
         ];
@@ -128,6 +130,8 @@ class DashboardController extends Controller
         return [
             'collected_today' => (float) $verifiedToday,
             'collected_this_month' => (float) $verifiedThisMonth,
+            'fees_total' => round($totalDue, 2),
+            'fees_paid' => round($totalPaid, 2),
             'outstanding_balance' => round($totalDue - $totalPaid, 2),
             'pending_payments_count' => $this->pendingPaymentsCount($user),
         ];
@@ -196,6 +200,8 @@ class DashboardController extends Controller
                     'attendance_rate' => $attendance['rate'],
                     'today_status' => $attendance['today_status'],
                     'invoice_id' => $invoice?->id,
+                    'invoice_total' => $invoice?->totalAmount(),
+                    'invoice_paid' => $invoice?->paidAmount(),
                     'balance' => $invoice?->balance(),
                 ];
             }),

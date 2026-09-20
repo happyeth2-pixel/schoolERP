@@ -1,3 +1,5 @@
+import Meter from '@/Components/Meter';
+import SplitMeter from '@/Components/SplitMeter';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -26,13 +28,20 @@ function OrgDashboard({ title, blurb, stats }) {
         <div className="grid gap-4 sm:grid-cols-2">
             <StatTile label="Total Students" value={stats.total_students} />
             <StatTile label="Total Teachers" value={stats.total_teachers} />
-            <StatTile
+            <Meter
                 label="Today's Attendance"
-                value={stats.today_attendance_rate !== null ? `${stats.today_attendance_rate}%` : 'Not marked yet'}
-                hint={stats.today_marked > 0 ? `${stats.today_marked} students marked so far` : undefined}
+                value={stats.today_attendance_rate}
+                thresholds={{ good: 90, warning: 75 }}
+                sublabel={stats.today_marked > 0 ? `${stats.today_marked} students marked so far` : undefined}
+                emptyLabel="Not marked yet"
             />
-            <StatTile label="Fee Collection %" value={stats.fee_collection_rate !== null ? `${stats.fee_collection_rate}%` : 'No invoices yet'} />
-            <StatTile label="Outstanding Fees (ETB)" value={Number(stats.outstanding_fees).toLocaleString()} />
+            <Meter
+                label="Fee Collection Rate"
+                value={stats.fee_collection_rate}
+                thresholds={{ good: 75, warning: 40 }}
+                emptyLabel="No invoices yet"
+            />
+            <SplitMeter label="School Fees (Current Year)" paid={stats.fees_paid} total={stats.fees_total} />
             <StatTile label="Payment Proofs Pending" value={stats.pending_payments_count} />
         </div>
     );
@@ -43,7 +52,7 @@ function AccountantDashboard({ stats }) {
         <div className="grid gap-4 sm:grid-cols-2">
             <StatTile label="Fees Collected Today (ETB)" value={Number(stats.collected_today).toLocaleString()} />
             <StatTile label="Fees Collected This Month (ETB)" value={Number(stats.collected_this_month).toLocaleString()} />
-            <StatTile label="Outstanding Balance (ETB)" value={Number(stats.outstanding_balance).toLocaleString()} />
+            <SplitMeter label="School Fees (Current Year)" paid={stats.fees_paid} total={stats.fees_total} />
             <StatTile label="Payment Proofs Pending Review" value={stats.pending_payments_count} />
         </div>
     );
@@ -93,36 +102,39 @@ function TeacherDashboard({ stats }) {
     );
 }
 
+function ChildStatusBadge({ status }) {
+    const style = {
+        present: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+        late: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+        absent: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+        excused: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+        sick: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    }[status] ?? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+
+    return <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${style}`}>{status ?? 'Not marked today'}</span>;
+}
+
 function ParentDashboard({ stats }) {
     return (
         <div className="space-y-4">
             {stats.children.map((c) => (
                 <div key={c.id} className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{c.name}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-xs text-gray-400">Attendance (this year)</p>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {c.attendance_rate !== null ? `${c.attendance_rate}%` : 'No records yet'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Today</p>
-                            <p className="text-lg font-semibold capitalize text-gray-900 dark:text-gray-100">
-                                {c.today_status ?? 'Not marked'}
-                            </p>
-                        </div>
+                    <div className="mb-3 flex items-center justify-between">
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{c.name}</p>
+                        <ChildStatusBadge status={c.today_status} />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <Meter label="Attendance (this year)" value={c.attendance_rate} thresholds={{ good: 90, warning: 75 }} />
+                        <SplitMeter label="School Fees" paid={c.invoice_paid} total={c.invoice_total} />
                     </div>
                     <div className="mt-3 flex items-center justify-between">
                         <Link href={route('report-card.show', c.id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
                             View Report Card
                         </Link>
-                        {c.invoice_id ? (
+                        {c.invoice_id && (
                             <Link href={route('invoices.show', c.invoice_id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-                                {c.balance > 0 ? `${Number(c.balance).toLocaleString()} ETB due` : 'Fees paid up'}
+                                View Invoice
                             </Link>
-                        ) : (
-                            <span className="text-xs text-gray-400">No invoice yet</span>
                         )}
                     </div>
                 </div>
@@ -136,8 +148,11 @@ function StudentDashboard({ stats }) {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-                <StatTile label="My Attendance (this year)" value={stats.attendance_rate !== null ? `${stats.attendance_rate}%` : 'No records yet'} />
-                <StatTile label="Today" value={stats.today_status ?? 'Not marked'} />
+                <Meter label="My Attendance (this year)" value={stats.attendance_rate} thresholds={{ good: 90, warning: 75 }} />
+                <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Today</p>
+                    <div className="mt-2"><ChildStatusBadge status={stats.today_status} /></div>
+                </div>
             </div>
             {stats.student_id ? (
                 <Link href={route('report-card.show', stats.student_id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
