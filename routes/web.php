@@ -20,6 +20,7 @@ use App\Http\Controllers\OptionalServiceController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\SchoolSettingsController;
 use App\Http\Controllers\SectionController;
@@ -101,6 +102,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/{student}/id-card', [IdCardController::class, 'show'])->name('id-card.show');
     Route::post('/students/{student}/optional-services', [OptionalServiceController::class, 'enrollStudent'])->name('students.optional-services.store');
     Route::delete('/students/{student}/optional-services/{optionalService}', [OptionalServiceController::class, 'withdrawStudent'])->name('students.optional-services.destroy');
+
+    Route::get('/promotions', [PromotionController::class, 'index'])->name('promotions.index');
+    Route::post('/promotions', [PromotionController::class, 'store'])->name('promotions.store');
 
     Route::get('/parents', [ParentController::class, 'index'])->name('parents.index');
     Route::get('/parents/search', [ParentController::class, 'search'])->name('parents.search');

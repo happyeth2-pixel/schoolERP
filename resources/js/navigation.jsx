@@ -1,5 +1,6 @@
 import {
     AcademicCapIcon,
+    ArrowUpCircleIcon,
     BanknotesIcon,
     BellIcon,
     BriefcaseIcon,
@@ -101,6 +102,7 @@ export function buildNavSections({ role, permissions = [] }) {
                 { label: 'Staff Accounts', route: 'staff.index', enabled: has('manage-staff') || isAuditor, show: has('manage-staff') || isAuditor, icon: BriefcaseIcon },
                 { label: 'Students', route: 'students.index', enabled: has('manage-students') || isAuditor, show: has('manage-students') || isAuditor, icon: AcademicCapIcon },
                 { label: 'Parents', route: 'parents.index', enabled: has('manage-parents') || isAuditor, show: has('manage-parents') || isAuditor, icon: UserGroupIcon },
+                { label: 'Promote Students', route: 'promotions.index', enabled: has('manage-students'), show: has('manage-students'), icon: ArrowUpCircleIcon },
             ].filter((i) => i.show !== false),
         });
     }
