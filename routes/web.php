@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/{student}/guardians', [StudentController::class, 'addGuardian'])->name('students.guardians.store');
     Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy');
     Route::post('/students/{student}/photo', [StudentController::class, 'uploadPhoto'])->name('students.photo');
+    Route::post('/students/{student}/transfer', [StudentController::class, 'transfer'])->name('students.transfer');
     Route::get('/students/{student}/id-card', [IdCardController::class, 'show'])->name('id-card.show');
     Route::post('/students/{student}/optional-services', [OptionalServiceController::class, 'enrollStudent'])->name('students.optional-services.store');
     Route::delete('/students/{student}/optional-services/{optionalService}', [OptionalServiceController::class, 'withdrawStudent'])->name('students.optional-services.destroy');

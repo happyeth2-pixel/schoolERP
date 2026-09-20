@@ -83,13 +83,15 @@ class SampleAcademicDataSeeder extends Seeder
             }
 
             foreach ($section->enrollments()->where('status', 'active')->get() as $enrollment) {
-                if (Invoice::where('student_id', $enrollment->student_id)->where('academic_year_id', $year->id)->exists()) {
+                if (Invoice::where('student_id', $enrollment->student_id)->where('academic_year_id', $year->id)->where('frequency', 'annual')->where('period_start', $year->start_date)->exists()) {
                     continue;
                 }
 
                 $invoice = Invoice::create([
                     'student_id' => $enrollment->student_id,
                     'academic_year_id' => $year->id,
+                    'frequency' => 'annual',
+                    'period_start' => $year->start_date,
                     'invoice_number' => $this->nextInvoiceNumber($school->id),
                 ]);
                 $invoice->items()->create(['description' => $fee->name, 'amount' => $fee->amount]);

@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SimpleArrayExport;
+use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeStructure;
 use App\Models\Invoice;
-use App\Models\OptionalService;
 use App\Models\Student;
+use App\Models\Term;
+use App\Notifications\InvoiceGenerated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -34,6 +38,7 @@ class InvoiceController extends Controller
             'invoice_number' => $i->invoice_number,
             'student' => $i->student->fullName(),
             'student_id_number' => $i->student->student_id_number,
+            'period' => $i->period_label ?? 'Full Year',
             'total' => $i->totalAmount(),
             'paid' => $i->paidAmount(),
             'balance' => $i->balance(),
@@ -67,7 +72,7 @@ class InvoiceController extends Controller
         $rows = [
             [$user->school->name],
             ['Invoices — '.now()->format('M j, Y')],
-            ['Invoice #', 'Student', 'Student ID', 'Total (ETB)', 'Paid (ETB)', 'Balance (ETB)', 'Status'],
+            ['Invoice #', 'Student', 'Student ID', 'Period', 'Total (ETB)', 'Paid (ETB)', 'Balance (ETB)', 'Status'],
         ];
 
         foreach ($invoices as $i) {
@@ -75,6 +80,7 @@ class InvoiceController extends Controller
                 $i->invoice_number,
                 $i->student->fullName(),
                 $i->student->student_id_number,
+                $i->period_label ?? 'Full Year',
                 $i->totalAmount(),
                 $i->paidAmount(),
                 $i->balance(),
@@ -86,11 +92,19 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Bulk-generates one invoice per actively-enrolled student in a
-     * given branch+grade for the current academic year, snapshotting
-     * that grade's fee structure line items at generation time.
-     * Students who already have an invoice for the year are skipped —
-     * safe to run again after enrolling a few more students.
+     * Bulk-generates invoices for every actively-enrolled student in a
+     * given branch+grade for the current academic year. How many
+     * invoices each student gets depends on how their fees are billed:
+     * an "annual" fee produces one invoice for the whole year, a
+     * "termly" fee produces one invoice per real Term the school has
+     * set up (using each Term's actual dates, not assumed equal
+     * slices), and a "monthly" fee produces one per calendar month
+     * spanning the academic year (there's no stored "Month" model, so
+     * these are computed). A student can end up with a mix of all
+     * three if the grade's fees are set up that way. Re-running this
+     * only ever fills in whatever period is still missing for a
+     * student -- it never duplicates an invoice for a period that
+     * already has one.
      */
     public function generate(Request $request): RedirectResponse
     {
@@ -109,61 +123,136 @@ class InvoiceController extends Controller
 
         $academicYear = $user->school->academicYears()->where('is_current', true)->firstOrFail();
 
-        $feeItems = FeeStructure::where('branch_id', $branch->id)
+        $feesByFrequency = FeeStructure::where('branch_id', $branch->id)
             ->where('grade_id', $validated['grade_id'])
             ->where('academic_year_id', $academicYear->id)
-            ->get();
+            ->get()
+            ->groupBy('frequency');
 
-        abort_if($feeItems->isEmpty(), 422, 'No fee structure defined for this branch/grade/year yet.');
+        $terms = Term::where('academic_year_id', $academicYear->id)->orderBy('start_date')->get();
+
+        abort_if($feesByFrequency->has('termly') && $terms->isEmpty(), 422, 'This grade has a "per term" fee, but no terms are set up for the current academic year yet.');
 
         $enrollments = Enrollment::where('status', 'active')
             ->whereHas('section', fn ($q) => $q->where('branch_id', $branch->id)->where('grade_id', $validated['grade_id'])->where('academic_year_id', $academicYear->id))
-            ->with('student')
+            ->with('student.optionalServices', 'student.guardians')
             ->get();
+
+        $monthlyPeriods = $this->monthlyPeriods($academicYear);
 
         $created = 0;
         foreach ($enrollments as $enrollment) {
-            $exists = Invoice::where('student_id', $enrollment->student_id)->where('academic_year_id', $academicYear->id)->exists();
-            if ($exists) {
-                continue;
-            }
-
-            $invoice = Invoice::create([
-                'student_id' => $enrollment->student_id,
-                'academic_year_id' => $academicYear->id,
-                'invoice_number' => $this->nextInvoiceNumber($user->school_id),
-            ]);
-
-            foreach ($feeItems as $item) {
-                $invoice->items()->create(['description' => $item->name, 'amount' => $item->amount]);
-            }
+            $student = $enrollment->student;
 
             // Optional services (tutoring, transportation, ...) only bill
             // students who actually opted in -- never the whole grade.
-            $optedInServices = $enrollment->student->optionalServices()
-                ->where('optional_services.academic_year_id', $academicYear->id)
-                ->get();
+            $studentServices = $student->optionalServices
+                ->where('branch_id', $branch->id)
+                ->where('academic_year_id', $academicYear->id);
 
-            foreach ($optedInServices as $service) {
-                $invoice->items()->create(['description' => $service->name, 'amount' => $service->amount]);
+            $created += $this->billPeriod(
+                $user, $student, $academicYear, null, null, 'annual', $academicYear->start_date,
+                $feesByFrequency->get('annual', collect()), $studentServices->where('frequency', 'annual')
+            );
+
+            if ($feesByFrequency->has('termly') || $studentServices->where('frequency', 'termly')->isNotEmpty()) {
+                foreach ($terms as $term) {
+                    $created += $this->billPeriod(
+                        $user, $student, $academicYear, $term, $term->name, 'termly', $term->start_date,
+                        $feesByFrequency->get('termly', collect()), $studentServices->where('frequency', 'termly')
+                    );
+                }
             }
 
-            $created++;
+            if ($feesByFrequency->has('monthly') || $studentServices->where('frequency', 'monthly')->isNotEmpty()) {
+                foreach ($monthlyPeriods as [$periodStart, $label]) {
+                    $created += $this->billPeriod(
+                        $user, $student, $academicYear, null, $label, 'monthly', $periodStart,
+                        $feesByFrequency->get('monthly', collect()), $studentServices->where('frequency', 'monthly')
+                    );
+                }
+            }
         }
 
         return back()->with('success', "{$created} invoice(s) generated.");
+    }
+
+    /**
+     * Creates one invoice for one student for one billing period, if
+     * it doesn't already exist. Returns 1 if an invoice was created,
+     * 0 if that period was already billed or there was nothing to
+     * charge for it.
+     */
+    private function billPeriod($user, Student $student, AcademicYear $year, ?Term $term, ?string $label, string $frequency, $periodStart, Collection $fees, Collection $services): int
+    {
+        if ($fees->isEmpty() && $services->isEmpty()) {
+            return 0;
+        }
+
+        $exists = Invoice::where('student_id', $student->id)
+            ->where('academic_year_id', $year->id)
+            ->where('frequency', $frequency)
+            ->where('period_start', $periodStart)
+            ->exists();
+
+        if ($exists) {
+            return 0;
+        }
+
+        $invoice = Invoice::create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'term_id' => $term?->id,
+            'period_label' => $label,
+            'frequency' => $frequency,
+            'period_start' => $periodStart,
+            'invoice_number' => $this->nextInvoiceNumber($user->school_id),
+        ]);
+
+        foreach ($fees as $fee) {
+            $invoice->items()->create(['description' => $fee->name, 'amount' => $fee->amount]);
+        }
+        foreach ($services as $service) {
+            $invoice->items()->create(['description' => $service->name, 'amount' => $service->amount]);
+        }
+
+        $student->guardians->each(fn ($guardian) => $guardian->notify(new InvoiceGenerated($invoice)));
+
+        return 1;
+    }
+
+    /**
+     * One entry per calendar month the academic year spans, e.g.
+     * [2026-09-01, "September 2026"]. Months aren't a stored model in
+     * this schema, so these are computed fresh every time rather than
+     * persisted -- they only ever need to exist long enough to check
+     * "does an invoice already have this period_start".
+     */
+    private function monthlyPeriods(AcademicYear $year): array
+    {
+        $periods = [];
+        $cursor = Carbon::parse($year->start_date)->startOfMonth();
+        $end = Carbon::parse($year->end_date);
+
+        while ($cursor->lte($end)) {
+            $periods[] = [$cursor->toDateString(), $cursor->format('F Y')];
+            $cursor = $cursor->copy()->addMonthNoOverflow();
+        }
+
+        return $periods;
     }
 
     public function show(Request $request, Invoice $invoice): Response
     {
         $this->authorizeView($request->user(), $invoice);
 
-        $invoice->load(['student', 'items', 'payments.submittedBy', 'payments.verifiedBy']);
+        $invoice->load(['student.school', 'items', 'payments.submittedBy', 'payments.verifiedBy']);
 
         return Inertia::render('Invoices/Show', [
             'invoice' => [
                 'id' => $invoice->id,
                 'invoice_number' => $invoice->invoice_number,
+                'period' => $invoice->period_label ?? 'Full Year',
                 'student' => ['id' => $invoice->student->id, 'name' => $invoice->student->fullName()],
                 'items' => $invoice->items,
                 'subtotal' => $invoice->subtotal(),
@@ -188,6 +277,12 @@ class InvoiceController extends Controller
                 ]),
             ],
             'canManage' => $request->user()->can('manage-invoices'),
+            'paymentAccount' => [
+                'bank_name' => $invoice->student->school->bank_name,
+                'bank_account_number' => $invoice->student->school->bank_account_number,
+                'bank_account_name' => $invoice->student->school->bank_account_name,
+                'mobile_money_number' => $invoice->student->school->mobile_money_number,
+            ],
         ]);
     }
 

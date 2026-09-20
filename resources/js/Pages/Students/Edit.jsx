@@ -42,6 +42,12 @@ function PhotoForm({ studentId, photoUrl }) {
     );
 }
 
+const FREQUENCY_LABEL = {
+    annual: 'annual',
+    termly: 'per term',
+    monthly: 'monthly',
+};
+
 function OptionalServicesForm({ studentId, services }) {
     const [busyId, setBusyId] = useState(null);
 
@@ -64,7 +70,7 @@ function OptionalServicesForm({ studentId, services }) {
             {services.map((s) => (
                 <li key={s.id} className="flex items-center justify-between py-2 text-sm">
                     <span>
-                        {s.name} <span className="text-gray-400">({Number(s.amount).toLocaleString()} ETB{s.enrolled_on ? ` — enrolled ${s.enrolled_on}` : ''})</span>
+                        {s.name} <span className="text-gray-400">({Number(s.amount).toLocaleString()} ETB {FREQUENCY_LABEL[s.frequency] ?? s.frequency}{s.enrolled_on ? ` — enrolled ${s.enrolled_on}` : ''})</span>
                     </span>
                     <button
                         disabled={busyId === s.id}
@@ -146,7 +152,42 @@ function AddGuardianForm({ studentId, onDone }) {
     );
 }
 
-export default function Edit({ student, canManage, availableServices, canManageServices }) {
+function TransferSectionForm({ studentId, sections }) {
+    const { data, setData, post, processing, errors, reset } = useForm({ to_section_id: '' });
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!confirm('Move this student to the selected section now?')) {
+            return;
+        }
+        post(route('students.transfer', studentId), { onSuccess: () => reset() });
+    };
+
+    if (sections.length === 0) {
+        return <p className="text-sm text-gray-400">No other sections available to transfer into for the current year.</p>;
+    }
+
+    return (
+        <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
+            <div>
+                <InputLabel htmlFor="to_section_id" value="Move to section" />
+                <select
+                    id="to_section_id"
+                    className="mt-1 block w-56 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    value={data.to_section_id}
+                    onChange={(e) => setData('to_section_id', e.target.value)}
+                >
+                    <option value="">Select…</option>
+                    {sections.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <InputError message={errors.to_section_id} className="mt-1" />
+            </div>
+            <PrimaryButton disabled={!data.to_section_id || processing}>Transfer</PrimaryButton>
+        </form>
+    );
+}
+
+export default function Edit({ student, canManage, availableServices, transferSections, canManageServices }) {
     const { flash } = usePage().props;
     const [addingGuardian, setAddingGuardian] = useState(false);
     const { data, setData, patch, processing, errors } = useForm({
@@ -283,11 +324,19 @@ export default function Edit({ student, canManage, availableServices, canManageS
                             </div>
                         </div>
 
-                        <p className="text-sm text-gray-500">Current section: {student.section ?? 'Unassigned'}</p>
-
                         {canManage && <PrimaryButton disabled={processing}>Save</PrimaryButton>}
                     </fieldset>
                     </form>
+
+                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Section</h3>
+                        <p className="mb-3 text-sm text-gray-500">Current: {student.section ?? 'Unassigned'}</p>
+                        {canManage ? (
+                            <TransferSectionForm studentId={student.id} sections={transferSections} />
+                        ) : (
+                            <p className="text-sm text-gray-400">Read-only.</p>
+                        )}
+                    </div>
 
                     <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
                         <div className="mb-3 flex items-center justify-between">

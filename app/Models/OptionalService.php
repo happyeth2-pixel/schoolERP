@@ -11,7 +11,7 @@ class OptionalService extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['branch_id', 'academic_year_id', 'name', 'amount'];
+    protected $fillable = ['branch_id', 'academic_year_id', 'name', 'amount', 'frequency'];
 
     public function branch(): BelongsTo
     {

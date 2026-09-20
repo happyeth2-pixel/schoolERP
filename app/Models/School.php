@@ -21,6 +21,10 @@ class School extends Model
         'phone',
         'email',
         'calendar_preference',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
+        'mobile_money_number',
     ];
 
     public function branches(): HasMany

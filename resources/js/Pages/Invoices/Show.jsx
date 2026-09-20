@@ -100,7 +100,31 @@ const PAYMENT_STATUS_STYLE = {
     rejected: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
 };
 
-export default function Show({ invoice, canManage }) {
+function PaymentAccountInfo({ account }) {
+    const rows = [
+        ['Bank', account.bank_name],
+        ['Account Number', account.bank_account_number],
+        ['Account Name', account.bank_account_name],
+        ['Mobile Money', account.mobile_money_number],
+    ].filter(([, value]) => value);
+
+    if (rows.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm dark:border-indigo-800 dark:bg-indigo-900/30">
+            <p className="mb-1 font-medium text-indigo-800 dark:text-indigo-300">Send payment to:</p>
+            {rows.map(([label, value]) => (
+                <p key={label} className="text-indigo-700 dark:text-indigo-300">
+                    <span className="text-indigo-500 dark:text-indigo-400">{label}:</span> {value}
+                </p>
+            ))}
+        </div>
+    );
+}
+
+export default function Show({ invoice, canManage, paymentAccount }) {
     const { flash, auth } = usePage().props;
     const [editingDiscount, setEditingDiscount] = useState(false);
     const isParent = auth.role === 'parent';
@@ -126,7 +150,7 @@ export default function Show({ invoice, canManage }) {
                     )}
 
                     <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
-                        <p className="text-sm text-gray-500">{invoice.student.name}</p>
+                        <p className="text-sm text-gray-500">{invoice.student.name} · {invoice.period}</p>
 
                         <table className="mt-4 min-w-full">
                             <tbody>
@@ -197,7 +221,8 @@ export default function Show({ invoice, canManage }) {
                         </div>
 
                         {isParent && invoice.balance > 0 && (
-                            <div className="mt-4">
+                            <div className="mt-4 space-y-3">
+                                <PaymentAccountInfo account={paymentAccount} />
                                 <PaymentForm invoiceId={invoice.id} onDone={() => {}} />
                             </div>
                         )}

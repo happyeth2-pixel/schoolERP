@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\OptionalService;
 use App\Models\Student;
+use App\Models\Term;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +31,7 @@ class OptionalServiceController extends Controller
                 'id' => $s->id,
                 'name' => $s->name,
                 'amount' => $s->amount,
+                'frequency' => $s->frequency,
                 'branch' => $s->branch->name,
                 'academic_year' => $s->academicYear->name,
                 'enrolled_count' => $s->students()->count(),
@@ -50,6 +53,7 @@ class OptionalServiceController extends Controller
             'academic_year_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
+            'frequency' => ['required', 'in:annual,termly,monthly'],
         ]);
 
         $this->assertBranchInScope($user, (int) $validated['branch_id']);
@@ -68,6 +72,7 @@ class OptionalServiceController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
+            'frequency' => ['required', 'in:annual,termly,monthly'],
         ]);
 
         $optionalService->update($validated);
@@ -110,15 +115,44 @@ class OptionalServiceController extends Controller
 
         $student->optionalServices()->attach($service->id, ['enrolled_on' => now()->toDateString()]);
 
-        $invoice = Invoice::where('student_id', $student->id)
-            ->where('academic_year_id', $service->academic_year_id)
-            ->first();
+        $invoice = $this->currentPeriodInvoice($student, $service);
 
         if ($invoice) {
             $invoice->items()->create(['description' => $service->name, 'amount' => $service->amount]);
         }
 
         return back()->with('success', "Enrolled in {$service->name}.");
+    }
+
+    /**
+     * The invoice this service's charge should land on right now, if
+     * one already exists for the period we're currently in -- an
+     * annual invoice for the year, a termly one for whichever Term
+     * covers today, or a monthly one for the current calendar month.
+     * If no such invoice exists yet, this returns null and the charge
+     * simply gets picked up the next time invoices are generated for
+     * that period, same as any other fee.
+     */
+    private function currentPeriodInvoice(Student $student, OptionalService $service): ?Invoice
+    {
+        $periodStart = match ($service->frequency) {
+            'annual' => $service->academicYear->start_date,
+            'termly' => Term::where('academic_year_id', $service->academic_year_id)
+                ->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now())
+                ->value('start_date'),
+            'monthly' => Carbon::now()->startOfMonth()->toDateString(),
+        };
+
+        if (! $periodStart) {
+            return null;
+        }
+
+        return Invoice::where('student_id', $student->id)
+            ->where('academic_year_id', $service->academic_year_id)
+            ->where('frequency', $service->frequency)
+            ->where('period_start', $periodStart)
+            ->first();
     }
 
     /**

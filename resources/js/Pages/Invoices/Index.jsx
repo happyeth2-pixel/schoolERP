@@ -52,6 +52,7 @@ export default function Index({ invoices, grades, branches, canManage }) {
         return invoices.filter((i) =>
             i.student.toLowerCase().includes(q) ||
             i.invoice_number.toLowerCase().includes(q) ||
+            i.period.toLowerCase().includes(q) ||
             i.status.toLowerCase().includes(q)
         );
     }, [search, invoices]);
@@ -90,6 +91,7 @@ export default function Index({ invoices, grades, branches, canManage }) {
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Invoice #</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Student</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Period</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Total</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Paid</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Balance</th>
@@ -102,6 +104,7 @@ export default function Index({ invoices, grades, branches, canManage }) {
                                     <tr key={i.id}>
                                         <td className="px-4 py-3 text-sm text-gray-500">{i.invoice_number}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{i.student}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">{i.period}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">{Number(i.total).toLocaleString()}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">{Number(i.paid).toLocaleString()}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">{Number(i.balance).toLocaleString()}</td>
@@ -116,7 +119,7 @@ export default function Index({ invoices, grades, branches, canManage }) {
                                     </tr>
                                 ))}
                                 {filtered.length === 0 && (
-                                    <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">
+                                    <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">
                                         {invoices.length === 0 ? 'No invoices for the current year yet.' : 'No invoices match your search.'}
                                     </td></tr>
                                 )}

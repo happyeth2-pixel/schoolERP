@@ -16,6 +16,10 @@ export default function School({ school }) {
         phone: school.phone ?? '',
         email: school.email ?? '',
         calendar_preference: school.calendar_preference ?? 'both',
+        bank_name: school.bank_name ?? '',
+        bank_account_number: school.bank_account_number ?? '',
+        bank_account_name: school.bank_account_name ?? '',
+        mobile_money_number: school.mobile_money_number ?? '',
     });
 
     const submit = (e) => {
@@ -140,6 +144,31 @@ export default function School({ school }) {
                                         {label}
                                     </label>
                                 ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Payment Account</h3>
+                            <p className="mb-3 text-sm text-gray-500">
+                                Shown to parents when they're about to pay an invoice, so they know exactly where to send money.
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <InputLabel htmlFor="bank_name" value="Bank Name" />
+                                    <TextInput id="bank_name" className="mt-1 block w-full" value={data.bank_name} onChange={(e) => setData('bank_name', e.target.value)} />
+                                </div>
+                                <div>
+                                    <InputLabel htmlFor="bank_account_number" value="Account Number" />
+                                    <TextInput id="bank_account_number" className="mt-1 block w-full" value={data.bank_account_number} onChange={(e) => setData('bank_account_number', e.target.value)} />
+                                </div>
+                                <div>
+                                    <InputLabel htmlFor="bank_account_name" value="Account Name" />
+                                    <TextInput id="bank_account_name" className="mt-1 block w-full" value={data.bank_account_name} onChange={(e) => setData('bank_account_name', e.target.value)} />
+                                </div>
+                                <div>
+                                    <InputLabel htmlFor="mobile_money_number" value="Mobile Money Number (Telebirr, etc.)" />
+                                    <TextInput id="mobile_money_number" className="mt-1 block w-full" value={data.mobile_money_number} onChange={(e) => setData('mobile_money_number', e.target.value)} />
+                                </div>
                             </div>
                         </div>
 

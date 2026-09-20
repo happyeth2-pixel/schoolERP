@@ -12,13 +12,15 @@ class Invoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_id', 'academic_year_id', 'invoice_number', 'discount_amount', 'discount_reason', 'is_waived',
+        'student_id', 'academic_year_id', 'term_id', 'period_label', 'frequency', 'period_start',
+        'invoice_number', 'discount_amount', 'discount_reason', 'is_waived',
     ];
 
     protected function casts(): array
     {
         return [
             'is_waived' => 'boolean',
+            'period_start' => 'date',
         ];
     }
 
@@ -30,6 +32,11 @@ class Invoice extends Model
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function term(): BelongsTo
+    {
+        return $this->belongsTo(Term::class);
     }
 
     public function items(): HasMany

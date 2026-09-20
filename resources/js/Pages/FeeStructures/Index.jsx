@@ -19,6 +19,12 @@ function Select({ id, value, onChange, options, placeholder }) {
     );
 }
 
+const FREQUENCY_LABEL = {
+    annual: 'Annual',
+    termly: 'Per Term',
+    monthly: 'Monthly',
+};
+
 function FeeForm({ branches, grades, academicYears }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         branch_id: branches.length === 1 ? branches[0].id : '',
@@ -26,6 +32,7 @@ function FeeForm({ branches, grades, academicYears }) {
         academic_year_id: academicYears.find((y) => y.is_current)?.id ?? '',
         name: '',
         amount: '',
+        frequency: 'annual',
     });
 
     const submit = (e) => {
@@ -34,7 +41,7 @@ function FeeForm({ branches, grades, academicYears }) {
     };
 
     return (
-        <form onSubmit={submit} className="grid grid-cols-2 gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800 sm:grid-cols-5 sm:items-end">
+        <form onSubmit={submit} className="grid grid-cols-2 gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800 sm:grid-cols-6 sm:items-end">
             {branches.length > 1 && (
                 <div>
                     <InputLabel htmlFor="branch_id" value="Branch" />
@@ -59,6 +66,19 @@ function FeeForm({ branches, grades, academicYears }) {
                 <InputLabel htmlFor="amount" value="Amount (ETB)" />
                 <TextInput id="amount" type="number" step="0.01" className="mt-1 block w-full" value={data.amount} onChange={(e) => setData('amount', e.target.value)} />
                 <InputError message={errors.amount} className="mt-1" />
+            </div>
+            <div>
+                <InputLabel htmlFor="frequency" value="Billed" />
+                <select
+                    id="frequency"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    value={data.frequency}
+                    onChange={(e) => setData('frequency', e.target.value)}
+                >
+                    <option value="annual">Annual</option>
+                    <option value="termly">Per Term</option>
+                    <option value="monthly">Monthly</option>
+                </select>
             </div>
             <PrimaryButton disabled={processing}>Add</PrimaryButton>
         </form>
@@ -99,6 +119,7 @@ export default function Index({ feeStructures, branches, grades, academicYears }
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Year</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Fee</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Amount</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Billed</th>
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
@@ -110,13 +131,14 @@ export default function Index({ feeStructures, branches, grades, academicYears }
                                         <td className="px-4 py-3 text-sm text-gray-500">{fs.academic_year.name}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{fs.name}</td>
                                         <td className="px-4 py-3 text-sm text-gray-500">{Number(fs.amount).toLocaleString()} ETB</td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">{FREQUENCY_LABEL[fs.frequency] ?? fs.frequency}</td>
                                         <td className="px-4 py-3 text-right text-sm">
                                             <button className="text-red-600 hover:underline dark:text-red-400" onClick={() => destroy(fs)}>Remove</button>
                                         </td>
                                     </tr>
                                 ))}
                                 {feeStructures.length === 0 && (
-                                    <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">No fee items yet.</td></tr>
+                                    <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">No fee items yet.</td></tr>
                                 )}
                             </tbody>
                         </table>

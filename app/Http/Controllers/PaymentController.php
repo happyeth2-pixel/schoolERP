@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Notifications\PaymentRejected;
+use App\Notifications\PaymentVerified;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +87,8 @@ class PaymentController extends Controller
             'receipt_number' => $this->nextReceiptNumber($request->user()->school_id),
         ]);
 
+        $payment->submittedBy->notify(new PaymentVerified($payment));
+
         return back()->with('success', 'Payment verified. Receipt generated.');
     }
 
@@ -97,6 +101,8 @@ class PaymentController extends Controller
         $validated = $request->validate(['rejection_reason' => ['required', 'string', 'max:255']]);
 
         $payment->update(['status' => 'rejected', 'rejection_reason' => $validated['rejection_reason']]);
+
+        $payment->submittedBy->notify(new PaymentRejected($payment));
 
         return back()->with('success', 'Payment rejected.');
     }

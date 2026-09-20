@@ -206,9 +206,19 @@ class StudentController extends Controller
                     'id' => $s->id,
                     'name' => $s->name,
                     'amount' => $s->amount,
+                    'frequency' => $s->frequency,
                     'enrolled' => $enrolledById->has($s->id),
                     'enrolled_on' => $enrolledById->get($s->id)?->pivot->enrolled_on,
                 ])
+            : collect();
+
+        $transferSections = $currentYear
+            ? Section::where('branch_id', $student->branch_id)
+                ->where('academic_year_id', $currentYear->id)
+                ->where('id', '!=', $student->currentEnrollment?->section_id)
+                ->with('grade')
+                ->get()
+                ->map(fn (Section $s) => ['id' => $s->id, 'label' => "{$s->grade->name} {$s->name}"])
             : collect();
 
         return Inertia::render('Students/Edit', [
@@ -237,9 +247,59 @@ class StudentController extends Controller
                 ]),
             ],
             'availableServices' => $availableServices,
+            'transferSections' => $transferSections,
             'canManage' => $user->can('manage-students'),
             'canManageServices' => $user->can('manage-invoices'),
         ]);
+    }
+
+    /**
+     * Moves a single student to a different section mid-year --
+     * distinct from the bulk, year-end Promote Students tool. The old
+     * enrollment is marked "transferred" (not "completed", which
+     * stays reserved for a normal end-of-year promotion) so the two
+     * kinds of section change are always distinguishable in history.
+     */
+    public function transfer(Request $request, Student $student): RedirectResponse
+    {
+        $user = $request->user();
+        $user->can('manage-students') || abort(403);
+        $this->assertInScope($user, $student);
+
+        $validated = $request->validate([
+            'to_section_id' => ['required', 'integer'],
+        ]);
+
+        $toSection = Section::whereKey($validated['to_section_id'])->firstOrFail();
+        abort_unless($toSection->branch_id === $student->branch_id, 422);
+
+        $current = $student->currentEnrollment;
+        if ($current && $current->section_id === $toSection->id) {
+            return back()->withErrors(['to_section_id' => 'Student is already in that section.']);
+        }
+
+        DB::transaction(function () use ($student, $current, $toSection) {
+            if ($current) {
+                $current->update(['status' => 'transferred']);
+            }
+
+            $existing = Enrollment::where('student_id', $student->id)
+                ->where('section_id', $toSection->id)
+                ->first();
+
+            if ($existing) {
+                $existing->update(['status' => 'active', 'enrolled_on' => now()->toDateString()]);
+            } else {
+                Enrollment::create([
+                    'student_id' => $student->id,
+                    'section_id' => $toSection->id,
+                    'enrolled_on' => now()->toDateString(),
+                    'status' => 'active',
+                ]);
+            }
+        });
+
+        return back()->with('success', "{$student->fullName()} transferred to {$toSection->grade->name} {$toSection->name}.");
     }
 
     public function update(Request $request, Student $student): RedirectResponse

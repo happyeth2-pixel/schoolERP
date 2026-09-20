@@ -43,6 +43,7 @@ class FeeStructureController extends Controller
             'academic_year_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
+            'frequency' => ['required', 'in:annual,termly,monthly'],
         ]);
 
         $this->assertBranchInScope($user, (int) $validated['branch_id']);
@@ -62,6 +63,7 @@ class FeeStructureController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
+            'frequency' => ['required', 'in:annual,termly,monthly'],
         ]);
 
         $feeStructure->update($validated);

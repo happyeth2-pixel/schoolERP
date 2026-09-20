@@ -31,6 +31,10 @@ class SchoolSettingsController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'calendar_preference' => ['required', 'in:ethiopian,gregorian,both'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account_number' => ['nullable', 'string', 'max:100'],
+            'bank_account_name' => ['nullable', 'string', 'max:255'],
+            'mobile_money_number' => ['nullable', 'string', 'max:50'],
         ]);
 
         $request->user()->school->update($validated);
