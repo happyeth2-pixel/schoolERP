@@ -12,6 +12,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FeeStructureController;
 use App\Http\Controllers\GradeBandController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MarkBatchController;
@@ -48,6 +49,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 Route::get('/verify/{token}', [IdCardController::class, 'verify'])->name('id-card.verify');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/help', [HelpController::class, 'index'])->name('help.index');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -69,7 +69,7 @@ export default function Index({ complaints, isStaffView, statusFilter }) {
                                     <tr key={c.id}>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{c.subject}</td>
                                         {isStaffView && <td className="px-4 py-3 text-sm text-gray-500">{c.submitted_by}</td>}
-                                        <td className="px-4 py-3 text-sm text-gray-500">{c.student ?? '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">{c.student ? `${c.student.name} — ${c.student.section}` : '—'}</td>
                                         <td className="px-4 py-3 text-sm">
                                             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[c.status]}`}>
                                                 {c.status.replace('_', ' ')}

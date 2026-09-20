@@ -19,6 +19,7 @@ import {
     MegaphoneIcon,
     PencilIcon,
     PresentationChartBarIcon,
+    QuestionMarkCircleIcon,
     ShieldCheckIcon,
     Squares2X2Icon,
     TruckIcon,
@@ -46,6 +47,7 @@ export function buildNavSections({ role, permissions = [] }) {
             items: [
                 { label: 'Dashboard', route: 'dashboard', enabled: true, icon: HomeIcon },
                 { label: 'Notifications', route: 'notifications.index', enabled: true, icon: BellIcon },
+                { label: 'Help', route: 'help.index', enabled: true, icon: QuestionMarkCircleIcon },
             ],
         },
     ];

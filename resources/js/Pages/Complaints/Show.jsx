@@ -72,9 +72,32 @@ export default function Show({ complaint, canManage }) {
                                 {complaint.status.replace('_', ' ')}
                             </span>
                         </div>
-                        <p className="text-xs text-gray-400">
-                            From {complaint.submitted_by}{complaint.student ? ` — about ${complaint.student}` : ''} · {complaint.created_at}
-                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Submitted {complaint.created_at}</p>
+
+                        <div className="mt-4 grid gap-3 rounded-md border border-gray-200 p-4 text-sm dark:border-gray-700 sm:grid-cols-2">
+                            {canManage && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">From</p>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">{complaint.submitted_by}</p>
+                                    {complaint.submitted_by_email && <p className="text-gray-500">{complaint.submitted_by_email}</p>}
+                                    {complaint.submitted_by_phone && <p className="text-gray-500">{complaint.submitted_by_phone}</p>}
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">About</p>
+                                {complaint.student ? (
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">{complaint.student.name} <span className="font-normal text-gray-500">— {complaint.student.section}</span></p>
+                                ) : (
+                                    <p className="text-gray-500">General — not tied to a specific child</p>
+                                )}
+                                {canManage && complaint.siblings?.length > 0 && (
+                                    <p className="mt-1 text-gray-500">
+                                        Also has: {complaint.siblings.map((s) => `${s.name} (${s.section})`).join(', ')}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
                         <p className="mt-4 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{complaint.body}</p>
 
                         {complaint.resolution_note && (

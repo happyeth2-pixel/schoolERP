@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Complaint;
+use App\Models\Student;
 use App\Models\User;
 use App\Notifications\ComplaintSubmitted;
 use App\Notifications\ComplaintUpdated;
@@ -41,7 +42,7 @@ class ComplaintController extends Controller
             $query->where('status', $status);
         }
 
-        $complaints = $query->with(['submittedBy', 'student'])
+        $complaints = $query->with(['submittedBy', 'student.currentEnrollment.section.grade'])
             ->latest()
             ->get()
             ->map(fn (Complaint $c) => [
@@ -49,7 +50,7 @@ class ComplaintController extends Controller
                 'subject' => $c->subject,
                 'status' => $c->status,
                 'submitted_by' => $c->submittedBy->name,
-                'student' => $c->student?->fullName(),
+                'student' => $this->studentContext($c->student),
                 'created_at' => $c->created_at->diffForHumans(),
             ]);
 
@@ -108,7 +109,17 @@ class ComplaintController extends Controller
         $user = $request->user();
         $this->authorizeView($user, $complaint);
 
-        $complaint->load(['submittedBy', 'student', 'resolvedBy']);
+        $complaint->load(['submittedBy', 'student.currentEnrollment.section.grade', 'resolvedBy']);
+
+        $submitter = $complaint->submittedBy;
+        $siblings = [];
+        if ($submitter->hasRole('parent')) {
+            $siblings = $submitter->children()
+                ->when($complaint->student_id, fn ($q) => $q->whereKeyNot($complaint->student_id))
+                ->get()
+                ->map(fn (Student $s) => $this->studentContext($s))
+                ->values();
+        }
 
         return Inertia::render('Complaints/Show', [
             'complaint' => [
@@ -119,12 +130,36 @@ class ComplaintController extends Controller
                 'resolution_note' => $complaint->resolution_note,
                 'resolved_by' => $complaint->resolvedBy?->name,
                 'resolved_at' => $complaint->resolved_at?->diffForHumans(),
-                'submitted_by' => $complaint->submittedBy->name,
-                'student' => $complaint->student?->fullName(),
+                'submitted_by' => $submitter->name,
+                'submitted_by_email' => $submitter->email,
+                'submitted_by_phone' => $submitter->phone,
+                'student' => $this->studentContext($complaint->student),
+                'siblings' => $siblings,
                 'created_at' => $complaint->created_at->format('M j, Y g:ia'),
             ],
             'canManage' => $user->can('manage-complaints'),
         ]);
+    }
+
+    /**
+     * A student's name plus their current grade+section, so a
+     * complaint always shows exactly which class the child is in
+     * without staff needing to look them up separately.
+     */
+    private function studentContext(?Student $student): ?array
+    {
+        if (! $student) {
+            return null;
+        }
+
+        $student->loadMissing('currentEnrollment.section.grade');
+
+        return [
+            'name' => $student->fullName(),
+            'section' => $student->currentEnrollment
+                ? "{$student->currentEnrollment->section->grade->name} {$student->currentEnrollment->section->name}"
+                : 'Unassigned',
+        ];
     }
 
     public function updateStatus(Request $request, Complaint $complaint): RedirectResponse
