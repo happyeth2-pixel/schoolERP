@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Student;
+use App\Support\Localization\NotificationLocale;
+use App\Support\SchoolCalendar;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -27,9 +29,14 @@ class StudentMarkedAbsent extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $locale = NotificationLocale::for($notifiable);
+
         return [
-            'title' => 'Absence recorded',
-            'body' => "{$this->student->first_name} was marked absent on {$this->date->format('M j, Y')}.",
+            'title' => __('notifications.student_marked_absent.title', [], $locale),
+            'body' => __('notifications.student_marked_absent.body', [
+                'student' => $this->student->first_name,
+                'date' => SchoolCalendar::date($this->date, $this->student->school),
+            ], $locale),
             'student_id' => $this->student->id,
         ];
     }

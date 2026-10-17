@@ -162,6 +162,7 @@ class SampleAcademicDataSeeder extends Seeder
             'teacher2@demo.test' => 'Meseret Alemu',
             'teacher3@demo.test' => 'Yared Solomon',
         ];
+        $phones = ['teacher@demo.test' => '0911000003', 'teacher2@demo.test' => '0911000007', 'teacher3@demo.test' => '0911000008'];
 
         $teachers = [];
         foreach ($emails as $email => $name) {
@@ -171,6 +172,8 @@ class SampleAcademicDataSeeder extends Seeder
                     'school_id' => $school->id,
                     'branch_id' => $branch->id,
                     'name' => $name,
+                    'phone' => $phones[$email],
+                    'login_phone' => $phones[$email],
                     'password' => 'password',
                     'status' => 'active',
                     'email_verified_at' => now(),
@@ -200,6 +203,8 @@ class SampleAcademicDataSeeder extends Seeder
                 'school_id' => $school->id,
                 'branch_id' => $branch->id,
                 'name' => 'Tigist Alemu',
+                'phone' => '0911000009',
+                'login_phone' => '0911000009',
                 'password' => 'password',
                 'status' => 'active',
                 'email_verified_at' => now(),
@@ -225,6 +230,8 @@ class SampleAcademicDataSeeder extends Seeder
                 'school_id' => $school->id,
                 'branch_id' => $branch->id,
                 'name' => 'Helen Tesfaye',
+                'phone' => '0911000010',
+                'login_phone' => '0911000010',
                 'password' => 'password',
                 'status' => 'active',
                 'email_verified_at' => now(),

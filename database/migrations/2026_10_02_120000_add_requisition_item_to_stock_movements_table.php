@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/** Links an 'issue' movement back to the requisition line it was issued against -- how a requisition's own
+ * quantity_issued is proven, and how "what was this stock actually used for" is answered from the ledger. */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('stock_movements', function (Blueprint $table) {
+            $table->foreignId('related_requisition_item_id')->nullable()->after('related_movement_id')->constrained('requisition_items')->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('stock_movements', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('related_requisition_item_id');
+        });
+    }
+};

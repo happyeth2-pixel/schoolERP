@@ -23,3 +23,10 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .claude/
+
+# local database dumps (contain user rows and password hashes)
+/database/*.sql
+
+# Python bytecode cache from running tests/e2e/*.py
+__pycache__/
+*.pyc

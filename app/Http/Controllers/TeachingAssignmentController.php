@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\MarkBatch;
 use App\Models\Section;
 use App\Models\TeachingAssignment;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,16 +41,23 @@ class TeachingAssignmentController extends Controller
             'sections' => $sectionsQuery->orderBy('grade_id')->get()->map(fn (Section $s) => [
                 'id' => $s->id,
                 'label' => "{$s->grade->name} {$s->name} ({$s->branch->name})",
+                'grade' => $s->grade->name,
+                'name' => $s->name,
+                'branch_id' => $s->branch_id,
+                'branch' => $s->branch->name,
                 'class_teacher' => $s->classTeacher?->only(['id', 'name']),
-                'assignments' => $s->teachingAssignments->map(fn (TeachingAssignment $a) => [
+                'assignments' => $s->teachingAssignments->sortBy(fn ($a) => $a->subject->name)->values()->map(fn (TeachingAssignment $a) => [
                     'id' => $a->id,
                     'subject_id' => $a->subject_id,
                     'subject' => $a->subject->name,
                     'teacher' => $a->teacher->name,
                 ]),
             ]),
-            'teachers' => $teachersQuery->orderBy('name')->get(['id', 'name']),
+            'teachers' => $teachersQuery->orderBy('name')->get(['id', 'name', 'branch_id']),
             'subjects' => $user->school->subjects()->orderBy('name')->get(['id', 'name']),
+            'canSetClassTeacher' => $user->can('manage-classes'),
+            'focus' => $request->integer('section') ?: null,
+            'branchCount' => $user->school->branches()->count(),
         ]);
     }
 
@@ -58,6 +70,7 @@ class TeachingAssignmentController extends Controller
             'section_id' => ['required', 'integer'],
             'subject_id' => ['required', 'integer'],
             'teacher_id' => ['required', 'integer'],
+            'replace' => ['nullable', 'boolean'],
         ]);
 
         $section = Section::whereKey($validated['section_id'])->firstOrFail();
@@ -65,6 +78,7 @@ class TeachingAssignmentController extends Controller
 
         $teacher = User::whereKey($validated['teacher_id'])
             ->where('school_id', $user->school_id)
+            ->where('status', 'active')
             ->whereHas('roles', fn ($q) => $q->where('name', 'teacher'))
             ->firstOrFail();
         abort_unless($teacher->branch_id === $section->branch_id, 422, 'Teacher must belong to the same branch as the section.');
@@ -74,12 +88,50 @@ class TeachingAssignmentController extends Controller
             422
         );
 
-        TeachingAssignment::updateOrCreate(
-            ['section_id' => $section->id, 'subject_id' => $validated['subject_id']],
-            ['teacher_id' => $teacher->id]
-        );
+        // The identity of an assignment is (section, subject): the section already pins the academic year
+        // and branch, and a subject has exactly ONE teacher per section (unique key in the database).
+        // Asking for the same teacher again is a no-op; a different teacher is a deliberate replacement.
+        try {
+            $message = DB::transaction(function () use ($section, $teacher, $validated, $user) {
+                $existing = TeachingAssignment::where('section_id', $section->id)
+                    ->where('subject_id', $validated['subject_id'])
+                    ->lockForUpdate()
+                    ->first();
 
-        return back()->with('success', 'Teaching assignment saved.');
+                if (! $existing) {
+                    TeachingAssignment::create(['section_id' => $section->id, 'subject_id' => $validated['subject_id'], 'teacher_id' => $teacher->id]);
+
+                    return 'Teaching assignment saved.';
+                }
+
+                if ($existing->teacher_id === $teacher->id) {
+                    throw ValidationException::withMessages(['teacher_id' => "{$teacher->name} already teaches this subject in this section."]);
+                }
+
+                if (! ($validated['replace'] ?? false)) {
+                    throw ValidationException::withMessages(['teacher_id' => "{$existing->teacher->name} already teaches this subject in this section. Confirm the replacement to give it to {$teacher->name}."]);
+                }
+
+                // Marks not yet submitted move with the subject to the new teacher; anything already submitted,
+                // approved or published stays attributed to the teacher who entered it.
+                $moved = MarkBatch::where('section_id', $section->id)->where('subject_id', $validated['subject_id'])
+                    ->where('status', 'draft')->where('teacher_id', $existing->teacher_id)
+                    ->update(['teacher_id' => $teacher->id]);
+
+                $previous = $existing->teacher->name;
+                AuditLog::suspended(fn () => $existing->update(['teacher_id' => $teacher->id]));
+
+                AuditLog::record($user, 'teaching_assignment.reassigned', $existing,
+                    ['teacher' => $previous], ['teacher' => $teacher->name, 'draft_mark_sheets_moved' => $moved]);
+
+                return "Reassigned from {$previous} to {$teacher->name}.".($moved ? " {$moved} unsubmitted mark sheet(s) moved with it." : '');
+            });
+        } catch (UniqueConstraintViolationException) {
+            // two people saving the same subject at the same instant: the database key let only one through
+            throw ValidationException::withMessages(['teacher_id' => 'Someone else just assigned this subject. Reload and check.']);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroy(Request $request, TeachingAssignment $teachingAssignment): RedirectResponse

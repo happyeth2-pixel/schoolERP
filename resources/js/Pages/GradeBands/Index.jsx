@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
 function BandForm() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -38,10 +39,11 @@ function BandForm() {
 }
 
 export default function Index({ bands }) {
+    const { t } = useTranslation();
     const { flash } = usePage().props;
 
     const destroy = (band) => {
-        if (confirm(`Remove band ${band.letter}?`)) {
+        if (confirm(t('confirm.grade_bands_remove', { letter: band.letter }))) {
             router.delete(route('grade-bands.destroy', band.id));
         }
     };
@@ -62,7 +64,7 @@ export default function Index({ bands }) {
 
                     <BandForm />
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-gray-800">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900/40">
                                 <tr>

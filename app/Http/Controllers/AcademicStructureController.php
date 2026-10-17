@@ -26,7 +26,7 @@ class AcademicStructureController extends Controller
 
         $sectionsQuery = \App\Models\Section::query()
             ->whereIn('branch_id', $school->branches()->pluck('id'))
-            ->with(['branch', 'academicYear']);
+            ->with(['branch', 'academicYear', 'classTeacher']);
 
         if (! $user->isOrgWide()) {
             $sectionsQuery->where('branch_id', $user->branch_id);
@@ -42,8 +42,11 @@ class AcademicStructureController extends Controller
                 'id' => $s->id,
                 'name' => $s->name,
                 'capacity' => $s->capacity,
+                'students' => \App\Services\SectionCapacity::occupied($s),
+                'class_teacher' => $s->classTeacher?->name,
                 'branch' => $s->branch->name,
                 'academic_year' => $s->academicYear->name,
+                'is_current_year' => (bool) $s->academicYear->is_current,
             ])->values(),
         ]);
 
@@ -54,6 +57,7 @@ class AcademicStructureController extends Controller
                 : $school->branches()->where('id', $user->branch_id)->get(['id', 'name']),
             'academicYears' => $school->academicYears()->orderByDesc('start_date')->get(['id', 'name', 'is_current']),
             'canManage' => $user->can('manage-classes'),
+            'canAssignTeachers' => $user->can('manage-teachers'),
         ]);
     }
 }

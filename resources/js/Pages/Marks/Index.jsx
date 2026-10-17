@@ -1,65 +1,59 @@
+import { Button, Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
-const STATUS_STYLE = {
-    not_started: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
-    draft: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    approved: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
-    published: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-};
+// "What do I need to enter?": one card per class and subject the teacher teaches, an exam per row with where
+// its marks are (not started / draft / waiting for approval / approved / published), how many students have a
+// mark, and one clearly-named button. Same rows and routes as before; the progress numbers are new.
 
-export default function Index({ rows }) {
+function ExamRow({ row }) {
+    const { t } = useTranslation();
+    const href = route('marks.show', [row.exam_id, row.section_id, row.subject_id]);
+    const editable = row.status === 'not_started' || row.status === 'draft';
+    const label = row.status === 'not_started' ? t('marks.btn_start') : row.status === 'draft' ? t('marks.btn_continue') : t('marks.btn_view');
+
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Enter Marks</h2>}
-        >
-            <Head title="Enter Marks" />
-
-            <div className="py-8">
-                <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-                    {rows.length === 0 && (
-                        <p className="text-sm text-gray-400">
-                            No exams or teaching assignments found for the current academic year yet.
-                        </p>
-                    )}
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Section</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Subject</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Exam</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                                    <th className="px-4 py-3" />
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {rows.map((r, i) => (
-                                    <tr key={i}>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{r.section_label}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{r.subject_name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{r.exam_name}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[r.status]}`}>
-                                                {r.status.replace('_', ' ')}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm">
-                                            <Link
-                                                href={route('marks.show', [r.exam_id, r.section_id, r.subject_id])}
-                                                className="text-indigo-600 hover:underline dark:text-indigo-400"
-                                            >
-                                                {r.status === 'not_started' ? 'Enter' : 'Open'}
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+        <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between" data-testid="exam-row" data-status={row.status}>
+            <div className="min-w-0">
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{row.exam_name}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <StatusBadge status={row.status} />
+                    {row.students > 0 && <span className="text-base text-gray-700 dark:text-gray-300">{t('marks.entered_progress', { entered: row.entered, count: row.students })}</span>}
                 </div>
             </div>
+            <Button as={Link} href={href} variant={editable ? 'primary' : 'secondary'} icon={editable ? PencilSquareIcon : undefined}>{label}</Button>
+        </li>
+    );
+}
+
+export default function Index({ rows }) {
+    const { t } = useTranslation();
+
+    const groups = [];
+    rows.forEach((r) => {
+        const key = `${r.section_id}-${r.subject_id}`;
+        let g = groups.find((x) => x.key === key);
+        if (!g) { g = { key, section: r.section_label, subject: r.subject_name, rows: [] }; groups.push(g); }
+        g.rows.push(r);
+    });
+
+    return (
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('marks.title_enter')}</h2>}>
+            <Page title={t('marks.title_enter')} description={t('marks.index_desc')} width="default">
+                {groups.length === 0 && (
+                    <Card><EmptyState icon={PencilSquareIcon} title={t('marks.index_empty_title')}>{t('marks.index_empty_body')}</EmptyState></Card>
+                )}
+                {groups.map((g) => (
+                    <Card key={g.key} as="section" aria-label={`${g.section} ${g.subject}`} data-testid="marks-card">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{g.section} · {g.subject}</h2>
+                        <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+                            {g.rows.map((r) => <ExamRow key={r.exam_id} row={r} />)}
+                        </ul>
+                    </Card>
+                ))}
+            </Page>
         </AuthenticatedLayout>
     );
 }

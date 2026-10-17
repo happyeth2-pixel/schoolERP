@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 function ReopenForm({ batch, onDone }) {
     const [reason, setReason] = useState('');
@@ -26,12 +27,13 @@ function ReopenForm({ batch, onDone }) {
 }
 
 export default function Approvals({ batches, canApprove, canPublish }) {
-    const { flash } = usePage().props;
+    const { t } = useTranslation();
+    const { flash, errors } = usePage().props;
     const [reopeningId, setReopeningId] = useState(null);
 
     const act = (route_, id) => router.post(route(route_, id));
     const sendBack = (id) => {
-        if (confirm('Send this batch back to the teacher for changes?')) {
+        if (confirm(t('confirm.marks_return_batch'))) {
             act('mark-batches.send-back', id);
         }
     };
@@ -48,6 +50,10 @@ export default function Approvals({ batches, canApprove, canPublish }) {
                         <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             {flash.success}
                         </div>
+                    )}
+
+                    {errors?.publish && (
+                        <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{errors.publish}</div>
                     )}
 
                     <div className="space-y-3">
@@ -74,7 +80,11 @@ export default function Approvals({ batches, canApprove, canPublish }) {
                                             <button className="text-sm text-red-600 hover:underline dark:text-red-400" onClick={() => sendBack(b.id)}>Send Back</button>
                                         )}
                                         {canPublish && b.status === 'approved' && (
-                                            <button className="text-sm text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => act('mark-batches.publish', b.id)}>Publish</button>
+                                            b.weights_ok ? (
+                                                <button className="text-sm text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => act('mark-batches.publish', b.id)}>Publish</button>
+                                            ) : (
+                                                <span className="text-xs text-amber-600 dark:text-amber-400" title="Fix the term's exam weights under Exams">Can't publish: term weights total {b.weights_total}%, not 100%</span>
+                                            )
                                         )}
                                         {canPublish && b.status === 'published' && (
                                             <button className="text-sm text-red-600 hover:underline dark:text-red-400" onClick={() => setReopeningId(reopeningId === b.id ? null : b.id)}>

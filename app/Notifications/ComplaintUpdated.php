@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Complaint;
+use App\Support\Localization\NotificationLocale;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -21,9 +22,14 @@ class ComplaintUpdated extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $locale = NotificationLocale::for($notifiable);
+
         return [
-            'title' => 'Complaint update',
-            'body' => "Your complaint \"{$this->complaint->subject}\" is now ".str_replace('_', ' ', $this->complaint->status).'.',
+            'title' => __('notifications.complaint_updated.title', [], $locale),
+            'body' => __('notifications.complaint_updated.body', [
+                'subject' => $this->complaint->subject,
+                'status' => __("notifications.complaint_updated.status.{$this->complaint->status}", [], $locale),
+            ], $locale),
             'complaint_id' => $this->complaint->id,
         ];
     }

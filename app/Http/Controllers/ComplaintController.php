@@ -7,8 +7,10 @@ use App\Models\Student;
 use App\Models\User;
 use App\Notifications\ComplaintSubmitted;
 use App\Notifications\ComplaintUpdated;
+use App\Support\SchoolCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,7 +52,7 @@ class ComplaintController extends Controller
                 'subject' => $c->subject,
                 'status' => $c->status,
                 'submitted_by' => $c->submittedBy->name,
-                'student' => $this->studentContext($c->student),
+                'student' => $this->studentContext($c->student, $c, $user),
                 'created_at' => $c->created_at->diffForHumans(),
             ]);
 
@@ -87,7 +89,7 @@ class ComplaintController extends Controller
         ]);
 
         if (! empty($validated['student_id'])) {
-            abort_unless($user->children()->whereKey($validated['student_id'])->exists(), 403);
+            Gate::authorize('complainAbout', Student::findOrFail($validated['student_id']));
         }
 
         $complaint = Complaint::create([
@@ -107,19 +109,24 @@ class ComplaintController extends Controller
     public function show(Request $request, Complaint $complaint): Response
     {
         $user = $request->user();
-        $this->authorizeView($user, $complaint);
+        Gate::authorize('view', $complaint);
 
         $complaint->load(['submittedBy', 'student.currentEnrollment.section.grade', 'resolvedBy']);
 
         $submitter = $complaint->submittedBy;
+        // Other children of the same parent: each one is that child's own student record,
+        // so each is checked against the same rule -- ones the viewer may not see are left out, not blurred.
         $siblings = [];
-        if ($submitter->hasRole('parent')) {
+        if ($submitter->hasRole('parent') && $user->id !== $submitter->id) {
             $siblings = $submitter->children()
                 ->when($complaint->student_id, fn ($q) => $q->whereKeyNot($complaint->student_id))
                 ->get()
-                ->map(fn (Student $s) => $this->studentContext($s))
+                ->filter(fn (Student $s) => Gate::forUser($user)->allows('viewChild', [$complaint, $s]))
+                ->map(fn (Student $s) => $this->studentContext($s, $complaint, $user))
                 ->values();
         }
+
+        $canSeeContact = Gate::forUser($user)->allows('viewContact', $complaint);
 
         return Inertia::render('Complaints/Show', [
             'complaint' => [
@@ -131,11 +138,12 @@ class ComplaintController extends Controller
                 'resolved_by' => $complaint->resolvedBy?->name,
                 'resolved_at' => $complaint->resolved_at?->diffForHumans(),
                 'submitted_by' => $submitter->name,
-                'submitted_by_email' => $submitter->email,
-                'submitted_by_phone' => $submitter->phone,
-                'student' => $this->studentContext($complaint->student),
+                'submitted_by_email' => $canSeeContact ? $submitter->email : null,
+                'submitted_by_phone' => $canSeeContact ? \App\Support\PhoneNumber::display($submitter->phone) : null,
+                'contact_restricted' => ! $canSeeContact,
+                'student' => $this->studentContext($complaint->student, $complaint, $user),
                 'siblings' => $siblings,
-                'created_at' => $complaint->created_at->format('M j, Y g:ia'),
+                'created_at' => SchoolCalendar::dateTime($complaint->created_at, $user),
             ],
             'canManage' => $user->can('manage-complaints'),
         ]);
@@ -146,15 +154,21 @@ class ComplaintController extends Controller
      * complaint always shows exactly which class the child is in
      * without staff needing to look them up separately.
      */
-    private function studentContext(?Student $student): ?array
+    private function studentContext(?Student $student, Complaint $complaint, User $viewer): ?array
     {
         if (! $student) {
             return null;
         }
 
+        // Handling complaints is not the same as being allowed into the child's records.
+        if (! Gate::forUser($viewer)->allows('viewChild', [$complaint, $student])) {
+            return ['restricted' => true, 'name' => null, 'section' => null];
+        }
+
         $student->loadMissing('currentEnrollment.section.grade');
 
         return [
+            'restricted' => false,
             'name' => $student->fullName(),
             'section' => $student->currentEnrollment
                 ? "{$student->currentEnrollment->section->grade->name} {$student->currentEnrollment->section->name}"
@@ -186,19 +200,6 @@ class ComplaintController extends Controller
         $complaint->submittedBy->notify(new ComplaintUpdated($complaint));
 
         return back()->with('success', 'Complaint updated.');
-    }
-
-    private function authorizeView($user, Complaint $complaint): void
-    {
-        if ($complaint->submitted_by === $user->id) {
-            return;
-        }
-
-        abort_unless($user->canViewOrManage('manage-complaints'), 403);
-        abort_unless($complaint->school_id === $user->school_id, 403);
-        if (! $user->isOrgWide()) {
-            abort_unless($complaint->branch_id === $user->branch_id, 403);
-        }
     }
 
     /**

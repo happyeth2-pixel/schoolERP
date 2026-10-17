@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\Mark;
@@ -33,7 +36,14 @@ class MarkBatchController extends Controller
             ->orderBy('id')
             ->get();
 
-        $existingBatches = MarkBatch::where('teacher_id', $user->id)->get()->keyBy(fn ($b) => "{$b->exam_id}-{$b->section_id}-{$b->subject_id}");
+        $existingBatches = MarkBatch::where('teacher_id', $user->id)
+            ->withCount(['marks as entered_count' => fn ($q) => $q->whereNotNull('score')])
+            ->get()->keyBy(fn ($b) => "{$b->exam_id}-{$b->section_id}-{$b->subject_id}");
+
+        // class sizes, so each row can say "12 of 30 students have a mark"
+        $classSizes = \App\Models\Enrollment::active()
+            ->whereIn('section_id', $assignments->pluck('section_id')->unique())
+            ->selectRaw('section_id, COUNT(*) as n')->groupBy('section_id')->pluck('n', 'section_id');
 
         $rows = [];
         foreach ($assignments as $a) {
@@ -48,6 +58,8 @@ class MarkBatchController extends Controller
                     'subject_id' => $a->subject_id,
                     'subject_name' => $a->subject->name,
                     'status' => $batch?->status ?? 'not_started',
+                    'students' => (int) ($classSizes[$a->section_id] ?? 0),
+                    'entered' => (int) ($batch?->entered_count ?? 0),
                 ];
             }
         }
@@ -62,27 +74,35 @@ class MarkBatchController extends Controller
 
         $this->assertAssignedTeacher($user, $section, $subject);
 
+        // the exam must be this school's and belong to the same academic year as the section
+        abort_unless($exam->school_id === $user->school_id, 404);
+        abort_unless($exam->term()->value('academic_year_id') === $section->academic_year_id, 404);
+
         $batch = MarkBatch::firstOrCreate(
             ['exam_id' => $exam->id, 'section_id' => $section->id, 'subject_id' => $subject->id],
             ['teacher_id' => $user->id, 'status' => 'draft']
         );
 
-        abort_unless($batch->teacher_id === $user->id, 403, 'Another teacher owns this mark batch.');
+        Gate::forUser($user)->authorize('enterMarks', $batch);
 
-        $enrollments = $section->enrollments()->where('status', 'active')->with('student')->get()->sortBy(fn ($e) => $e->student->first_name)->values();
+        $enrollments = $section->enrollments()->active()->with('student')->get()->sortBy(fn ($e) => $e->student->first_name)->values();
         $marks = $batch->marks()->get()->keyBy('enrollment_id');
 
         return Inertia::render('Marks/Enter', [
             'batch' => [
                 'id' => $batch->id,
                 'status' => $batch->status,
+                // ONE maximum for the whole list (the first saved mark's), not whatever the first student happens to show
+                'max_score' => (float) ($batch->marks()->orderBy('id')->value('max_score') ?? 100),
             ],
+            'missing_mark_policy' => $user->school->missing_mark_policy ?? 'exclude',
             'exam' => ['id' => $exam->id, 'name' => $exam->name],
             'section' => ['id' => $section->id, 'label' => "{$section->grade->name} {$section->name}"],
             'subject' => ['id' => $subject->id, 'name' => $subject->name],
             'roster' => $enrollments->map(fn ($e) => [
                 'enrollment_id' => $e->id,
                 'student_name' => $e->student->fullName(),
+                'student_id_number' => $e->student->student_id_number,
                 'score' => $marks->get($e->id)?->score,
                 'max_score' => $marks->get($e->id)?->max_score ?? 100,
             ]),
@@ -91,57 +111,69 @@ class MarkBatchController extends Controller
 
     public function store(Request $request, MarkBatch $markBatch): RedirectResponse
     {
-        $request->user()->can('enter-marks') || abort(403);
         $user = $request->user();
-        abort_unless($markBatch->teacher_id === $user->id, 403);
-        abort_unless($markBatch->status === 'draft', 422, 'Marks can only be edited while the batch is in draft.');
+
+        // The batch id in the URL is only a pointer. Ownership, branch/school scope and the CURRENT
+        // teaching assignment are all verified against the database, not against anything the form claims.
+        Gate::forUser($user)->authorize('enterMarks', $markBatch);
 
         $validated = $request->validate([
             'records' => ['required', 'array'],
             'records.*.enrollment_id' => ['required', 'integer'],
-            'records.*.score' => ['nullable', 'numeric', 'min:0'],
-            'records.*.max_score' => ['required', 'numeric', 'min:1'],
+            'records.*.score' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'records.*.max_score' => ['required', 'numeric', 'min:1', 'max:999.99'],
         ]);
 
-        $validEnrollmentIds = $markBatch->section->enrollments()->where('status', 'active')->pluck('id');
-
-        foreach ($validated['records'] as $record) {
-            abort_unless($validEnrollmentIds->contains($record['enrollment_id']), 422);
-
-            $existing = Mark::where('mark_batch_id', $markBatch->id)
-                ->where('enrollment_id', $record['enrollment_id'])
-                ->first();
-
-            $oldScore = $existing?->score;
-            $newScore = $record['score'];
-
-            $mark = Mark::updateOrCreate(
-                ['mark_batch_id' => $markBatch->id, 'enrollment_id' => $record['enrollment_id']],
-                ['score' => $newScore, 'max_score' => $record['max_score']]
-            );
-
-            if ((float) $oldScore !== (float) $newScore) {
-                AuditLog::record(
-                    $user,
-                    'mark.updated',
-                    $mark,
-                    ['score' => $oldScore],
-                    ['score' => $newScore],
-                );
+        foreach ($validated['records'] as $i => $record) {
+            if ($record['score'] !== null && (float) $record['score'] > (float) $record['max_score']) {
+                throw ValidationException::withMessages(["records.{$i}.score" => 'A score cannot be higher than its maximum.']);
             }
         }
+
+        DB::transaction(function () use ($markBatch, $validated, $user) {
+            // Lock the batch, then re-check it is STILL a draft: a submit or approval that landed a moment
+            // ago must win over this save.
+            $locked = MarkBatch::whereKey($markBatch->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'draft', 422, 'Marks can only be edited while the batch is in draft.');
+            abort_unless($locked->teacher_id === $user->id, 403);
+
+            $validEnrollmentIds = $locked->section->enrollments()->active()->pluck('id');
+
+            foreach ($validated['records'] as $record) {
+                abort_unless($validEnrollmentIds->contains($record['enrollment_id']), 422);
+
+                $existing = Mark::where('mark_batch_id', $locked->id)
+                    ->where('enrollment_id', $record['enrollment_id'])
+                    ->first();
+
+                $oldScore = $existing?->score;
+                $newScore = $record['score'];
+
+                $mark = Mark::updateOrCreate(
+                    ['mark_batch_id' => $locked->id, 'enrollment_id' => $record['enrollment_id']],
+                    ['score' => $newScore, 'max_score' => $record['max_score']]
+                );
+
+                if ((float) $oldScore !== (float) $newScore) {
+                    AuditLog::record($user, 'mark.updated', $mark, ['score' => $oldScore], ['score' => $newScore]);
+                }
+            }
+        });
 
         return back()->with('success', 'Marks saved.');
     }
 
     public function submit(Request $request, MarkBatch $markBatch): RedirectResponse
     {
-        $request->user()->can('enter-marks') || abort(403);
-        abort_unless($markBatch->teacher_id === $request->user()->id, 403);
-        abort_unless($markBatch->status === 'draft', 422);
+        Gate::forUser($request->user())->authorize('enterMarks', $markBatch);
 
-        $markBatch->update(['status' => 'submitted', 'submitted_at' => now()]);
-        AuditLog::record($request->user(), 'mark_batch.submitted', $markBatch, ['status' => 'draft'], ['status' => 'submitted']);
+        DB::transaction(function () use ($request, $markBatch) {
+            $locked = MarkBatch::whereKey($markBatch->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'draft', 422, 'Only a draft can be submitted.');
+
+            $locked->update(['status' => 'submitted', 'submitted_at' => now()]);
+            AuditLog::record($request->user(), 'mark_batch.submitted', $locked, ['status' => 'draft'], ['status' => 'submitted']);
+        });
 
         return back()->with('success', 'Submitted for approval.');
     }
@@ -158,8 +190,13 @@ class MarkBatchController extends Controller
             }
         })->with(['exam', 'section.grade', 'subject', 'teacher']);
 
+        $totals = Exam::where('school_id', $user->school_id)
+            ->selectRaw('term_id, SUM(weight_percent) as total')->groupBy('term_id')->pluck('total', 'term_id');
+
         $batches = $query->orderByDesc('id')->get()->map(fn (MarkBatch $b) => [
             'id' => $b->id,
+            'weights_total' => round((float) ($totals[$b->exam->term_id] ?? 0), 2),
+            'weights_ok' => Exam::isCompleteTotal((float) ($totals[$b->exam->term_id] ?? 0)),
             'exam' => $b->exam->name,
             'section' => "{$b->section->grade->name} {$b->section->name}",
             'subject' => $b->subject->name,
@@ -193,7 +230,8 @@ class MarkBatchController extends Controller
         abort_unless(in_array($markBatch->status, ['submitted', 'approved'], true), 422);
 
         $from = $markBatch->status;
-        $markBatch->update(['status' => 'draft', 'submitted_at' => null, 'approved_at' => null, 'approved_by' => null]);
+        // it returns to whoever holds the teaching assignment now (it may have been reassigned since)
+        $markBatch->update(['status' => 'draft', 'submitted_at' => null, 'approved_at' => null, 'approved_by' => null, 'teacher_id' => $markBatch->currentTeacherId() ?? $markBatch->teacher_id]);
         AuditLog::record($request->user(), 'mark_batch.sent_back', $markBatch, ['status' => $from], ['status' => 'draft']);
 
         return back()->with('success', 'Sent back to the teacher for changes.');
@@ -205,31 +243,58 @@ class MarkBatchController extends Controller
         $this->assertBranchInScope($request->user(), $markBatch);
         abort_unless($markBatch->status === 'approved', 422);
 
-        $markBatch->update(['status' => 'published', 'published_at' => now()]);
-        AuditLog::record($request->user(), 'mark_batch.published', $markBatch, ['status' => 'approved'], ['status' => 'published']);
+        $termId = $markBatch->exam->term_id;
+        $total = Exam::termWeightTotal($termId);
+        if (! Exam::isCompleteTotal($total)) {
+            return back()->withErrors(['publish' => "Can't publish: the exam weights for {$markBatch->exam->term->name} total {$total}%, not 100%. Fix them under Exams first, so report cards are calculated from a complete grading scheme."]);
+        }
+
+        $publication = DB::transaction(function () use ($request, $markBatch) {
+            $locked = MarkBatch::whereKey($markBatch->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'approved', 422);
+
+            $publication = $locked->publishBy($request->user());
+            AuditLog::record($request->user(), 'mark_batch.published', $locked, ['status' => 'approved'], ['status' => 'published', 'version' => $publication->version, 'marks' => count($publication->marks_snapshot)]);
+
+            return $publication;
+        });
 
         return back()->with('success', 'Results published — visible to parents and students now.');
     }
 
+    /**
+     * The ONLY way published results become editable again. Needs publish-results, a reason (at least a
+     * few words, stored and audited), and leaves the old published version on record with who reopened it,
+     * when and why. Afterwards the marks are an ordinary draft; publishing again creates a new version.
+     */
     public function reopen(Request $request, MarkBatch $markBatch): RedirectResponse
     {
-        $request->user()->can('publish-results') || abort(403);
-        $this->assertBranchInScope($request->user(), $markBatch);
-        abort_unless($markBatch->status === 'published', 422);
+        $user = $request->user();
+        $user->can('publish-results') || abort(403);
+        $this->assertBranchInScope($user, $markBatch);
 
-        $validated = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:500']]);
 
-        $markBatch->update(['status' => 'draft', 'published_at' => null, 'approved_at' => null, 'approved_by' => null]);
-        AuditLog::record(
-            $request->user(),
-            'mark_batch.reopened',
-            $markBatch,
-            ['status' => 'published'],
-            ['status' => 'draft'],
-            $validated['reason'],
-        );
+        DB::transaction(function () use ($user, $markBatch, $validated) {
+            $locked = MarkBatch::whereKey($markBatch->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'published', 422, 'Only published results can be reopened.');
 
-        return back()->with('success', 'Reopened for correction. This is logged in the audit trail.');
+            $live = $locked->livePublication();
+            $before = [
+                'status' => 'published',
+                'version' => $live?->version,
+                'published_at' => $locked->published_at?->toDateTimeString(),
+                'published_by' => $live?->publishedBy?->name,
+                'approved_by' => $locked->approvedBy?->name,
+                'marks' => count($live?->marks_snapshot ?? []),
+            ];
+
+            $locked->reopenPublished($user, $validated['reason']);
+
+            AuditLog::record($user, 'mark_batch.reopened', $locked, $before, ['status' => 'draft'], $validated['reason']);
+        });
+
+        return back()->with('success', 'Reopened for correction. The published version stays on record and this is logged in the audit trail.');
     }
 
     private function assertAssignedTeacher($user, Section $section, Subject $subject): void

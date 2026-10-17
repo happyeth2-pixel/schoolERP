@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SafeUpload;
+use App\Rules\SafeUploadRule;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -9,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,7 +52,7 @@ class ProfileController extends Controller
     public function updatePhoto(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'photo' => ['required', 'image', 'max:2048'],
+            'photo' => ['required', 'file', 'max:2048', new SafeUploadRule(['jpg', 'png'])],
         ]);
 
         $user = $request->user();
@@ -58,14 +61,33 @@ class ProfileController extends Controller
             Storage::disk('public')->delete($user->profile_photo_path);
         }
 
-        $path = $validated['photo']->store('avatars', 'public');
+        $path = SafeUpload::storePublicImage($validated['photo'], 'avatars', 512);
         $user->update(['profile_photo_path' => $path]);
 
         return back()->with('success', 'Profile photo updated.');
     }
 
     /**
-     * Delete the user's account.
+     * A user's own display language, chosen from whichever the school
+     * has enabled -- never an arbitrary code, so nobody can land on a
+     * language the school hasn't actually turned on (or reviewed).
+     */
+    public function updateLocale(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $enabled = $user->school->enabled_languages ?? ['en'];
+
+        $validated = $request->validate([
+            'locale' => ['required', 'string', 'in:'.implode(',', $enabled)],
+        ]);
+
+        $user->update(['locale' => $validated['locale']]);
+
+        return back();
+    }
+
+    /**
+     * Deactivate the user's own account (records are kept).
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -75,9 +97,14 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        // Accounts own history (marks entered, payments verified, audit entries), so
+        // they are deactivated, never deleted -- and the last active owner cannot lock the school out.
+        if ($user->hasRole('owner') && User::where('school_id', $user->school_id)->where('status', 'active')->whereHas('roles', fn ($q) => $q->where('name', 'owner'))->count() <= 1) {
+            return back()->withErrors(['password' => 'You are the only active owner of this school. Add another owner before deactivating your account.']);
+        }
 
-        $user->delete();
+        $user->update(['status' => 'inactive']);
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -1,8 +1,10 @@
 import InputError from '@/Components/InputError';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { useForm, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
 export default function UpdatePhotoForm({ className = '' }) {
+    const { t } = useTranslation();
     const user = usePage().props.auth.user;
     const { data, setData, post, processing, errors, reset } = useForm({ photo: null });
 
@@ -17,9 +19,9 @@ export default function UpdatePhotoForm({ className = '' }) {
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Profile Photo</h2>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('profile.photo_title')}</h2>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Shown next to your name in the header. Only you can change it.
+                    {t('profile.photo_desc')}
                 </p>
             </header>
 
@@ -38,7 +40,7 @@ export default function UpdatePhotoForm({ className = '' }) {
                     />
                     <InputError message={errors.photo} className="mt-1" />
                     <button type="submit" disabled={!data.photo || processing} className="mt-2 text-sm text-indigo-600 hover:underline disabled:opacity-50 dark:text-indigo-400">
-                        Upload
+                        {t('profile.upload_button')}
                     </button>
                 </div>
             </form>

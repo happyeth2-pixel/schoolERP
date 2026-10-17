@@ -17,14 +17,14 @@ function severityFor(value, thresholds) {
  * fill color itself carries whether that number is fine or a problem,
  * so nobody has to already know the target to judge it.
  */
-export default function Meter({ label, value, thresholds = { good: 90, warning: 75 }, sublabel, emptyLabel = 'No data yet' }) {
+export default function Meter({ label, value, thresholds = { good: 90, warning: 75 }, sublabel, emptyLabel = 'No data yet', bare = false }) {
     const hasValue = value !== null && value !== undefined;
     const pct = hasValue ? Math.max(0, Math.min(100, value)) : 0;
     const severity = hasValue ? severityFor(value, thresholds) : 'neutral';
     const colors = SEVERITY_COLORS[severity];
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div className={bare ? '' : 'rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'}>
             <div className="flex items-baseline justify-between gap-2">
                 <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{hasValue ? `${value}%` : '—'}</p>

@@ -14,6 +14,10 @@ RUN npm run build
 # --- Stage 2: the actual app ---
 FROM php:8.2-cli-bookworm
 
+# postgresql-client (pg_dump/pg_restore), default-mysql-client (mysqldump, for
+# a non-Postgres deployment), gnupg and rclone are for `backup:run`/
+# `backup:verify` (see DISASTER_RECOVERY.md) -- this same image is also what
+# Render's daily backup Cron Job runs, just with a different start command.
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
@@ -22,8 +26,14 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     unzip \
     git \
+    curl \
+    tar \
+    gnupg \
+    postgresql-client \
+    default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_pgsql zip gd \
+    && curl https://rclone.org/install.sh | bash \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -58,4 +68,8 @@ EXPOSE 8080
 # new permission (as a later change did) makes Spatie's stale cached
 # permission list throw PermissionDoesNotExist the moment any seeder
 # tries to grant it, which would crash this entire boot chain.
-CMD php artisan storage:link && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# pdf:install-fonts registers the Ethiopic (Ge'ez) font Amharic/Tigrinya report cards and receipts
+# need with dompdf (see LOCALIZATION.md) -- it lives under storage/, which does not survive a
+# fresh container the way the committed source .ttf files under resources/fonts/ do, so this has
+# to run on every start too, same reasoning as storage:link.
+CMD php artisan storage:link && php artisan pdf:install-fonts && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

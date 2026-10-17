@@ -11,7 +11,9 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
-        './resources/js/**/*.jsx',
+        // .js too: shared class strings live in plain .js files (Components/ui/tokens.js). Tailwind only
+        // generates classes it can see, so anything not matched here silently has no CSS.
+        './resources/js/**/*.{js,jsx}',
     ],
 
     theme: {

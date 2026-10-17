@@ -1,208 +1,175 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
+import { Button, Card, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+// Grades (Grade 5) and their sections (Grade 5 B). Each section shows who is in it, how full it is and who its class
+// teacher is, so the page answers "is this class set up?" at a glance. Adding a section is the three-step wizard
+// (SectionWizard); changing a section is limited to its name and capacity, exactly as before.
 
 function GradeForm({ grade, onDone }) {
+    const { t } = useTranslation();
     const isEdit = !!grade;
-    const { data, setData, post, patch, processing, errors, reset } = useForm({
-        name: grade?.name ?? '',
-        sort_order: grade?.sort_order ?? 0,
-    });
+    const { data, setData, post, patch, processing, errors, reset, clearErrors } = useForm({ name: grade?.name ?? '', sort_order: grade?.sort_order ?? 0 });
 
     const submit = (e) => {
         e.preventDefault();
-        const options = { onSuccess: () => { reset(); onDone(); } };
-        if (isEdit) {
-            patch(route('grades.update', grade.id), options);
-        } else {
-            post(route('grades.store'), options);
-        }
+        const options = { onSuccess: () => { reset(); onDone(); }, preserveScroll: true };
+        if (isEdit) patch(route('grades.update', grade.id), options);
+        else post(route('grades.store'), options);
     };
 
     return (
-        <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">{isEdit ? 'Edit Grade' : 'Add Grade'}</h2>
-            <div>
-                <InputLabel htmlFor="name" value="Grade Name (e.g. Grade 8, KG1)" />
-                <TextInput id="name" className="mt-1 block w-full" value={data.name} onChange={(e) => setData('name', e.target.value)} />
-                <InputError message={errors.name} className="mt-1" />
-            </div>
-            <div>
-                <InputLabel htmlFor="sort_order" value="Sort Order (lower shows first)" />
-                <TextInput id="sort_order" type="number" className="mt-1 block w-full" value={data.sort_order} onChange={(e) => setData('sort_order', e.target.value)} />
-            </div>
-            <div className="flex justify-end gap-3">
-                <SecondaryButton type="button" onClick={onDone}>Cancel</SecondaryButton>
-                <PrimaryButton disabled={processing}>Save</PrimaryButton>
+        <form onSubmit={submit} className="space-y-6 p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{isEdit ? t('struct.grade_edit_title', { name: grade.name }) : t('struct.grade_add_title')}</h2>
+            <Field id="grade_name" label={t('struct.grade_name')} hint={t('struct.grade_name_hint')} error={errors.name}>
+                <Input value={data.name} onChange={(e) => { clearErrors('name'); setData('name', e.target.value); }} autoFocus autoComplete="off" maxLength={255} />
+            </Field>
+            <Field id="grade_sort" label={t('struct.grade_order')} hint={t('struct.grade_order_hint')} error={errors.sort_order}>
+                <Input inputMode="numeric" value={data.sort_order} onChange={(e) => setData('sort_order', e.target.value)} autoComplete="off" />
+            </Field>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>
+                <Button type="submit" busy={processing}>{isEdit ? t('struct.grade_save_changes') : t('struct.grade_save')}</Button>
             </div>
         </form>
     );
 }
 
-function SectionForm({ grade, branches, academicYears, onDone }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        branch_id: branches.length === 1 ? branches[0].id : '',
-        grade_id: grade.id,
-        academic_year_id: academicYears.find((y) => y.is_current)?.id ?? '',
-        name: '',
-        capacity: '',
-    });
+function SectionForm({ grade, section, onDone }) {
+    const { t } = useTranslation();
+    const { data, setData, patch, processing, errors, clearErrors } = useForm({ name: section.name, capacity: section.capacity ?? '' });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('sections.store'), { onSuccess: () => { reset(); onDone(); } });
+        patch(route('sections.update', section.id), { onSuccess: onDone, preserveScroll: true });
     };
 
     return (
-        <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Add Section to {grade.name}</h2>
-            {branches.length > 1 && (
-                <div>
-                    <InputLabel htmlFor="branch_id" value="Branch" />
-                    <select
-                        id="branch_id"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.branch_id}
-                        onChange={(e) => setData('branch_id', e.target.value)}
-                    >
-                        <option value="">Select…</option>
-                        {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                    <InputError message={errors.branch_id} className="mt-1" />
-                </div>
-            )}
+        <form onSubmit={submit} className="space-y-6 p-6" data-testid="section-edit">
             <div>
-                <InputLabel htmlFor="academic_year_id" value="Academic Year" />
-                <select
-                    id="academic_year_id"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                    value={data.academic_year_id}
-                    onChange={(e) => setData('academic_year_id', e.target.value)}
-                >
-                    <option value="">Select…</option>
-                    {academicYears.map((y) => <option key={y.id} value={y.id}>{y.name}</option>)}
-                </select>
-                <InputError message={errors.academic_year_id} className="mt-1" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('struct.section_edit_title', { grade: grade.name, name: section.name })}</h2>
+                <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{t('struct.section_edit_locked', { branch: section.branch, year: section.academic_year })}</p>
             </div>
-            <div>
-                <InputLabel htmlFor="name" value="Section Name (e.g. A)" />
-                <TextInput id="name" className="mt-1 block w-full" value={data.name} onChange={(e) => setData('name', e.target.value)} />
-                <InputError message={errors.name} className="mt-1" />
-            </div>
-            <div>
-                <InputLabel htmlFor="capacity" value="Capacity (optional)" />
-                <TextInput id="capacity" type="number" className="mt-1 block w-full" value={data.capacity} onChange={(e) => setData('capacity', e.target.value)} />
-            </div>
-            <div className="flex justify-end gap-3">
-                <SecondaryButton type="button" onClick={onDone}>Cancel</SecondaryButton>
-                <PrimaryButton disabled={processing}>Save</PrimaryButton>
+            <Field id="edit_section_name" label={t('sect.name_label')} error={errors.name}>
+                <Input value={data.name} onChange={(e) => { clearErrors('name'); setData('name', e.target.value); }} autoComplete="off" maxLength={50} />
+            </Field>
+            <Field id="edit_section_capacity" label={t('sect.capacity_label')} hint={t('struct.capacity_edit_hint', { count: section.students })} optional error={errors.capacity}>
+                <Input inputMode="numeric" value={data.capacity} onChange={(e) => { clearErrors('capacity'); setData('capacity', e.target.value); }} autoComplete="off" />
+            </Field>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>
+                <Button type="submit" busy={processing}>{t('struct.section_save')}</Button>
             </div>
         </form>
     );
 }
 
-export default function Index({ grades, branches, academicYears, canManage }) {
-    const { flash } = usePage().props;
-    const [showCreateGrade, setShowCreateGrade] = useState(false);
-    const [editingGrade, setEditingGrade] = useState(null);
-    const [addingSectionTo, setAddingSectionTo] = useState(null);
+export default function Index({ grades, canManage, canAssignTeachers }) {
+    const { t } = useTranslation();
+    const [ask, confirmDialog] = useConfirm();
+    const [gradeForm, setGradeForm] = useState(null);   // null | 'new' | a grade
+    const [editing, setEditing] = useState(null);       // { grade, section }
 
-    const destroyGrade = (grade) => {
-        if (confirm(`Remove ${grade.name}? This also removes its sections.`)) {
-            router.delete(route('grades.destroy', grade.id));
-        }
+    const removeGrade = async (grade) => {
+        const ok = await ask({
+            title: t('struct.remove_grade_title', { name: grade.name }),
+            body: <p>{t('struct.remove_grade_body')}</p>,
+            confirmLabel: t('struct.remove_grade_button', { name: grade.name }),
+        });
+        if (ok) router.delete(route('grades.destroy', grade.id), { preserveScroll: true });
     };
 
-    const destroySection = (section) => {
-        if (confirm(`Remove section ${section.name}?`)) {
-            router.delete(route('sections.destroy', section.id));
-        }
+    const removeSection = async (grade, section) => {
+        const ok = await ask({
+            title: t('struct.remove_section_title', { grade: grade.name, name: section.name }),
+            body: <p>{t('struct.remove_section_body')}</p>,
+            confirmLabel: t('struct.remove_section_button', { grade: grade.name, name: section.name }),
+        });
+        if (ok) router.delete(route('sections.destroy', section.id), { preserveScroll: true });
     };
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Grades & Sections</h2>}
-        >
-            <Head title="Grades & Sections" />
-
-            <div className="py-8">
-                <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                    {flash?.success && (
-                        <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            {flash.success}
-                        </div>
-                    )}
-
-                    {canManage && (
-                        <div className="mb-4 flex justify-end">
-                            <PrimaryButton onClick={() => setShowCreateGrade(true)}>
-                                <PlusIcon className="mr-1.5 h-4 w-4" /> Add Grade
-                            </PrimaryButton>
-                        </div>
-                    )}
-
-                    <div className="space-y-4">
-                        {grades.map((grade) => (
-                            <div key={grade.id} className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">{grade.name}</p>
-                                    {canManage && (
-                                        <div className="space-x-3 text-sm">
-                                            <button className="text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setAddingSectionTo(grade)}>+ Section</button>
-                                            <button className="text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setEditingGrade(grade)}>Edit</button>
-                                            <button className="text-red-600 hover:underline dark:text-red-400" onClick={() => destroyGrade(grade)}>Remove</button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
-                                    {grade.sections.map((section) => (
-                                        <div key={section.id} className="flex items-center justify-between py-2 text-sm">
-                                            <span className="text-gray-700 dark:text-gray-300">
-                                                {grade.name} {section.name}
-                                                <span className="ml-2 text-gray-400">
-                                                    {section.branch} · {section.academic_year}
-                                                    {section.capacity ? ` · capacity ${section.capacity}` : ''}
-                                                </span>
-                                            </span>
-                                            {canManage && (
-                                                <button className="text-red-600 hover:underline dark:text-red-400" onClick={() => destroySection(section)}>
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {grade.sections.length === 0 && (
-                                        <p className="py-2 text-sm text-gray-400">No sections yet for this grade.</p>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        {grades.length === 0 && (
-                            <p className="text-center text-sm text-gray-400">No grades yet.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <Modal show={showCreateGrade} onClose={() => setShowCreateGrade(false)}>
-                <GradeForm onDone={() => setShowCreateGrade(false)} />
-            </Modal>
-            <Modal show={!!editingGrade} onClose={() => setEditingGrade(null)}>
-                {editingGrade && <GradeForm grade={editingGrade} onDone={() => setEditingGrade(null)} />}
-            </Modal>
-            <Modal show={!!addingSectionTo} onClose={() => setAddingSectionTo(null)}>
-                {addingSectionTo && (
-                    <SectionForm grade={addingSectionTo} branches={branches} academicYears={academicYears} onDone={() => setAddingSectionTo(null)} />
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('struct.page_title')}</h2>}>
+            <Page
+                title={t('struct.page_title')}
+                description={t('struct.page_desc')}
+                width="wide"
+                actions={canManage && (
+                    <>
+                        <Button variant="secondary" icon={PlusIcon} onClick={() => setGradeForm('new')}>{t('struct.add_grade')}</Button>
+                        <Button as={Link} href={route('sections.create')} icon={PlusIcon}>{t('struct.add_section')}</Button>
+                    </>
                 )}
+            >
+                <FlashMessages errorKeys={['delete']} />
+
+                {grades.length === 0 ? (
+                    <EmptyState title={t('struct.empty_title')} action={canManage && <Button icon={PlusIcon} onClick={() => setGradeForm('new')}>{t('struct.add_grade')}</Button>}>{t('struct.empty_body')}</EmptyState>
+                ) : (
+                    <div className="space-y-5" data-testid="grades">
+                        {grades.map((grade) => (
+                            <Card key={grade.id} data-testid="grade-card">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{grade.name}</h2>
+                                        <p className="text-base text-gray-600 dark:text-gray-400">{t('struct.sections_n', { count: grade.sections.length })}</p>
+                                    </div>
+                                    {canManage && (
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button size="md" as={Link} href={route('sections.create', { grade: grade.id })} icon={PlusIcon}>{t('struct.add_section_to', { grade: grade.name })}</Button>
+                                            <Button size="md" variant="secondary" onClick={() => setGradeForm(grade)}>{t('struct.change_grade')}</Button>
+                                            <Button size="md" variant="quiet" onClick={() => removeGrade(grade)}>{t('struct.remove')}</Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {grade.sections.length === 0 ? (
+                                    <p className="mt-4 rounded-xl bg-gray-50 p-4 text-base text-gray-700 dark:bg-gray-900/40 dark:text-gray-300">{t('struct.no_sections')}</p>
+                                ) : (
+                                    <ul className="mt-4 divide-y divide-gray-200 dark:divide-gray-700">
+                                        {grade.sections.map((s) => (
+                                            <li key={s.id} data-testid="section-row" className="flex flex-wrap items-start justify-between gap-3 py-4">
+                                                <div className="min-w-0">
+                                                    <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                        {grade.name} {s.name}
+                                                        {s.is_current_year && <StatusBadge tone="success" label={t('struct.current_year')} />}
+                                                    </p>
+                                                    <p className="text-base text-gray-600 dark:text-gray-400">{s.branch} · {s.academic_year}</p>
+                                                    <p className="mt-1 text-base text-gray-900 dark:text-gray-100" data-testid="section-fill">
+                                                        {s.capacity ? t('struct.fill', { students: s.students, capacity: s.capacity }) : t('struct.fill_unlimited', { count: s.students })}
+                                                    </p>
+                                                    <p className="text-base text-gray-900 dark:text-gray-100" data-testid="section-teacher">
+                                                        {s.class_teacher ? t('struct.class_teacher', { name: s.class_teacher }) : <span className="text-amber-800 dark:text-amber-300">{t('struct.no_class_teacher')}</span>}
+                                                        {canAssignTeachers && <> · <Link href={route('teaching-assignments.index', { section: s.id })} className="font-medium text-indigo-700 underline dark:text-indigo-300">{s.class_teacher ? t('struct.manage_teachers') : t('struct.choose_teacher')}</Link></>}
+                                                    </p>
+                                                </div>
+                                                {canManage && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <Button size="md" variant="secondary" onClick={() => setEditing({ grade, section: s })}>{t('struct.change_section')}</Button>
+                                                        <Button size="md" variant="quiet" onClick={() => removeSection(grade, s)}>{t('struct.remove')}</Button>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </Page>
+
+            <Modal show={gradeForm !== null} onClose={() => setGradeForm(null)}>
+                {gradeForm !== null && <GradeForm key={gradeForm === 'new' ? 'new' : gradeForm.id} grade={gradeForm === 'new' ? null : gradeForm} onDone={() => setGradeForm(null)} />}
             </Modal>
+            <Modal show={!!editing} onClose={() => setEditing(null)}>
+                {editing && <SectionForm key={editing.section.id} grade={editing.grade} section={editing.section} onDone={() => setEditing(null)} />}
+            </Modal>
+            {confirmDialog}
         </AuthenticatedLayout>
     );
 }

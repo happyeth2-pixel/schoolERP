@@ -4,6 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "test:calendar": "node tests/js/calendar-parity.mjs",
+        "test:i18n": "node tests/js/i18n-parity.mjs",
         "dev": "vite"
     },
     "devDependencies": {
@@ -24,6 +26,9 @@
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
-        "qrcode.react": "^4.2.0"
+        "@sentry/react": "^10.75.2",
+        "i18next": "^26.4.2",
+        "qrcode.react": "^4.2.0",
+        "react-i18next": "^17.0.14"
     }
 }

@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Same auto-safety as config('app.force_https'): a production deployment gets a
+    // Secure cookie even if nobody remembers to set SESSION_SECURE_COOKIE explicitly.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

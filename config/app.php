@@ -65,6 +65,27 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Force HTTPS
+    |--------------------------------------------------------------------------
+    | Redirect plain-HTTP requests to HTTPS, send HSTS, and generate https://
+    | URLs (including the QR-code links on student ID cards). On by default in
+    | production; set FORCE_HTTPS=false only for a local http:// setup.
+    */
+    /*
+    |--------------------------------------------------------------------------
+    | Business timezone
+    |--------------------------------------------------------------------------
+    | Timestamps are STORED in UTC (the 'timezone' above). This is the timezone
+    | the school lives in, used only to decide what "today" is for a school day
+    | and to show times -- so attendance rolls over at midnight in Addis Ababa,
+    | not at 03:00.
+    */
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Africa/Addis_Ababa'),
+
+    'force_https' => (bool) env('FORCE_HTTPS', env('APP_ENV') === 'production'),
+
     'timezone' => 'UTC',
 
     /*

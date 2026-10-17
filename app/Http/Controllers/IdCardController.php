@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,10 +18,10 @@ class IdCardController extends Controller
      */
     public function show(Request $request, Student $student): Response
     {
-        $this->authorizeView($request->user(), $student);
+        Gate::authorize('viewRecords', $student);
 
         if (! $student->id_card_token) {
-            $student->update(['id_card_token' => Str::random(40)]);
+            $student->update(['id_card_token' => Student::newCardToken()]);
         }
 
         return Inertia::render('IdCard/Show', [
@@ -28,59 +29,53 @@ class IdCardController extends Controller
                 'id' => $student->id,
                 'name' => $student->fullName(),
                 'student_id_number' => $student->student_id_number,
-                'status' => $student->status,
                 'photo_url' => $student->photo_path ? Storage::disk('public')->url($student->photo_path) : null,
             ],
             'school' => $student->school->name,
+            'cardValidity' => $student->idCardValidity(),
             'verifyUrl' => route('id-card.verify', $student->id_card_token),
         ]);
     }
 
     /**
-     * Public, no-login verification page. The QR code on a printed card
-     * points here. Deliberately shows nothing but photo/name/status --
-     * enough for a guard or teacher to confirm the card belongs to the
-     * person holding it, nothing a stranger could use for anything
-     * else. A non-active status (withdrawn, expelled, graduated, ...)
-     * renders as "not valid" so an old card stops working the moment
-     * the student's status changes, with no separate revocation step.
+     * Public, no-login verification page -- what a card's QR code opens.
+     *
+     * It answers with one of four simple states, calculated from the student's
+     * status and enrollment (Student::idCardValidity()): Valid, Expired,
+     * Suspended or Invalid. Only VALID shows anything about the person (photo,
+     * first + father's name, school); the other three show just the state and
+     * an instruction. Withdrawn, expelled, transferred, inactive and unknown
+     * codes all collapse into the same generic "Invalid" so no more reason than
+     * needed is ever disclosed. Only UNKNOWN codes count toward the miss limit,
+     * so a gate guard scanning a stack of expired cards is never throttled.
      */
     public function verify(Request $request, string $token): Response
     {
-        $student = Student::where('id_card_token', $token)->with('school')->first();
+        $missKey = 'id-verify-miss:'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($missKey, 8)) {
+            abort(429, 'Too many invalid attempts. Please wait a minute.');
+        }
+
+        $student = Student::where('id_card_token', $token)->with('school:id,name')->first();
 
         if (! $student) {
-            return Inertia::render('IdCard/Verify', ['found' => false]);
+            RateLimiter::hit($missKey, 60);
+
+            return Inertia::render('IdCard/Verify', ['state' => 'invalid']);
+        }
+
+        $state = $student->idCardState();
+
+        if ($state !== 'valid') {
+            return Inertia::render('IdCard/Verify', ['state' => $state]);
         }
 
         return Inertia::render('IdCard/Verify', [
-            'found' => true,
-            'valid' => $student->status === 'active',
-            'name' => $student->fullName(),
-            'status' => $student->status,
+            'state' => 'valid',
+            'name' => $student->publicName(),
             'photo_url' => $student->photo_path ? Storage::disk('public')->url($student->photo_path) : null,
             'school' => $student->school->name,
         ]);
-    }
-
-    private function authorizeView($user, Student $student): void
-    {
-        abort_unless($student->school_id === $user->school_id, 403);
-
-        if ($user->hasRole('parent')) {
-            abort_unless($user->children()->whereKey($student->id)->exists(), 403);
-
-            return;
-        }
-
-        if ($user->hasRole('auditor')) {
-            return;
-        }
-
-        abort_unless($user->can('manage-students'), 403);
-
-        if (! $user->isOrgWide()) {
-            abort_unless($student->branch_id === $user->branch_id, 403);
-        }
     }
 }

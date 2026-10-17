@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/** The basics of the sign-in screen. Phone numbers, temporary passwords and resets are covered in PhoneLoginTest. */
 class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
@@ -17,12 +18,19 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_the_login_screen_asks_for_a_phone_number_not_an_email(): void
+    {
+        $page = $this->get('/login')->original->getData()['page'];
+
+        $this->assertSame('Auth/Login', $page['component']);
+    }
+
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['phone' => '0911223344', 'login_phone' => '0911223344']);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'phone' => '0911 22 33 44',
             'password' => 'password',
         ]);
 
@@ -32,10 +40,10 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
-        $user = User::factory()->create();
+        User::factory()->create(['phone' => '0911223344', 'login_phone' => '0911223344']);
 
         $this->post('/login', [
-            'email' => $user->email,
+            'phone' => '0911223344',
             'password' => 'wrong-password',
         ]);
 

@@ -1,326 +1,281 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
+import CredentialsPanel from '@/Components/CredentialsPanel';
+import { CannotManageNote, PermissionPicker, PermissionSummary, TitleVersusAccess } from '@/Components/StaffParts';
 import Modal from '@/Components/Modal';
-import PrimaryButton from '@/Components/PrimaryButton';
+import Pagination from '@/Components/Pagination';
 import SearchInput from '@/Components/SearchInput';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
+import { Button, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-const ROLE_LABELS = {
-    owner: 'Owner',
-    branch_admin: 'Branch Admin',
-    teacher: 'Teacher',
-    accountant: 'Accountant',
-    auditor: 'Auditor',
-};
+// The staff list. Each person shows their JOB TITLE (only a label) and their SYSTEM ROLE (what decides access)
+// as two clearly named things. Adding someone is the three-step wizard (Staff/Wizard); "Change" here edits the
+// label, phone, whether they may sign in, and -- for branch admins -- their individual permissions.
 
-function PermissionChecklist({ available, myPermissions, selected, onToggle }) {
+function ViewStaffPanel({ staff, onClose }) {
+    const { t } = useTranslation();
+
+    const signIn = staff.sign_in_lock?.locked ? t('staff.sign_in_locked') : staff.sign_in_lock?.waiting ? t('staff.sign_in_paused') : t('status.active');
+
     return (
-        <div className="grid max-h-56 grid-cols-1 gap-1.5 overflow-y-auto rounded-md border border-gray-200 p-3 sm:grid-cols-2 dark:border-gray-700">
-            {available.map((perm) => {
-                const grantable = myPermissions.includes(perm);
-                return (
-                    <label
-                        key={perm}
-                        className={`flex items-center gap-2 text-sm ${grantable ? 'text-gray-700 dark:text-gray-300' : 'cursor-not-allowed text-gray-300 dark:text-gray-600'}`}
-                        title={grantable ? '' : "You can't grant a permission you don't have"}
-                    >
-                        <Checkbox
-                            disabled={!grantable}
-                            checked={selected.includes(perm)}
-                            onChange={() => onToggle(perm)}
-                        />
-                        {perm}
-                    </label>
-                );
-            })}
+        <div className="space-y-6 p-6" data-testid="view-staff">
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{staff.name}</h2>
+                <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{t(`staff.role_${staff.role}`)}{staff.title ? ` · ${staff.title}` : ''}</p>
+            </div>
+            <dl className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-base">
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.phone')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{staff.phone || '—'}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.email')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{staff.email || '—'}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_branch')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{staff.branch ?? t('staff.all_branches')}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.status_label')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{t(`status.${staff.status}`)}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_last_login')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100" data-testid="view-last-login">{staff.last_login_at ?? t('staff.never_signed_in')}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.pw_question')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{staff.must_change_password ? t('staff.must_change') : t('staff.col_password_ok')}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">{t('staff.sign_in_status')}</dt>
+                <dd className="text-gray-900 dark:text-gray-100" data-testid="view-sign-in-status">{signIn}</dd>
+            </dl>
+            <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('staff.r_can_do')}</h3>
+                <div className="mt-2"><PermissionSummary names={staff.permissions} /></div>
+            </div>
+            <div className="flex justify-end">
+                <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            </div>
         </div>
     );
 }
 
-function CreateStaffForm({ assignableRoles, availablePermissions, myPermissions, branches, onDone }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
-        email: '',
-        title: '',
-        role: assignableRoles[0] ?? '',
-        branch_id: branches.length === 1 ? branches[0].id : '',
-        permissions: [],
-    });
+function EditStaffForm({ staff, availablePermissions, permissionGroups, tierDefaults, myPermissions, onDone }) {
+    const { t } = useTranslation();
+    const customises = staff.role === 'branch_admin';
+    const mine = new Set(myPermissions);
+    const beyond = staff.permissions.filter((p) => !mine.has(p));
 
-    const needsBranch = data.role !== 'owner' && data.role !== 'auditor';
-
-    const togglePermission = (perm) => {
-        setData('permissions', data.permissions.includes(perm)
-            ? data.permissions.filter((p) => p !== perm)
-            : [...data.permissions, perm]);
-    };
-
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('staff.store'), { onSuccess: () => { reset(); onDone(); } });
-    };
-
-    return (
-        <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Add Staff Account</h2>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <InputLabel htmlFor="name" value="Full Name" />
-                    <TextInput id="name" className="mt-1 block w-full" value={data.name} onChange={(e) => setData('name', e.target.value)} />
-                    <InputError message={errors.name} className="mt-1" />
-                </div>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-                    <TextInput id="email" type="email" className="mt-1 block w-full" value={data.email} onChange={(e) => setData('email', e.target.value)} />
-                    <InputError message={errors.email} className="mt-1" />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <InputLabel htmlFor="role" value="Tier" />
-                    <select
-                        id="role"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.role}
-                        onChange={(e) => setData('role', e.target.value)}
-                    >
-                        {assignableRoles.map((r) => (
-                            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <InputLabel htmlFor="title" value="Title (e.g. Vice Principal)" />
-                    <TextInput id="title" className="mt-1 block w-full" value={data.title} onChange={(e) => setData('title', e.target.value)} />
-                </div>
-            </div>
-
-            {needsBranch && branches.length > 1 && (
-                <div>
-                    <InputLabel htmlFor="branch_id" value="Branch" />
-                    <select
-                        id="branch_id"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.branch_id}
-                        onChange={(e) => setData('branch_id', e.target.value)}
-                    >
-                        <option value="">Select…</option>
-                        {branches.map((b) => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-                    <InputError message={errors.branch_id} className="mt-1" />
-                </div>
-            )}
-
-            {data.role === 'branch_admin' && (
-                <div>
-                    <InputLabel value="Permissions for this account" />
-                    <p className="mb-1 text-xs text-gray-400">
-                        Greyed-out permissions can't be granted because you don't hold them yourself.
-                    </p>
-                    <PermissionChecklist
-                        available={availablePermissions}
-                        myPermissions={myPermissions}
-                        selected={data.permissions}
-                        onToggle={togglePermission}
-                    />
-                </div>
-            )}
-
-            <div className="flex justify-end gap-3">
-                <SecondaryButton type="button" onClick={onDone}>Cancel</SecondaryButton>
-                <PrimaryButton disabled={processing}>Create Account</PrimaryButton>
-            </div>
-        </form>
-    );
-}
-
-function EditStaffForm({ staff, availablePermissions, myPermissions, onDone }) {
-    const { data, setData, patch, processing, errors } = useForm({
+    const { data, setData, patch, processing, errors, clearErrors } = useForm({
+        name: staff.name,
         title: staff.title ?? '',
+        phone: staff.phone ?? '',
         status: staff.status,
-        permissions: staff.permissions,
+        permissions: staff.permissions.filter((p) => mine.has(p)),
     });
-
-    const togglePermission = (perm) => {
-        setData('permissions', data.permissions.includes(perm)
-            ? data.permissions.filter((p) => p !== perm)
-            : [...data.permissions, perm]);
-    };
+    const set = (k) => (v) => { clearErrors(k); setData(k, v); };
 
     const submit = (e) => {
         e.preventDefault();
-        patch(route('staff.update', staff.id), { onSuccess: onDone });
+        patch(route('staff.update', staff.id), { onSuccess: onDone, preserveScroll: true });
     };
 
-    return (
-        <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Edit {staff.name} <span className="text-sm font-normal text-gray-400">({ROLE_LABELS[staff.role]})</span>
-            </h2>
+    const effective = customises ? data.permissions : staff.permissions;
 
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <InputLabel htmlFor="edit_title" value="Title" />
-                    <TextInput id="edit_title" className="mt-1 block w-full" value={data.title} onChange={(e) => setData('title', e.target.value)} />
-                    <InputError message={errors.title} className="mt-1" />
-                </div>
-                <div>
-                    <InputLabel htmlFor="edit_status" value="Status" />
-                    <select
-                        id="edit_status"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.status}
-                        onChange={(e) => setData('status', e.target.value)}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
+    return (
+        <form onSubmit={submit} className="space-y-6 p-6" data-testid="edit-staff">
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('staff.edit_title', { name: staff.name })}</h2>
+                <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{t(`staff.role_${staff.role}`)}{staff.email ? ` · ${staff.email}` : ''}</p>
             </div>
 
-            {staff.role === 'branch_admin' && (
-                <div>
-                    <InputLabel value="Permissions" />
-                    <p className="mb-1 text-xs text-gray-400">
-                        Greyed-out permissions can't be granted because you don't hold them yourself.
-                    </p>
-                    <PermissionChecklist
-                        available={availablePermissions}
-                        myPermissions={myPermissions}
-                        selected={data.permissions}
-                        onToggle={togglePermission}
-                    />
+            <Field id="edit_name" label={t('staff.name')} error={errors.name}>
+                <Input value={data.name} onChange={(e) => set('name')(e.target.value)} maxLength={255} autoComplete="off" />
+            </Field>
+            <Field id="edit_title" label={t('staff.title_label')} hint={t('staff.title_hint')} optional error={errors.title}>
+                <Input value={data.title} onChange={(e) => set('title')(e.target.value)} maxLength={255} autoComplete="off" />
+            </Field>
+            <Field id="edit_phone" label={t('staff.phone')} hint={staff.can_sign_in_with_phone ? t('staff.phone_change_hint') : t('staff.phone_add_hint')} optional error={errors.phone}>
+                <Input type="tel" inputMode="tel" value={data.phone} onChange={(e) => set('phone')(e.target.value)} maxLength={50} autoComplete="off" />
+            </Field>
+
+            <TitleVersusAccess compact />
+
+            {customises ? (
+                <div className="space-y-3">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('staff.perm_head')}</h3>
+                        <p className="text-base text-gray-600 dark:text-gray-400">{t('staff.perm_intro')}</p>
+                    </div>
+                    <CannotManageNote names={beyond} />
+                    <PermissionPicker groups={permissionGroups} value={data.permissions} onChange={set('permissions')} myPermissions={myPermissions} defaults={tierDefaults.branch_admin} />
+                </div>
+            ) : (
+                <div className="space-y-2" data-testid="fixed-permissions">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('staff.fixed_head', { role: t(`staff.role_${staff.role}`) })}</h3>
+                    <p className="text-base text-gray-600 dark:text-gray-400">{t('staff.fixed_intro')}</p>
+                    <PermissionSummary names={effective} />
                 </div>
             )}
 
-            <div className="flex justify-end gap-3">
-                <SecondaryButton type="button" onClick={onDone}>Cancel</SecondaryButton>
-                <PrimaryButton disabled={processing}>Save</PrimaryButton>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>
+                <Button type="submit" busy={processing}>{t('staff.save_changes')}</Button>
             </div>
         </form>
     );
 }
 
-export default function Index({ staff, assignableRoles, availablePermissions, myPermissions, branches, canManage }) {
-    const { flash } = usePage().props;
-    const [showCreate, setShowCreate] = useState(false);
+export default function Index({ staff, staffMeta, search: initialSearch, assignableRoles, availablePermissions, permissionGroups, tierDefaults, myPermissions, branches, canManage, canView }) {
+    const { t } = useTranslation();
     const [editing, setEditing] = useState(null);
-    const [search, setSearch] = useState('');
+    const [viewing, setViewing] = useState(null);
+    const [search, setSearch] = useState(initialSearch ?? '');
+    const [ask, confirmDialog] = useConfirm();
+    const { flash, auth } = usePage().props;
+    const me = auth?.user?.id;
+    const credentials = flash?.credentials;
+    const [hidden, setHidden] = useState(null);
 
-    const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return staff;
-        return staff.filter((s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.email.toLowerCase().includes(q) ||
-            (s.title ?? '').toLowerCase().includes(q) ||
-            (ROLE_LABELS[s.role] ?? s.role).toLowerCase().includes(q)
-        );
-    }, [search, staff]);
+    const unlock = async (s) => {
+        const ok = await ask({
+            tone: 'primary',
+            title: t('staff.unlock_title', { name: s.name }),
+            body: <p>{t('staff.unlock_body')}</p>,
+            confirmLabel: t('staff.unlock_confirm', { name: s.name }),
+        });
+        if (ok) router.post(route('staff.unlock-sign-in', s.id), {}, { preserveScroll: true });
+    };
+
+    const disable = async (s) => {
+        const ok = await ask({
+            tone: 'danger',
+            title: t('staff.disable_title', { name: s.name }),
+            body: <><p>{t('staff.disable_body1', { name: s.name })}</p><p>{t('staff.disable_body2')}</p></>,
+            confirmLabel: t('staff.disable_confirm', { name: s.name }),
+        });
+        if (ok) router.post(route('staff.deactivate', s.id), {}, { preserveScroll: true });
+    };
+
+    const reactivate = async (s) => {
+        const ok = await ask({
+            tone: 'primary',
+            title: t('staff.enable_title', { name: s.name }),
+            body: <p>{t('staff.enable_body')}</p>,
+            confirmLabel: t('staff.enable_confirm', { name: s.name }),
+        });
+        if (ok) router.post(route('staff.reactivate', s.id), {}, { preserveScroll: true });
+    };
+
+    const reactivateWithReset = async (s) => {
+        const ok = await ask({
+            tone: 'primary',
+            title: t('staff.enable_reset_title', { name: s.name }),
+            body: <p>{t('staff.enable_reset_body')}</p>,
+            confirmLabel: t('staff.enable_reset_confirm', { name: s.name }),
+        });
+        if (ok) router.post(route('staff.reactivate', s.id), { reset_password: true }, { preserveScroll: true });
+    };
+
+    const resetPassword = async (s) => {
+        const ok = await ask({
+            tone: 'primary',
+            title: t('staff.reset_title', { name: s.name }),
+            body: <><p>{t('staff.reset_body', { name: s.name })}</p><p>{t('staff.reset_body2')}</p></>,
+            confirmLabel: t('staff.reset_confirm', { name: s.name }),
+        });
+        if (ok) router.post(route('staff.reset-password', s.id), {}, { preserveScroll: true });
+    };
+
+    const goToPage = (page) => router.get(route('staff.index'), { search: search || undefined, page }, { preserveState: true, preserveScroll: true, replace: true });
+
+    // search is resolved on the server (StaffController@staffQuery) so the list stays paginated however many
+    // staff match; typing is debounced so each keystroke doesn't fire its own request
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            if (search !== (initialSearch ?? '')) {
+                router.get(route('staff.index'), { search: search || undefined, page: 1 }, { preserveState: true, preserveScroll: true, replace: true });
+            }
+        }, 300);
+        return () => clearTimeout(handle);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Staff Accounts</h2>}
-        >
-            <Head title="Staff Accounts" />
-
-            <div className="py-8">
-                <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                    {flash?.success && (
-                        <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            {flash.success}
-                        </div>
-                    )}
-
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div className="w-full max-w-xs">
-                            <SearchInput value={search} onChange={setSearch} placeholder="Search name, email, title, tier…" />
-                        </div>
-                        <div className="flex gap-3">
-                            <a
-                                href={route('staff.export')}
-                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                            >
-                                <ArrowDownTrayIcon className="h-4 w-4" /> Export to Excel
-                            </a>
-                            {canManage && (
-                                <PrimaryButton onClick={() => setShowCreate(true)}>Add Staff Account</PrimaryButton>
-                            )}
-                        </div>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('staff.page_title')}</h2>}>
+            <Page
+                title={t('staff.page_title')}
+                description={t('staff.page_desc')}
+                width="wide"
+                actions={
+                    <>
+                        <Button as="a" href={route('staff.export')} variant="secondary" icon={ArrowDownTrayIcon}>{t('staff.export')}</Button>
+                        {canManage && <Button as={Link} href={route('staff.create')} icon={PlusIcon}>{t('staff.add_button')}</Button>}
+                    </>
+                }
+            >
+                <FlashMessages errorKeys={['reset', 'status']} />
+                {credentials && hidden !== credentials.password && (
+                    <div data-testid="reset-result">
+                        <CredentialsPanel credentials={credentials} tone="notice" />
+                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHidden(credentials.password)}>{t('cred.hide')}</Button></div>
                     </div>
+                )}
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Title</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tier</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Branch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                                    <th className="px-4 py-3" />
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {filtered.map((s) => (
-                                    <tr key={s.id}>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                            {s.name}
-                                            <div className="text-xs text-gray-400">{s.email}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{s.title ?? '—'}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{ROLE_LABELS[s.role] ?? s.role}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{s.branch ?? 'Org-wide'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                                                {s.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm">
-                                            {canManage && (
-                                                <button className="text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setEditing(s)}>Edit</button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filtered.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">
-                                            {staff.length === 0 ? 'No staff accounts yet.' : 'No staff match your search.'}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="max-w-md">
+                    <SearchInput value={search} onChange={setSearch} placeholder={t('staff.search')} />
                 </div>
-            </div>
 
-            <Modal show={showCreate} onClose={() => setShowCreate(false)} maxWidth="xl">
-                <CreateStaffForm
-                    assignableRoles={assignableRoles}
-                    availablePermissions={availablePermissions}
-                    myPermissions={myPermissions}
-                    branches={branches}
-                    onDone={() => setShowCreate(false)}
-                />
+                {staff.length === 0 ? (
+                    <EmptyState title={staffMeta.total === 0 ? t('staff.empty_title') : t('staff.no_match')}>{staffMeta.total === 0 ? t('staff.empty_body') : undefined}</EmptyState>
+                ) : (
+                    <ul className="grid gap-4 lg:grid-cols-2" data-testid="staff-list">
+                        {staff.map((s) => (
+                            <li key={s.id} data-testid="staff-row" data-status={s.status} className={`rounded-2xl border-2 p-5 ${s.status === 'inactive' ? 'border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-900/60' : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'}`}>
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{s.name}</p>
+                                        <p className="break-all text-sm text-gray-600 dark:text-gray-400" data-testid="staff-contact">{[s.phone, s.email].filter(Boolean).join(' · ') || '—'}</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <StatusBadge status={s.status} label={s.status === 'inactive' ? t('staff.disabled_badge') : undefined} />
+                                        {s.must_change_password && <StatusBadge tone="warning" label={t('staff.must_change')} />}
+                                        {!s.can_sign_in_with_phone && <StatusBadge tone="neutral" label={t('staff.no_phone')} />}
+                                        {s.sign_in_lock?.locked && <StatusBadge tone="danger" label={t('staff.sign_in_locked')} />}
+                                        {s.sign_in_lock?.waiting && !s.sign_in_lock?.locked && <StatusBadge tone="danger" label={t('staff.sign_in_paused')} />}
+                                    </div>
+                                </div>
+                                <dl className="mt-3 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 text-base">
+                                    <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_role')}</dt>
+                                    <dd className="font-semibold text-gray-900 dark:text-gray-100">{t(`staff.role_${s.role}`)}</dd>
+                                    <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_title')}</dt>
+                                    <dd className="text-gray-900 dark:text-gray-100">{s.title ?? '—'}</dd>
+                                    <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_branch')}</dt>
+                                    <dd className="text-gray-900 dark:text-gray-100">{s.branch ?? t('staff.all_branches')}</dd>
+                                    <dt className="text-gray-600 dark:text-gray-400">{t('staff.col_last_login')}</dt>
+                                    <dd className="text-gray-900 dark:text-gray-100">{s.last_login_at ?? t('staff.never_signed_in')}</dd>
+                                </dl>
+                                <div className="mt-4 flex flex-wrap gap-3">
+                                    {canView && <Button size="md" variant="quiet" onClick={() => setViewing(s)}>{t('staff.view_button')}</Button>}
+                                    {canManage && <Button size="md" variant="secondary" onClick={() => setEditing(s)}>{t('staff.change')}</Button>}
+                                    {canManage && <Button size="md" variant="quiet" onClick={() => resetPassword(s)}>{t('staff.reset_button')}</Button>}
+                                    {canManage && s.sign_in_lock?.waiting && <Button size="md" variant="quiet" onClick={() => unlock(s)}>{t('staff.unlock_button')}</Button>}
+                                    {canManage && s.status === 'active' && s.id !== me && <Button size="md" variant="quiet" className="!text-red-700 hover:!bg-red-50 dark:!text-red-300" onClick={() => disable(s)}>{t('staff.disable_button')}</Button>}
+                                    {canManage && s.status === 'inactive' && <Button size="md" variant="secondary" onClick={() => reactivate(s)}>{t('staff.enable_button')}</Button>}
+                                    {canManage && s.status === 'inactive' && <Button size="md" variant="quiet" onClick={() => reactivateWithReset(s)}>{t('staff.enable_reset_button')}</Button>}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <Pagination meta={staffMeta} onPageChange={goToPage} />
+            </Page>
+
+            {confirmDialog}
+            <Modal show={!!viewing} onClose={() => setViewing(null)} maxWidth="xl">
+                {viewing && <ViewStaffPanel staff={viewing} onClose={() => setViewing(null)} />}
             </Modal>
-
-            <Modal show={!!editing} onClose={() => setEditing(null)} maxWidth="xl">
+            <Modal show={!!editing} onClose={() => setEditing(null)} maxWidth="2xl">
                 {editing && (
                     <EditStaffForm
+                        key={editing.id}
                         staff={editing}
                         availablePermissions={availablePermissions}
+                        permissionGroups={permissionGroups}
+                        tierDefaults={tierDefaults}
                         myPermissions={myPermissions}
                         onDone={() => setEditing(null)}
                     />

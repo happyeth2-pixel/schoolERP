@@ -7,6 +7,7 @@ import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 function SubjectForm({ subject, onDone }) {
     const isEdit = !!subject;
@@ -58,12 +59,13 @@ function SubjectForm({ subject, onDone }) {
 }
 
 export default function Index({ subjects }) {
+    const { t } = useTranslation();
     const { flash } = usePage().props;
     const [showCreate, setShowCreate] = useState(false);
     const [editing, setEditing] = useState(null);
 
     const destroy = (subject) => {
-        if (confirm(`Remove ${subject.name}?`)) {
+        if (confirm(t('confirm.subjects_remove', { name: subject.name }))) {
             router.delete(route('subjects.destroy', subject.id));
         }
     };
@@ -86,7 +88,7 @@ export default function Index({ subjects }) {
                         <PrimaryButton onClick={() => setShowCreate(true)}>Add Subject</PrimaryButton>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
+                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-gray-800">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900/40">
                                 <tr>

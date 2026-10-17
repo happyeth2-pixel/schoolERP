@@ -61,7 +61,7 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account(): void
+    public function test_user_can_deactivate_their_account_and_the_row_is_kept(): void
     {
         $user = User::factory()->create();
 
@@ -76,7 +76,8 @@ class ProfileTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $this->assertNotNull($user->fresh(), 'accounts are deactivated, never deleted');
+        $this->assertSame('inactive', $user->fresh()->status);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

@@ -1,43 +1,52 @@
+import { Button, Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { BellIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
+
+// Messages from the school. What is new is unmistakable (a coloured card, a "New" badge, and a count at the top);
+// what has been read fades to plain. Same data, same routes: marking read only ever touches the person's own messages.
 
 export default function Index({ notificationList }) {
-    const markRead = (id) => router.post(route('notifications.read', id));
+    const { t } = useTranslation();
+    const list = notificationList.data;
+    const unread = list.filter((n) => !n.read_at).length;
+    const markRead = (id) => router.post(route('notifications.read', id), {}, { preserveScroll: true });
+    const title = t('parent.msg_page_title');
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Notifications</h2>}
-        >
-            <Head title="Notifications" />
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+            <Page title={title} description={unread > 0 ? t('parent.msg_page_new', { count: unread }) : undefined} width="default">
+                {unread > 0 && (
+                    <Button variant="secondary" fullWidth icon={CheckIcon} onClick={() => router.post(route('notifications.read-all'), {}, { preserveScroll: true })}>{t('parent.msg_mark_all')}</Button>
+                )}
 
-            <div className="py-8">
-                <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-                    <div className="space-y-2">
-                        {notificationList.data.map((n) => (
-                            <div
-                                key={n.id}
-                                className={`rounded-lg p-4 shadow-sm ${n.read_at ? 'bg-white dark:bg-gray-800' : 'bg-indigo-50 dark:bg-indigo-900/20'}`}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{n.title}</p>
-                                        <p className="text-sm text-gray-500">{n.body}</p>
-                                        <p className="mt-1 text-xs text-gray-400">{n.created_at}</p>
-                                    </div>
-                                    {!n.read_at && (
-                                        <button className="shrink-0 text-xs text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => markRead(n.id)}>
-                                            Mark read
-                                        </button>
-                                    )}
+                {list.length === 0 && <Card><EmptyState icon={BellIcon} title={t('parent.msg_none')}>{t('parent.msg_none_hint')}</EmptyState></Card>}
+
+                <ul className="space-y-3" data-testid="messages">
+                    {list.map((n) => (
+                        <li key={n.id} data-unread={!n.read_at} className={`rounded-2xl border-2 p-4 ${n.read_at ? 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800' : 'border-sky-400 bg-sky-50 dark:border-sky-700 dark:bg-sky-900/20'}`}>
+                            {!n.read_at && <StatusBadge tone="info" label={t('parent.msg_new')} className="mb-2" />}
+                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{n.title}</p>
+                            <p className="mt-1 text-base text-gray-800 dark:text-gray-200">{n.body}</p>
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{n.created_at}</p>
+                                <div className="flex flex-wrap gap-3">
+                                    {n.action_url && <Button as={Link} href={n.action_url} size="md" data-testid="notification-action">{t('parent.msg_open')}</Button>}
+                                    {!n.read_at && <Button variant="secondary" size="md" onClick={() => markRead(n.id)}>{t('parent.msg_mark_one')}</Button>}
                                 </div>
                             </div>
-                        ))}
-                        {notificationList.data.length === 0 && (
-                            <p className="text-center text-sm text-gray-400">No notifications yet.</p>
-                        )}
+                        </li>
+                    ))}
+                </ul>
+
+                {(notificationList.prev_page_url || notificationList.next_page_url) && (
+                    <div className="flex gap-3">
+                        {notificationList.prev_page_url && <Button as={Link} href={notificationList.prev_page_url} variant="secondary" fullWidth>{t('parent.msg_newer')}</Button>}
+                        {notificationList.next_page_url && <Button as={Link} href={notificationList.next_page_url} variant="secondary" fullWidth>{t('parent.msg_older')}</Button>}
                     </div>
-                </div>
-            </div>
+                )}
+            </Page>
         </AuthenticatedLayout>
     );
 }

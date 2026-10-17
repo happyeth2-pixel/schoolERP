@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Payment;
+use App\Support\Localization\NotificationLocale;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -21,9 +22,14 @@ class PaymentRejected extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $locale = NotificationLocale::for($notifiable);
+
         return [
-            'title' => 'Payment rejected',
-            'body' => 'Your payment of '.number_format((float) $this->payment->amount, 2)." ETB was rejected: {$this->payment->rejection_reason}",
+            'title' => __('notifications.payment_rejected.title', [], $locale),
+            'body' => __('notifications.payment_rejected.body', [
+                'amount' => number_format((float) $this->payment->amount, 2),
+                'reason' => $this->payment->rejection_reason,
+            ], $locale),
             'payment_id' => $this->payment->id,
         ];
     }

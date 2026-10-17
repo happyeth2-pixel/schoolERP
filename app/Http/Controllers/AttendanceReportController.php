@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Section;
+use App\Support\SchoolCalendar;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,13 +15,13 @@ class AttendanceReportController extends Controller
         $request->user()->can('view-attendance-reports') || abort(403);
         $user = $request->user();
 
-        $date = $request->query('date', now()->format('Y-m-d'));
+        $date = $request->query('date', SchoolCalendar::today()->toDateString());
 
         $sectionsQuery = Section::query()
             ->whereIn('branch_id', $user->school->branches()->pluck('id'))
             ->whereHas('academicYear', fn ($q) => $q->where('is_current', true))
-            ->with(['grade', 'branch', 'enrollments' => fn ($q) => $q->where('status', 'active')])
-            ->with(['enrollments.attendanceRecords' => fn ($q) => $q->where('date', $date)]);
+            ->with(['grade', 'branch', 'enrollments' => fn ($q) => $q->active()])
+            ->with(['enrollments.attendanceRecords' => fn ($q) => $q->whereDate('date', $date)]);
 
         if (! $user->isOrgWide()) {
             $sectionsQuery->where('branch_id', $user->branch_id);

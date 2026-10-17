@@ -1,150 +1,90 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
+import { Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { CurrencyDollarIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-function Select({ id, value, onChange, options, placeholder }) {
-    return (
-        <select
-            id={id}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            value={value}
-            onChange={onChange}
-        >
-            <option value="">{placeholder}</option>
-            {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </select>
-    );
-}
+// The school's fees, by grade for one school year: what each grade is billed, in words, with Change (the guided
+// page) and Remove (asks first, and says bills already made are not touched). Adding is the guided page too.
+// Same data, routes and permission as before.
 
-const FREQUENCY_LABEL = {
-    annual: 'Annual',
-    termly: 'Per Term',
-    monthly: 'Monthly',
-};
-
-function FeeForm({ branches, grades, academicYears }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        branch_id: branches.length === 1 ? branches[0].id : '',
-        grade_id: '',
-        academic_year_id: academicYears.find((y) => y.is_current)?.id ?? '',
-        name: '',
-        amount: '',
-        frequency: 'annual',
-    });
-
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('fee-structures.store'), { onSuccess: () => reset('name', 'amount') });
-    };
-
-    return (
-        <form onSubmit={submit} className="grid grid-cols-2 gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800 sm:grid-cols-6 sm:items-end">
-            {branches.length > 1 && (
-                <div>
-                    <InputLabel htmlFor="branch_id" value="Branch" />
-                    <Select id="branch_id" value={data.branch_id} onChange={(e) => setData('branch_id', e.target.value)} options={branches} placeholder="Select…" />
-                </div>
-            )}
-            <div>
-                <InputLabel htmlFor="grade_id" value="Grade" />
-                <Select id="grade_id" value={data.grade_id} onChange={(e) => setData('grade_id', e.target.value)} options={grades} placeholder="Select…" />
-                <InputError message={errors.grade_id} className="mt-1" />
-            </div>
-            <div>
-                <InputLabel htmlFor="academic_year_id" value="Year" />
-                <Select id="academic_year_id" value={data.academic_year_id} onChange={(e) => setData('academic_year_id', e.target.value)} options={academicYears} placeholder="Select…" />
-            </div>
-            <div>
-                <InputLabel htmlFor="name" value="Fee Name" />
-                <TextInput id="name" className="mt-1 block w-full" value={data.name} onChange={(e) => setData('name', e.target.value)} />
-                <InputError message={errors.name} className="mt-1" />
-            </div>
-            <div>
-                <InputLabel htmlFor="amount" value="Amount (ETB)" />
-                <TextInput id="amount" type="number" step="0.01" className="mt-1 block w-full" value={data.amount} onChange={(e) => setData('amount', e.target.value)} />
-                <InputError message={errors.amount} className="mt-1" />
-            </div>
-            <div>
-                <InputLabel htmlFor="frequency" value="Billed" />
-                <select
-                    id="frequency"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                    value={data.frequency}
-                    onChange={(e) => setData('frequency', e.target.value)}
-                >
-                    <option value="annual">Annual</option>
-                    <option value="termly">Per Term</option>
-                    <option value="monthly">Monthly</option>
-                </select>
-            </div>
-            <PrimaryButton disabled={processing}>Add</PrimaryButton>
-        </form>
-    );
-}
+const money = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export default function Index({ feeStructures, branches, grades, academicYears }) {
-    const { flash } = usePage().props;
+    const { t } = useTranslation();
+    const [ask, confirmDialog] = useConfirm();
+    const current = academicYears.find((y) => y.is_current) ?? academicYears[0];
+    const [yearId, setYearId] = useState(current ? String(current.id) : '');
+    const multiBranch = branches.length > 1;
 
-    const destroy = (fs) => {
-        if (confirm(`Remove ${fs.name}?`)) {
-            router.delete(route('fee-structures.destroy', fs.id));
-        }
+    const shown = feeStructures.filter((f) => yearId === '' || String(f.academic_year_id) === yearId);
+    const byGrade = grades.map((g) => ({ grade: g, fees: shown.filter((f) => f.grade_id === g.id).sort((a, b) => a.name.localeCompare(b.name)) }));
+    const withFees = byGrade.filter((x) => x.fees.length > 0);
+    const without = byGrade.filter((x) => x.fees.length === 0).map((x) => x.grade.name);
+
+    const remove = async (fee) => {
+        const ok = await ask({
+            title: t('fee.remove_title', { name: fee.name }),
+            body: <p>{t('fee.remove_body', { grade: fee.grade.name })}</p>,
+            confirmLabel: t('fee.remove_confirm'),
+            cancelLabel: t('fee.remove_cancel'),
+            tone: 'danger',
+        });
+        if (ok) router.delete(route('fee-structures.destroy', fee.id), { preserveScroll: true });
     };
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Fee Structures</h2>}
-        >
-            <Head title="Fee Structures" />
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('fee.title')}</h2>}>
+            <Page
+                title={t('fee.title')}
+                description={t('fee.index_desc')}
+                width="default"
+                actions={<Button as={Link} href={route('fee-structures.create')} icon={PlusIcon}>{t('fee.add_button')}</Button>}
+            >
+                <FlashMessages />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
-                    {flash?.success && (
-                        <div className="rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            {flash.success}
-                        </div>
-                    )}
-
-                    <FeeForm branches={branches} grades={grades} academicYears={academicYears} />
-
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Branch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Grade</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Year</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Fee</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Amount</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Billed</th>
-                                    <th className="px-4 py-3" />
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {feeStructures.map((fs) => (
-                                    <tr key={fs.id}>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{fs.branch.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{fs.grade.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{fs.academic_year.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{fs.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{Number(fs.amount).toLocaleString()} ETB</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{FREQUENCY_LABEL[fs.frequency] ?? fs.frequency}</td>
-                                        <td className="px-4 py-3 text-right text-sm">
-                                            <button className="text-red-600 hover:underline dark:text-red-400" onClick={() => destroy(fs)}>Remove</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {feeStructures.length === 0 && (
-                                    <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">No fee items yet.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
+                <Card>
+                    <p className="mb-2 text-base font-medium text-gray-900 dark:text-gray-100">{t('fee.year_filter')}</p>
+                    <div role="radiogroup" aria-label={t('fee.year_filter')} className="flex flex-wrap gap-2">
+                        {[...academicYears.map((y) => [String(y.id), y.name]), ['', t('fee.all_years')]].map(([value, label]) => (
+                            <button key={value} type="button" role="radio" aria-checked={yearId === value} onClick={() => setYearId(value)} className={`min-h-[48px] rounded-xl border-2 px-4 text-base font-semibold ${yearId === value ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}>{label}</button>
+                        ))}
                     </div>
-                </div>
-            </div>
+                </Card>
+
+                {withFees.length === 0 && (
+                    <Card><EmptyState icon={CurrencyDollarIcon} title={t('fee.no_fees_title')} action={<Button as={Link} href={route('fee-structures.create')} icon={PlusIcon}>{t('fee.add_button')}</Button>}>{t('fee.no_fees_body')}</EmptyState></Card>
+                )}
+
+                {withFees.map(({ grade, fees }) => (
+                    <Card key={grade.id} as="section" aria-label={grade.name} data-testid="grade-card">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{grade.name}</h2>
+                        <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+                            {fees.map((f) => (
+                                <li key={f.id} data-testid="fee-row" className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{f.name}</p>
+                                        <p className="text-base text-gray-700 dark:text-gray-300">
+                                            <span className="font-semibold">{money(f.amount)} ETB</span> · {t(`fee.freq_${f.frequency}`)}
+                                            {yearId === '' ? ` · ${f.academic_year.name}` : ''}{multiBranch ? ` · ${f.branch.name}` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button as={Link} href={route('fee-structures.edit', f.id)} variant="secondary" size="md">{t('fee.change')}</Button>
+                                        <Button variant="quiet" size="md" onClick={() => remove(f)}>{t('fee.remove')}</Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+                ))}
+
+                {withFees.length > 0 && without.length > 0 && (
+                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="without">{t('fee.grades_without', { grades: without.join(', ') })}</p>
+                )}
+            </Page>
+            {confirmDialog}
         </AuthenticatedLayout>
     );
 }

@@ -2,12 +2,12 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Auth\Events\Lockout;
+use App\Models\User;
+use App\Security\LoginThrottle;
+use App\Support\PhoneNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
@@ -28,59 +28,77 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'phone' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ];
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Sign the person in, or say no -- always in the same words.
+     *
+     * The person types a phone number in any everyday form (0911..., 0711..., +251911...); accounts that have only an
+     * email keep signing in with it until an administrator gives them a phone number. A wrong password, an unknown
+     * number, a switched-off account and something that is not a number are indistinguishable from outside, and are
+     * all counted the same way by LoginThrottle (layered: per account, per known device, per network address, burst).
+     * While a wait is running the password is not checked at all. Enforced entirely on the server.
      *
      * @throws ValidationException
      */
     public function authenticate(): void
     {
-        $this->ensureIsNotRateLimited();
+        $throttle = app(LoginThrottle::class);
+        $identifier = trim($this->string('phone')->toString());
+        $key = LoginThrottle::keyFor($identifier);
+        $known = User::findForLogin($identifier);
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        $wait = $throttle->wait($this, $key, $known?->id);
+        if ($wait > 0) {
+            $throttle->blocked($this, $key, $known, $identifier, $wait);
 
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
+            throw ValidationException::withMessages(['phone' => $this->waitMessage($wait)]);
+        }
+        $throttle->attempting($this, $key);
+
+        $credentials = $this->credentials($identifier);
+
+        if ($credentials === null || ! Auth::attempt([...$credentials, 'password' => $this->string('password')->toString(), 'status' => 'active'], $this->boolean('remember'))) {
+            $throttle->failed($this, $key, $known, $identifier);
+
+            throw ValidationException::withMessages(['phone' => trans('auth.failed')]);
         }
 
-        RateLimiter::clear($this->throttleKey());
-    }
+        // There is no student portal yet (a deliberate product decision): a "student" role account
+        // is refused rather than dropped into a half-built area. Families use a parent login.
+        if (Auth::user()->hasRole('student')) {
+            Auth::logout();
+            $throttle->failed($this, $key, $known, $identifier);
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws ValidationException
-     */
-    public function ensureIsNotRateLimited(): void
-    {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
+            throw ValidationException::withMessages(['phone' => trans('auth.failed')]);
         }
 
-        event(new Lockout($this));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
-        ]);
+        $throttle->succeeded($this, $key, Auth::user(), $identifier);
+        Auth::user()->forceFill(['last_login_at' => now()])->saveQuietly();
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
-    public function throttleKey(): string
+    /** "Please wait 45 seconds" / "1 minute": how long, without saying why or how many tries are left. */
+    private function waitMessage(int $seconds): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        $time = $seconds < 90
+            ? trans_choice('auth.time_seconds', $seconds)
+            : trans_choice('auth.time_minutes', (int) ceil($seconds / 60));
+
+        return trans('auth.throttle', ['time' => $time]);
+    }
+
+    /** @return array<string, string>|null the lookup column and value, or null when the input cannot be a phone number or email */
+    private function credentials(string $identifier): ?array
+    {
+        if (str_contains($identifier, '@')) {
+            return ['email' => mb_strtolower($identifier)];
+        }
+
+        $canonical = PhoneNumber::normalizeMobile($identifier);
+
+        return $canonical ? ['login_phone' => $canonical] : null;
     }
 }

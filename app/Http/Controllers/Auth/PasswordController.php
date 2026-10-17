@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SecurityEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,8 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        SecurityEvent::log('password_changed', $request->user(), $request->user()->login_phone ?? $request->user()->email, null, ['kind' => 'own_request']);
 
         return back();
     }

@@ -10,6 +10,21 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+        <!-- Frontend error monitoring config (see MONITORING.md). Injected per-request, server-side,
+             rather than baked into the built JS bundle at compile time, so the one build artifact
+             this app ships is correct in every environment. dsn is null (monitoring.js then does
+             nothing) on local/testing and whenever SENTRY_JS_DSN isn't set. Who is signed in is NOT
+             set here -- Inertia's own SPA navigation after login never re-renders this script, so
+             that comes from the "monitoringUserPseudonym" shared prop instead (kept current on
+             every visit; see resources/js/monitoring.js and HandleInertiaRequests::share()). -->
+        <script>
+            window.__MONITORING__ = {
+                dsn: @json(config('sentry.javascript_dsn')),
+                environment: @json(config('sentry.environment')),
+                release: @json(config('sentry.release')),
+            };
+        </script>
+
         <!-- Scripts -->
         @routes
         @viteReactRefresh

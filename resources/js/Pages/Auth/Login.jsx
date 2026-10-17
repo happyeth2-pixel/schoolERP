@@ -1,14 +1,55 @@
 import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
+import PasswordField from '@/Components/PasswordField';
+import { Button, Field, Input } from '@/Components/ui';
+import i18n from '@/i18n';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-export default function Login({ status, canResetPassword }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+const LANGUAGES = [
+    ['en', 'English'],
+    ['am', 'አማርኛ'],
+    ['om', 'Afaan Oromoo'],
+    ['ti', 'ትግርኛ'],
+];
+
+function PreLoginLanguagePicker() {
+    const [current, setCurrent] = useState(i18n.language);
+
+    const choose = (code) => {
+        i18n.changeLanguage(code);
+        setCurrent(code);
+    };
+
+    return (
+        <div className="mb-4 flex flex-wrap justify-center gap-2">
+            {LANGUAGES.map(([code, label]) => (
+                <button
+                    key={code}
+                    type="button"
+                    onClick={() => choose(code)}
+                    aria-pressed={current === code}
+                    className={`min-h-[44px] rounded-full px-4 text-sm font-medium ${
+                        current === code
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                >
+                    {label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+// Sign in with a phone number (any everyday form: 0911..., 0711..., +251911...). The server turns it into one
+// canonical number and gives the same answer for a wrong number and a wrong password, so nothing reveals which
+// accounts exist. Forgetting the password is solved at the school office, not by email.
+export default function Login({ status }) {
+    const { t } = useTranslation();
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
+        phone: '',
         password: '',
         remember: false,
     });
@@ -23,77 +64,37 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title={t('auth.log_in')} />
 
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+            <PreLoginLanguagePicker />
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
+            <h1 className="mb-5 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">{t('signin.title')}</h1>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
+            {status && <div className="mb-4 text-base font-medium text-green-700">{status}</div>}
+
+            <form onSubmit={submit} className="space-y-5" data-testid="login-form">
+                <Field id="phone" label={t('signin.phone')} hint={t('signin.phone_hint')} error={errors.phone}>
+                    <Input
+                        type="tel"
+                        inputMode="tel"
+                        name="phone"
+                        value={data.phone}
                         autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
+                        autoFocus
+                        onChange={(e) => { clearErrors('phone'); setData('phone', e.target.value); }}
                     />
+                </Field>
 
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
+                <PasswordField id="password" label={t('auth.password')} value={data.password} error={errors.password} onChange={(v) => setData('password', v)} />
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                <label className="flex min-h-[48px] items-center gap-3">
+                    <Checkbox name="remember" checked={data.remember} onChange={(e) => setData('remember', e.target.checked)} />
+                    <span className="text-base text-gray-700 dark:text-gray-300">{t('auth.remember_me')}</span>
+                </label>
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
+                <Button type="submit" fullWidth busy={processing}>{t('auth.log_in')}</Button>
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600 dark:text-gray-400">
-                            Remember me
-                        </span>
-                    </label>
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
+                <p className="text-center text-base text-gray-700 dark:text-gray-300" data-testid="forgot-note">{t('signin.forgot_office')}</p>
             </form>
         </GuestLayout>
     );

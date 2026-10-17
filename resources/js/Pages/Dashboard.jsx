@@ -1,102 +1,225 @@
+import AttendanceStatusBadge from '@/Components/AttendanceStatusBadge';
+import Card3D from '@/Components/Card3D';
+import HomeTasks from '@/Components/HomeTasks';
+import TeacherHome from '@/Components/TeacherHome';
+import ParentHome from '@/Components/ParentHome';
+import TodayHeader from '@/Components/TodayHeader';
+import GradientStatTile from '@/Components/GradientStatTile';
 import Meter from '@/Components/Meter';
 import SplitMeter from '@/Components/SplitMeter';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import {
+    AcademicCapIcon,
+    ArchiveBoxIcon,
+    ComputerDesktopIcon,
+    ArchiveBoxXMarkIcon,
+    ArrowRightIcon,
+    BanknotesIcon,
+    BriefcaseIcon,
+    CalendarIcon,
+    ClipboardDocumentCheckIcon,
+    ClockIcon,
+    CurrencyDollarIcon,
+    ExclamationTriangleIcon,
+    StarIcon,
+    UserGroupIcon,
+} from '@heroicons/react/24/outline';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
-function StatTile({ label, value, hint }) {
-    return (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{value}</p>
-            {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
-        </div>
-    );
+function glowFor(value, thresholds = { good: 90, warning: 75 }) {
+    if (value === null || value === undefined) return 'gray';
+    if (value >= thresholds.good) return 'green';
+    if (value >= thresholds.warning) return 'amber';
+    return 'red';
 }
 
-function PlaceholderTile({ label }) {
-    return (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-5 dark:border-gray-600 dark:bg-gray-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-300 dark:text-gray-600">—</p>
-            <p className="mt-1 text-xs text-gray-400">Arrives with its module in a later phase</p>
-        </div>
-    );
-}
+function OrgDashboard({ stats }) {
+    const { t } = useTranslation();
 
-function OrgDashboard({ title, blurb, stats }) {
     return (
         <div className="grid gap-4 sm:grid-cols-2">
-            <StatTile label="Total Students" value={stats.total_students} />
-            <StatTile label="Total Teachers" value={stats.total_teachers} />
-            <Meter
-                label="Today's Attendance"
-                value={stats.today_attendance_rate}
-                thresholds={{ good: 90, warning: 75 }}
-                sublabel={stats.today_marked > 0 ? `${stats.today_marked} students marked so far` : undefined}
-                emptyLabel="Not marked yet"
-            />
-            <Meter
-                label="Fee Collection Rate"
-                value={stats.fee_collection_rate}
-                thresholds={{ good: 75, warning: 40 }}
-                emptyLabel="No invoices yet"
-            />
-            <SplitMeter label="School Fees (Current Year)" paid={stats.fees_paid} total={stats.fees_total} />
-            <StatTile label="Payment Proofs Pending" value={stats.pending_payments_count} />
+            <GradientStatTile icon={UserGroupIcon} label={t('dashboard.total_students')} value={stats.total_students} color="blue" />
+            <GradientStatTile icon={AcademicCapIcon} label={t('dashboard.total_teachers')} value={stats.total_teachers} color="purple" />
+            <Card3D glow={glowFor(stats.today_attendance_rate, { good: 90, warning: 75 })} className="p-5">
+                <Meter
+                    bare
+                    label={t('dashboard.today_attendance')}
+                    value={stats.today_attendance_rate}
+                    thresholds={{ good: 90, warning: 75 }}
+                    sublabel={stats.today_marked > 0 ? `${stats.today_marked} students marked so far` : undefined}
+                    emptyLabel={t('dashboard.not_marked_today')}
+                />
+            </Card3D>
+            {stats.fees_total !== null && stats.fees_total !== undefined && (
+            <Card3D glow={glowFor(stats.fee_collection_rate, { good: 75, warning: 40 })} className="p-5">
+                <Meter
+                    bare
+                    label={t('dashboard.fee_collection_rate')}
+                    value={stats.fee_collection_rate}
+                    thresholds={{ good: 75, warning: 40 }}
+                    emptyLabel="No invoices yet"
+                />
+            </Card3D>
+            )}
+            {stats.fees_total !== null && stats.fees_total !== undefined && (
+            <Card3D glow="green" className="p-5">
+                <SplitMeter bare label={t('dashboard.school_fees')} paid={stats.fees_paid} total={stats.fees_total} />
+            </Card3D>
+            )}
+            {stats.pending_payments_count !== null && stats.pending_payments_count !== undefined && (
+            <GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_pending')} value={stats.pending_payments_count} color="amber" />
+            )}
+            {stats.inventory && (
+                <>
+                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ArchiveBoxIcon} label={t('dashboard.inventory_total_items')} value={stats.inventory.total_items} color="blue" /></Link>
+                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ExclamationTriangleIcon} label={t('dashboard.inventory_low_stock')} value={stats.inventory.low_stock} color={stats.inventory.low_stock > 0 ? 'amber' : 'green'} /></Link>
+                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ArchiveBoxXMarkIcon} label={t('dashboard.inventory_out_of_stock')} value={stats.inventory.out_of_stock} color={stats.inventory.out_of_stock > 0 ? 'red' : 'green'} /></Link>
+                </>
+            )}
+            {stats.requisitions && (
+                <>
+                    {stats.requisitions.pending_approvals !== null && (
+                        <Link className="block" href={route('requisitions.index', { status: 'submitted' })}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.pending_approvals')} value={stats.requisitions.pending_approvals} color={stats.requisitions.pending_approvals > 0 ? 'amber' : 'green'} /></Link>
+                    )}
+                    {stats.requisitions.my_pending > 0 && (
+                        <Link className="block" href={route('requisitions.index')}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.my_pending_requisitions')} value={stats.requisitions.my_pending} color="blue" /></Link>
+                    )}
+                </>
+            )}
+            {stats.procurement && (
+                <>
+                    {stats.procurement.pending_approvals !== null && (
+                        <Link className="block" href={route('purchase-requests.index', { status: 'submitted' })}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.procurement_pending_approvals')} value={stats.procurement.pending_approvals} color={stats.procurement.pending_approvals > 0 ? 'amber' : 'green'} /></Link>
+                    )}
+                    {stats.procurement.my_pending > 0 && (
+                        <Link className="block" href={route('purchase-requests.index')}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.my_pending_purchase_requests')} value={stats.procurement.my_pending} color="blue" /></Link>
+                    )}
+                </>
+            )}
+            {stats.assets && (
+                <>
+                    <Link className="block" href={route('assets.index')}><GradientStatTile icon={ComputerDesktopIcon} label={t('dashboard.total_assets')} value={stats.assets.total} color="blue" /></Link>
+                    {stats.assets.under_repair > 0 && (
+                        <Link className="block" href={route('assets.index', { status: 'under_repair' })}><GradientStatTile icon={ComputerDesktopIcon} label={t('dashboard.assets_under_repair')} value={stats.assets.under_repair} color="amber" /></Link>
+                    )}
+                </>
+            )}
+            {stats.hr && (
+                <>
+                    <Link className="block" href={route('employees.index')}><GradientStatTile icon={BriefcaseIcon} label={t('dashboard.total_employees')} value={stats.hr.total_employees} color="blue" /></Link>
+                    {stats.hr.contracts_expiring_soon !== null && stats.hr.contracts_expiring_soon > 0 && (
+                        <Link className="block" href={route('employees.index')}><GradientStatTile icon={ClockIcon} label={t('dashboard.contracts_expiring_soon')} value={stats.hr.contracts_expiring_soon} color="amber" /></Link>
+                    )}
+                    {stats.hr.attendance_today !== null && (
+                        <Card3D glow={glowFor(stats.hr.attendance_today.rate, { good: 90, warning: 75 })} className="p-5">
+                            <Link href={route('staff-attendance.index')}>
+                                <Meter
+                                    bare
+                                    label={t('dashboard.staff_attendance_today')}
+                                    value={stats.hr.attendance_today.rate}
+                                    thresholds={{ good: 90, warning: 75 }}
+                                    sublabel={stats.hr.attendance_today.marked > 0 ? `${stats.hr.attendance_today.marked} ${t('dashboard.employees_marked')}` : undefined}
+                                    emptyLabel={t('dashboard.not_marked_today')}
+                                />
+                            </Link>
+                        </Card3D>
+                    )}
+                    {stats.hr.pending_leave_requests !== null && (
+                        <Link className="block" href={route('leave-requests.pending')}><GradientStatTile icon={CalendarIcon} label={t('dashboard.pending_leave_requests')} value={stats.hr.pending_leave_requests} color={stats.hr.pending_leave_requests > 0 ? 'amber' : 'green'} /></Link>
+                    )}
+                    {stats.hr.reviews_finalized_this_year !== null && (
+                        <Link className="block" href={route('performance-cycles.index')}><GradientStatTile icon={StarIcon} label={t('dashboard.reviews_finalized_this_year')} value={stats.hr.reviews_finalized_this_year} color="purple" /></Link>
+                    )}
+                    {stats.hr.latest_payroll_run !== null && (
+                        <Link className="block" href={route('payroll-runs.index')}>
+                            <GradientStatTile icon={BanknotesIcon} label={t('dashboard.latest_payroll_run_x', { period: stats.hr.latest_payroll_run.label })} value={t(`payroll.status_${stats.hr.latest_payroll_run.status}`)} color={stats.hr.latest_payroll_run.status === 'finalized' ? 'green' : 'amber'} />
+                        </Link>
+                    )}
+                </>
+            )}
         </div>
     );
 }
 
 function AccountantDashboard({ stats }) {
+    const { t } = useTranslation();
+
     return (
         <div className="grid gap-4 sm:grid-cols-2">
-            <StatTile label="Fees Collected Today (ETB)" value={Number(stats.collected_today).toLocaleString()} />
-            <StatTile label="Fees Collected This Month (ETB)" value={Number(stats.collected_this_month).toLocaleString()} />
-            <SplitMeter label="School Fees (Current Year)" paid={stats.fees_paid} total={stats.fees_total} />
-            <StatTile label="Payment Proofs Pending Review" value={stats.pending_payments_count} />
+            <GradientStatTile icon={BanknotesIcon} label={t('dashboard.fees_collected_today')} value={Number(stats.collected_today).toLocaleString()} color="green" />
+            <GradientStatTile icon={CurrencyDollarIcon} label={t('dashboard.fees_collected_month')} value={Number(stats.collected_this_month).toLocaleString()} color="blue" />
+            <Card3D glow="green" className="p-5">
+                <SplitMeter bare label={t('dashboard.school_fees')} paid={stats.fees_paid} total={stats.fees_total} />
+            </Card3D>
+            <GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_review')} value={stats.pending_payments_count} color="amber" />
+            {stats.inventory && (
+                <>
+                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ArchiveBoxIcon} label={t('dashboard.inventory_total_items')} value={stats.inventory.total_items} color="blue" /></Link>
+                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ExclamationTriangleIcon} label={t('dashboard.inventory_low_stock')} value={stats.inventory.low_stock} color={stats.inventory.low_stock > 0 ? 'amber' : 'green'} /></Link>
+                </>
+            )}
+            {stats.requisitions && stats.requisitions.pending_approvals !== null && (
+                <Link className="block" href={route('requisitions.index', { status: 'submitted' })}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.pending_approvals')} value={stats.requisitions.pending_approvals} color={stats.requisitions.pending_approvals > 0 ? 'amber' : 'green'} /></Link>
+            )}
         </div>
     );
 }
 
-function TeacherDashboard({ stats }) {
+const GLOW_FOR_ATTENDANCE_STATUS = { complete: 'green', partial: 'amber', none: 'red', empty: 'gray' };
+
+function HomeroomCard({ h }) {
+    const pct = h.roster_count > 0 ? Math.round((h.marked_count / h.roster_count) * 100) : null;
+
     return (
-        <div className="space-y-6">
+        <Card3D glow={GLOW_FOR_ATTENDANCE_STATUS[h.attendance_status]} className="p-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <p className="text-base font-bold text-gray-900 dark:text-gray-100">{h.label}</p>
+                <AttendanceStatusBadge status={h.attendance_status} />
+            </div>
+            {h.roster_count > 0 && (
+                <Meter bare label="Marked today" value={pct} thresholds={{ good: 100, warning: 1 }} sublabel={`${h.marked_count} of ${h.roster_count} students`} />
+            )}
+            <Link href={route('attendance.show', h.id)} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                {h.attendance_status === 'complete' ? 'Review attendance' : 'Take attendance'}
+                <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+        </Card3D>
+    );
+}
+
+const SUBJECT_DOT_COLORS = ['bg-indigo-500', 'bg-violet-500', 'bg-sky-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500'];
+
+function TeacherDashboard({ stats }) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="space-y-6" id="my-classes">
             <div>
-                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">My Homeroom</h3>
+                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">{t('dashboard.my_homeroom')}</h3>
                 {stats.homerooms.length === 0 && (
                     <p className="text-sm text-gray-400">You're not a class teacher for any section.</p>
                 )}
-                <div className="space-y-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     {stats.homerooms.map((h) => (
-                        <div key={h.id} className="flex items-center justify-between rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{h.label}</span>
-                            {h.attendance_taken_today ? (
-                                <span className="text-xs text-green-600 dark:text-green-400">Attendance taken today</span>
-                            ) : (
-                                <Link href={route('attendance.show', h.id)} className="text-xs text-indigo-600 hover:underline dark:text-indigo-400">
-                                    Take attendance
-                                </Link>
-                            )}
-                        </div>
+                        <HomeroomCard key={h.id} h={h} />
                     ))}
                 </div>
             </div>
             <div>
-                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">My Subjects</h3>
+                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">{t('dashboard.my_subjects')}</h3>
                 {stats.teaching_assignments.length === 0 && (
                     <p className="text-sm text-gray-400">No subjects assigned yet.</p>
                 )}
-                <ul className="space-y-1">
+                <Card3D glow="indigo" className="divide-y divide-gray-100 dark:divide-gray-700">
                     {stats.teaching_assignments.map((a, i) => (
-                        <li key={i} className="rounded-lg bg-white px-4 py-2 text-sm shadow-sm dark:bg-gray-800">
-                            {a.subject} — <span className="text-gray-500">{a.section}</span>
-                        </li>
+                        <div key={i} className="flex items-center gap-3 px-4 py-3 text-sm">
+                            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${SUBJECT_DOT_COLORS[i % SUBJECT_DOT_COLORS.length]}`} />
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{a.subject}</span>
+                            <span className="text-gray-400">— {a.section}</span>
+                        </div>
                     ))}
-                </ul>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <PlaceholderTile label="Pending Marks Entry" />
-                <PlaceholderTile label="Assignments to Grade" />
+                </Card3D>
             </div>
         </div>
     );
@@ -114,96 +237,51 @@ function ChildStatusBadge({ status }) {
     return <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${style}`}>{status ?? 'Not marked today'}</span>;
 }
 
-function ParentDashboard({ stats }) {
-    return (
-        <div className="space-y-4">
-            {stats.children.map((c) => (
-                <div key={c.id} className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
-                    <div className="mb-3 flex items-center justify-between">
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{c.name}</p>
-                        <ChildStatusBadge status={c.today_status} />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <Meter label="Attendance (this year)" value={c.attendance_rate} thresholds={{ good: 90, warning: 75 }} />
-                        <SplitMeter label="School Fees" paid={c.invoice_paid} total={c.invoice_total} />
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                        <Link href={route('report-card.show', c.id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-                            View Report Card
-                        </Link>
-                        {c.invoice_id && (
-                            <Link href={route('invoices.show', c.invoice_id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-                                View Invoice
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            ))}
-            {stats.children.length === 0 && <p className="text-sm text-gray-400">No children linked to your account yet.</p>}
-        </div>
-    );
-}
-
-function StudentDashboard({ stats }) {
-    return (
-        <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Meter label="My Attendance (this year)" value={stats.attendance_rate} thresholds={{ good: 90, warning: 75 }} />
-                <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Today</p>
-                    <div className="mt-2"><ChildStatusBadge status={stats.today_status} /></div>
-                </div>
-            </div>
-            {stats.student_id ? (
-                <Link href={route('report-card.show', stats.student_id)} className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
-                    View Report Card
-                </Link>
-            ) : (
-                <p className="text-sm text-gray-400">Your account isn't linked to a student record yet — ask the school office to link it.</p>
-            )}
-            <div className="grid gap-4 sm:grid-cols-2">
-                <PlaceholderTile label="Assignments Due" />
-            </div>
-        </div>
-    );
-}
-
-const ROLE_COPY = {
-    owner: { title: 'Owner Dashboard', blurb: 'Organization-wide view across every branch.' },
-    branch_admin: { title: 'Branch Admin Dashboard', blurb: 'Scoped to your branch. Menu items reflect your specific permissions.' },
-    auditor: { title: 'Auditor Dashboard', blurb: 'Read-only across every module. No edit access anywhere.' },
-    teacher: { title: 'Teacher Dashboard', blurb: "Your homeroom and subjects." },
-    accountant: { title: 'Accountant Dashboard', blurb: 'Finance only — no access to grades or attendance.' },
-    parent: { title: 'Parent Dashboard', blurb: 'Your children, their academics, and fees.' },
-    student: { title: 'Student Dashboard', blurb: 'Your own record.' },
-};
-
 export default function Dashboard({ stats }) {
     const { auth } = usePage().props;
-    const copy = ROLE_COPY[auth.role] ?? { title: 'Dashboard', blurb: '' };
+    const { t } = useTranslation();
+
+    // A parent's home is its own page: one child at a time, and the five things a parent comes for.
+    if (auth.role === 'parent') {
+        return (
+            <AuthenticatedLayout header={<h2 className="text-lg font-semibold leading-tight text-gray-800 dark:text-gray-200">{t('menu.home')}</h2>}>
+                <Head title={t('menu.home')} />
+                <div className="py-6 sm:py-8">
+                    <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+                        <TodayHeader className="mb-4" />
+                        <ParentHome stats={stats} />
+                    </div>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold leading-tight text-gray-800 dark:text-gray-200">{copy.title}</h2>}
+            header={<h2 className="text-lg font-semibold leading-tight text-gray-800 dark:text-gray-200">{t('menu.home')}</h2>}
         >
-            <Head title="Dashboard" />
+            <Head title={t('menu.home')} />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <div className="p-6">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{copy.blurb}</p>
-                            <p className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">
-                                Welcome, {auth.user.name}{auth.user.title ? ` — ${auth.user.title}` : ''}
+            <div className="py-6 sm:py-8">
+                <div className="mx-auto max-w-5xl space-y-10 px-4 sm:px-6 lg:px-8">
+                    <TodayHeader />
+                    <div>
+                        {auth.role === 'teacher' ? (
+                            <div className="mb-8"><TeacherHome stats={stats} /></div>
+                        ) : (
+                            <p className="mb-4 text-lg text-gray-700 dark:text-gray-300">
+                                {t('dashboard.welcome', { name: auth.user.name })}{auth.user.title ? ` — ${auth.user.title}` : ''}
                             </p>
-                        </div>
+                        )}
+                        <HomeTasks stats={stats} />
                     </div>
 
-                    {['owner', 'branch_admin', 'auditor'].includes(auth.role) && <OrgDashboard stats={stats} />}
-                    {auth.role === 'teacher' && <TeacherDashboard stats={stats} />}
-                    {auth.role === 'parent' && <ParentDashboard stats={stats} />}
-                    {auth.role === 'student' && <StudentDashboard stats={stats} />}
-                    {auth.role === 'accountant' && <AccountantDashboard stats={stats} />}
+                    <section aria-labelledby="glance">
+                        <h2 id="glance" className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">{t('home.glance')}</h2>
+                        {['owner', 'branch_admin', 'auditor'].includes(auth.role) && <OrgDashboard stats={stats} />}
+                        {auth.role === 'teacher' && <TeacherDashboard stats={stats} />}
+                        {auth.role === 'accountant' && <AccountantDashboard stats={stats} />}
+                    </section>
                 </div>
             </div>
         </AuthenticatedLayout>

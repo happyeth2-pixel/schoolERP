@@ -1,101 +1,232 @@
-import PrimaryButton from '@/Components/PrimaryButton';
-import SearchInput from '@/Components/SearchInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { Head, Link, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import Pagination from '@/Components/Pagination';
+import { Alert, Button, Card, EmptyState, FlashMessages, Input, Page, StatusBadge, SuccessPanel } from '@/Components/ui';
+import { ArrowDownTrayIcon, BanknotesIcon, IdentificationIcon, MagnifyingGlassIcon, UserPlusIcon, UsersIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Link, router } from '@inertiajs/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-export default function Index({ students }) {
-    const { flash, auth } = usePage().props;
-    const canManage = auth.permissions.includes('manage-students');
-    const [search, setSearch] = useState('');
+// "Find Student": one big search box that answers as you type, results as simple cards (name, grade and section,
+// parent or guardian, phone, status) with one large "Open Student" button. Nobody has to know the exact name:
+// it matches any words of the name in any order, the student number, the class, a parent's name, the mother's name,
+// and a parent's or emergency phone number in any way of writing it. With nothing typed it shows the most recently
+// enrolled students. The search itself is resolved by the database (StudentController@index), paginated, rather
+// than loaded whole into the browser and filtered here -- a school with hundreds of students never has to send
+// (or search through) everyone's name just to open one profile. The phone numbers SHOWN on a result are fetched
+// only for the few results on screen (StudentController@contacts), same as before.
+// Keyboard: "/" focuses the box, Enter opens the first result, the arrow keys walk the results, Escape clears.
+// `?task=payment|card` (from the home page) only adds a banner and one extra button: it grants nothing.
 
-    const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return students;
-        return students.filter((s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.student_id_number.toLowerCase().includes(q) ||
-            s.section.toLowerCase().includes(q) ||
-            s.guardians.some((g) => g.toLowerCase().includes(q))
-        );
-    }, [search, students]);
+function ResultCard({ s, contact, task, canManage }) {
+    const { t } = useTranslation();
+    const guardians = contact ?? null;
+    const phones = guardians ? guardians.filter((g) => g.phone) : [];
 
     return (
-        <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Students</h2>}
-        >
-            <Head title="Students" />
-
-            <div className="py-8">
-                <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                    {flash?.success && (
-                        <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            {flash.success}
-                        </div>
-                    )}
-
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div className="w-full max-w-xs">
-                            <SearchInput value={search} onChange={setSearch} placeholder="Search name, ID, section, guardian…" />
-                        </div>
-                        <div className="flex gap-3">
-                            <a
-                                href={route('students.export')}
-                                className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                            >
-                                <ArrowDownTrayIcon className="h-4 w-4" /> Export to Excel
-                            </a>
-                            {canManage && (
-                                <Link href={route('students.create')}>
-                                    <PrimaryButton>Enroll Student</PrimaryButton>
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">ID</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Section</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Guardians</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                                    <th className="px-4 py-3" />
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {filtered.map((s) => (
-                                    <tr key={s.id}>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{s.student_id_number}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{s.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{s.section}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{s.guardians.join(', ') || '—'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                                                {s.status}
-                                            </span>
-                                        </td>
-                                        <td className="space-x-3 px-4 py-3 text-right text-sm">
-                                            <Link href={route('report-card.show', s.id)} className="text-indigo-600 hover:underline dark:text-indigo-400">Report Card</Link>
-                                            <Link href={route('students.edit', s.id)} className="text-indigo-600 hover:underline dark:text-indigo-400">{canManage ? 'Edit' : 'View'}</Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filtered.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">
-                                            {students.length === 0 ? 'No students enrolled yet.' : 'No students match your search.'}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <Card className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" data-testid="student-result" data-student-id={s.id}>
+            <div className="min-w-0 space-y-1">
+                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100" data-testid="result-name">{s.name}</p>
+                <p className="text-base text-gray-800 dark:text-gray-200" data-testid="result-class">
+                    {s.grade ? t('find.class_line', { grade: s.grade, section: s.section_name }) : t('find.no_class')} · {t('find.id_number', { id: s.student_id_number })}
+                </p>
+                <p className={`text-base ${s.guardians.length ? 'text-gray-700 dark:text-gray-300' : 'font-medium text-amber-700 dark:text-amber-400'}`} data-testid="result-parent">
+                    {s.guardians.length ? t('find.parents', { names: s.guardians.join(', ') }) : t('find.no_parent')}
+                </p>
+                {canManage && phones.length > 0 && (
+                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="result-phone">{t('find.phone_line', { phones: phones.map((g) => g.phone).join(' · ') })}</p>
+                )}
+                {canManage && guardians && s.guardians.length > 0 && phones.length === 0 && (
+                    <p className="text-base text-gray-600 dark:text-gray-400" data-testid="result-phone">{t('find.no_phone')}</p>
+                )}
+                <p><StatusBadge status={s.status} label={s.status.charAt(0).toUpperCase() + s.status.slice(1)} /></p>
             </div>
+            <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+                <Button as={Link} href={route('students.desk', s.id)} variant="primary" data-testid="open-student" data-result-link>{t('find.open_student')}</Button>
+                {task === 'payment' && <Button as={Link} href={`${route('students.desk', s.id)}#desk-fees`} variant="secondary" icon={BanknotesIcon} data-testid="task-payment" data-result-link>{t('find.task_payment_button')}</Button>}
+                {task === 'card' && <Button as={Link} href={route('id-card.show', s.id)} variant="secondary" icon={IdentificationIcon} data-testid="task-card" data-result-link>{t('find.print_id_card')}</Button>}
+            </div>
+        </Card>
+    );
+}
+
+export default function Index({ students, studentsMeta, q: initialQ, justRegistered, canManage }) {
+    const { t } = useTranslation();
+    const [q, setQ] = useState(initialQ ?? '');
+    const [contacts, setContacts] = useState({});   // student id -> [{ name, relationship, phone }], only for results that were on screen
+    const inputRef = useRef(null);
+    const listRef = useRef(null);
+    const typed = q.trim();
+    const task = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('task') : null;
+    const activeTask = ['payment', 'card'].includes(task) ? task : null;
+
+    const goToPage = (page) => router.get(route('students.index'), { q: typed || undefined, task: activeTask ?? undefined, page }, { preserveState: true, preserveScroll: true, replace: true });
+
+    // typing is debounced so each keystroke doesn't fire its own request; the server (StudentController@index)
+    // does the actual matching -- by name, id number, class, mother's name, guardian name or phone -- and returns
+    // one real page of results, never the whole roster
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            if (typed !== (initialQ ?? '')) {
+                router.get(route('students.index'), { q: typed || undefined, task: activeTask ?? undefined, page: 1 }, {
+                    preserveState: true, preserveScroll: true, replace: true,
+                });
+            }
+        }, 300);
+        return () => clearTimeout(handle);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [typed]);
+
+    const clear = () => { setQ(''); inputRef.current?.focus(); };
+
+    // the phone numbers of the results currently on screen, and nobody else's
+    const wanted = canManage ? students.filter((s) => !(s.id in contacts)).map((s) => s.id) : [];
+    const wantedKey = wanted.join(',');
+    useEffect(() => {
+        if (!wantedKey) return undefined;
+        let cancelled = false;
+        const handle = setTimeout(() => {
+            fetch(route('students.contacts', { ids: wantedKey }), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                .then((r) => (r.ok ? r.json() : null))
+                .then((json) => {
+                    if (cancelled || !json) return;
+                    setContacts((c) => ({ ...c, ...Object.fromEntries(wantedKey.split(',').map((id) => [Number(id), json.contacts[id] ?? []])) }));
+                })
+                .catch(() => {});
+        }, 120);
+        return () => { cancelled = true; clearTimeout(handle); };
+    }, [wantedKey]);
+
+    // keyboard: "/" jumps to the search box from anywhere on the page
+    useEffect(() => {
+        const onKey = (e) => {
+            const el = document.activeElement;
+            const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+            if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); inputRef.current?.focus(); inputRef.current?.select(); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
+
+    const links = () => Array.from(listRef.current?.querySelectorAll('[data-testid=open-student]') ?? []);
+    const onInputKey = (e) => {
+        if (e.key === 'Escape' && q) { e.preventDefault(); clear(); }
+        if (e.key === 'ArrowDown') { const first = links()[0]; if (first) { e.preventDefault(); first.focus(); } }
+        if (e.key === 'Enter' && students.length > 0) { e.preventDefault(); router.visit(route('students.desk', students[0].id)); }
+    };
+    const onListKey = (e) => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        const all = links();
+        const card = e.target.closest('[data-testid=student-result]');
+        const idx = all.findIndex((a) => card?.contains(a));
+        if (idx < 0) return;
+        e.preventDefault();
+        if (e.key === 'ArrowDown') all[Math.min(all.length - 1, idx + 1)]?.focus();
+        else if (idx === 0) inputRef.current?.focus();
+        else all[idx - 1]?.focus();
+    };
+
+    return (
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{t('find.title')}</h2>}>
+            <Page
+                title={t('find.title')}
+                width="wide"
+                actions={canManage && <Button as={Link} href={route('students.create')} icon={UserPlusIcon}>{t('find.register')}</Button>}
+            >
+                {/* the panel below says it better; a warning (e.g. a phone number already used) still shows */}
+                <FlashMessages skip={justRegistered ? ['success'] : []} />
+
+                {justRegistered && (
+                    <SuccessPanel
+                        title={t('find.registered_title', { name: justRegistered.name })}
+                        actions={
+                            <>
+                                <Button as={Link} href={route('id-card.show', justRegistered.id)} icon={IdentificationIcon}>{t('find.print_id_card')}</Button>
+                                <Button as={Link} href={route('students.desk', justRegistered.id)} variant="secondary">{t('find.open_student')}</Button>
+                                {canManage && <Button as={Link} href={route('students.create')} variant="secondary" icon={UserPlusIcon}>{t('find.register_another')}</Button>}
+                            </>
+                        }
+                    >
+                        {t('find.registered_body', {
+                            id: justRegistered.student_id_number,
+                            section: justRegistered.section ?? t('find.no_class'),
+                            parents: justRegistered.guardians.length ? justRegistered.guardians.join(', ') : t('find.no_parent_short'),
+                        })}
+                    </SuccessPanel>
+                )}
+
+                {activeTask && <div data-testid="task-banner"><Alert tone="info">{t(`find.task_${activeTask}`)}</Alert></div>}
+
+                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 sm:p-6 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="quick-find">
+                    <label htmlFor="student-search" className="mb-3 block text-2xl font-bold text-gray-900 dark:text-gray-100">{t('find.label')}</label>
+                    <div className="relative">
+                        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-7 w-7 -translate-y-1/2 text-gray-500" aria-hidden="true" />
+                        <Input
+                            id="student-search"
+                            ref={inputRef}
+                            type="search"
+                            inputMode="search"
+                            enterKeyHint="search"
+                            autoComplete="off"
+                            autoFocus={!justRegistered}
+                            placeholder={t('find.placeholder')}
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            onKeyDown={onInputKey}
+                            className="min-h-[68px] pl-14 pr-14 text-xl"
+                        />
+                        {q && (
+                            <button type="button" onClick={clear} aria-label={t('find.clear')} title={t('find.clear')} className="absolute right-1 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                                <XMarkIcon className="h-7 w-7" aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
+                    <p className="mt-3 text-base text-gray-700 dark:text-gray-300">{t('find.hint')}</p>
+                    <p className="mt-1 hidden text-sm text-gray-600 sm:block dark:text-gray-400" data-testid="keyboard-hint">{t('find.keyboard_hint')}</p>
+                </div>
+
+                {studentsMeta.total === 0 && !typed ? (
+                    <Card>
+                        <EmptyState title={t('find.none_yet_title')} action={canManage && <Button as={Link} href={route('students.create')} icon={UserPlusIcon}>{t('find.register')}</Button>}>
+                            {t('find.none_yet_body')}
+                        </EmptyState>
+                    </Card>
+                ) : (
+                    <section aria-live="polite">
+                        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100" data-testid="results-heading">
+                            {typed ? t('find.found_count', { count: studentsMeta.total }) : t('find.recent', { total: studentsMeta.total })}
+                        </h2>
+
+                        {students.length === 0 ? (
+                            <Card data-testid="no-results">
+                                <EmptyState
+                                    icon={MagnifyingGlassIcon}
+                                    title={t('find.nothing_title', { q: typed })}
+                                    action={
+                                        <div className="flex flex-col gap-3 sm:flex-row">
+                                            <Button variant="secondary" onClick={clear}>{t('find.clear')}</Button>
+                                            {canManage && <Button as={Link} href={route('students.create')} icon={UserPlusIcon}>{t('find.register')}</Button>}
+                                            <Button as={Link} href={route('parents.index')} variant="secondary" icon={UsersIcon}>{t('find.try_parents')}</Button>
+                                        </div>
+                                    }
+                                >
+                                    {t('find.nothing_body')}
+                                </EmptyState>
+                            </Card>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="space-y-3" ref={listRef} onKeyDown={onListKey}>
+                                    {students.map((s) => <ResultCard key={s.id} s={s} contact={contacts[s.id]} task={activeTask} canManage={canManage} />)}
+                                </div>
+                                <Pagination meta={studentsMeta} onPageChange={goToPage} />
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                <div>
+                    <Button as="a" href={route('students.export')} variant="quiet" size="md" icon={ArrowDownTrayIcon}>{t('find.export')}</Button>
+                </div>
+            </Page>
         </AuthenticatedLayout>
     );
 }

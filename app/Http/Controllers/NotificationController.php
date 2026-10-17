@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\NotificationPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,13 +18,7 @@ class NotificationController extends Controller
             // {unreadCount, recent} data) on every page. Reusing that name here
             // would let this page-specific paginated list silently override the
             // bell's shared prop for the layout wrapping this exact page.
-            'notificationList' => $request->user()->notifications()->paginate(20)->through(fn ($n) => [
-                'id' => $n->id,
-                'title' => $n->data['title'] ?? '',
-                'body' => $n->data['body'] ?? '',
-                'read_at' => $n->read_at,
-                'created_at' => $n->created_at->diffForHumans(),
-            ]),
+            'notificationList' => $request->user()->notifications()->paginate(20)->through(fn ($n) => NotificationPresenter::present($n)),
         ]);
     }
 

@@ -3,14 +3,14 @@
  * part-to-whole story, not two separate numbers — a two-segment bar
  * shows the balance at a glance, the way the number pair alone can't.
  */
-export default function SplitMeter({ label, paid, total, emptyLabel = 'No invoice yet' }) {
+export default function SplitMeter({ label, paid, total, emptyLabel = 'No invoice yet', bare = false }) {
     const hasValue = total !== null && total !== undefined && total > 0;
     const balance = hasValue ? Math.max(0, total - paid) : 0;
     const paidPct = hasValue ? Math.max(0, Math.min(100, (paid / total) * 100)) : 0;
     const balancePct = hasValue ? Math.max(0, 100 - paidPct) : 0;
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <div className={bare ? '' : 'rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'}>
             <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
             {hasValue ? (
                 <>
