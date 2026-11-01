@@ -177,6 +177,26 @@ class AttendanceWorkflowTest extends TestCase
         Notification::assertNotSentTo($this->parent, AttendanceCorrected::class);
     }
 
+    /** Amharic verbs/pronouns about a person agree with that person's grammatical gender -- a notification
+     * that always used the masculine form (App\Support\Localization\GenderedText) was wrong for every girl
+     * it was sent about. studentA (BuildsSchool) is female; this adds a male student to check both forms. */
+    public function test_the_absence_notification_in_amharic_agrees_with_the_students_actual_gender(): void
+    {
+        $this->parent->update(['locale' => 'am']);
+        $boy = Student::create(['school_id' => $this->school->id, 'branch_id' => $this->branchA->id, 'student_id_number' => 'STU-BOY', 'first_name' => 'Yonas', 'father_name' => 'Tesfaye', 'gender' => 'male', 'enrollment_date' => '2026-09-01', 'status' => 'active', 'id_card_token' => Student::newCardToken()]);
+        Enrollment::create(['student_id' => $boy->id, 'section_id' => $this->sectionA->id, 'enrolled_on' => '2026-09-01', 'status' => 'active']);
+        $boyParent = $this->makeParent($boy);
+        $boyParent->update(['locale' => 'am']);
+
+        $this->save($this->teacher, [$this->studentA->id => 'absent', $boy->id => 'absent']);
+
+        $girlBody = $this->parent->notifications()->firstOrFail()->data['body'];
+        $boyBody = $boyParent->notifications()->firstOrFail()->data['body'];
+
+        $this->assertStringContainsString('ሆና ተመዝግባለች', $girlBody, 'a girl is described with feminine Amharic verb forms');
+        $this->assertStringContainsString('ሆኖ ተመዝግቧል', $boyBody, 'a boy is described with masculine Amharic verb forms');
+    }
+
     public function test_changing_an_absence_tells_the_parents_it_was_corrected_and_the_mark_is_updated(): void
     {
         $this->save($this->teacher, [$this->studentA->id => 'absent']);

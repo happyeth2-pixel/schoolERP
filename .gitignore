@@ -30,3 +30,11 @@ Thumbs.db
 # Python bytecode cache from running tests/e2e/*.py
 __pycache__/
 *.pyc
+
+# Generated deliverables (manual/proposal/spec PDFs & docx, and their build scratch dir) -- these are
+# outputs handed to the client directly, not source, and don't belong in the app's own history.
+/.manual_build/
+/*.pdf
+/*.docx
+/schoolERP_prj.zip
+/paradise.jpg

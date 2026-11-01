@@ -36,6 +36,71 @@ class StudentMedicalRecordController extends Controller
         }
     }
 
+    /**
+     * A triage-style overview for the principal/owner, mirroring Discipline's own Index page: WHICH students
+     * have something on file, never the content itself (allergies/conditions/medications stay text-only on
+     * the per-student page, same privacy discipline as everywhere else in this controller) -- a flag here is
+     * no more exposure than what medical-records-view already unlocks per student, just aggregated so it
+     * doesn't take opening every profile to see who has anything recorded at all.
+     */
+    public function index(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($this->canView($user), 403);
+
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+
+        $students = Student::whereIn('branch_id', $branchIds)
+            ->enrolled()
+            ->whereHas('medicalRecord')
+            ->with(['medicalRecord', 'currentEnrollment.section.grade'])
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn (Student $s) => [
+                'id' => $s->id,
+                'name' => $s->fullName(),
+                'class' => $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : null,
+                'blood_type' => $s->medicalRecord->blood_type,
+                'has_allergies' => filled($s->medicalRecord->allergies),
+                'has_conditions' => filled($s->medicalRecord->conditions),
+                'has_medications' => filled($s->medicalRecord->medications),
+                'updated_at' => $s->medicalRecord->updated_at->diffForHumans(),
+            ]);
+
+        return Inertia::render('Medical/Index', [
+            'students' => $students,
+            'totalEnrolled' => Student::whereIn('branch_id', $branchIds)->enrolled()->count(),
+            'canManage' => $user->can('medical-records-manage'),
+        ]);
+    }
+
+    /** Same shape as DisciplineIncidentController::studentSearch() -- a quick way to reach "add this
+     * student's medical info" without first opening their profile. Gated on medical-records-manage
+     * directly since that's its only purpose. */
+    public function studentSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can('medical-records-manage'), 403);
+
+        $term = $request->string('q')->toString();
+        abort_unless(strlen($term) >= 2, 422);
+
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+
+        $students = Student::whereIn('branch_id', $branchIds)
+            ->where(fn ($q) => $q->where('first_name', 'like', "%{$term}%")->orWhere('father_name', 'like', "%{$term}%"))
+            ->whereIn('status', Student::ENROLLED_STATUSES)
+            ->with('currentEnrollment.section.grade')
+            ->limit(10)->get()
+            ->map(fn (Student $s) => [
+                'id' => $s->id,
+                'name' => $s->fullName(),
+                'detail' => $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : null,
+            ]);
+
+        return response()->json($students);
+    }
+
     public function show(Request $request, Student $student): Response
     {
         $user = $request->user();

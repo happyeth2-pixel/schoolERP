@@ -27,7 +27,7 @@ export default function LeaveAllocationDialog({ open, employeeId, leaveTypes, al
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="leave-allocation-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('leave.edit_allocation_title') : t('leave.add_allocation_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('leave.edit_allocation_title') : t('leave.add_allocation_title')}</h2>
 
                     {!editing && (
                         <Field id="alloc_type" label={t('leave.leave_type')} error={errors.leave_type_id}>

@@ -1,4 +1,4 @@
-import { Button, ChoiceGroup, Field, FlashMessages, Input, Page, ReviewList, Select, useWizard, WizardShell } from '@/Components/ui';
+import { BackLink, Button, ChoiceGroup, Field, FlashMessages, Input, Page, ReviewList, Select, useWizard, WizardShell } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useForm } from '@inertiajs/react';
@@ -52,8 +52,8 @@ export default function Create({ stores, items }) {
     const wizard = useWizard({ steps, errors, onSubmit: () => submitAs('submit') });
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('req.create_title')}</h2>}>
-            <Page title={t('req.create_title')} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('req.create_title')}</h2>}>
+            <Page title={t('req.create_title')} width="default" back={<BackLink href={route('requisitions.index')}>{t('req.back_to_list')}</BackLink>}>
                 <FlashMessages />
                 <WizardShell wizard={wizard} finalLabel={t('req.submit_button')} processing={processing}>
                     {wizard.step.key === 'where' && (
@@ -87,9 +87,9 @@ export default function Create({ stores, items }) {
                     {wizard.step.key === 'items' && (
                         <div className="space-y-4">
                             {data.items.map((line, i) => (
-                                <div key={i} className="space-y-3 rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700">
+                                <div key={i} className="space-y-3 rounded-xl border-2 border-stone-200 p-4 dark:border-stone-700">
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('req.line_n', { n: i + 1 })}</p>
+                                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('req.line_n', { n: i + 1 })}</p>
                                         {data.items.length > 1 && (
                                             <Button type="button" variant="quiet" size="md" icon={TrashIcon} onClick={() => removeLine(i)}>{t('req.remove_line')}</Button>
                                         )}

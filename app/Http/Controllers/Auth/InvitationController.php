@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AccountInvitation;
 use App\Models\AuditLog;
+use App\Rules\NotBasedOnIdentity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,11 +39,12 @@ class InvitationController extends Controller
 
     public function accept(Request $request, string $token): RedirectResponse
     {
+        $invitation = AccountInvitation::findUsable($token);
+
         $validated = $request->validate([
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', Password::defaults(), NotBasedOnIdentity::forUser($invitation?->user)],
         ]);
 
-        $invitation = AccountInvitation::findUsable($token);
         $user = $invitation?->accept($validated['password'], (string) $request->ip());
 
         if (! $user) {

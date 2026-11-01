@@ -1,8 +1,8 @@
 import PayrollTaxBracketDialog from '@/Components/PayrollTaxBracketDialog';
-import { Alert, Button, Card, Field, FlashMessages, Input, Page, SectionHeader, useConfirm } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, Field, FlashMessages, Input, Page, SectionHeader, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,6 +36,7 @@ function PensionRatesForm({ employeeRate, employerRate, canManage }) {
 
 export default function Settings({ canManage, pensionEmployeeRate, pensionEmployerRate, brackets }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(null); // null | 'new' | a bracket object
     const [ask, confirmDialog] = useConfirm();
 
@@ -51,8 +52,11 @@ export default function Settings({ canManage, pensionEmployeeRate, pensionEmploy
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('payroll.settings_title')}</h2>}>
-            <Page title={t('payroll.settings_title')}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('payroll.settings_title')}</h2>}>
+            <Page
+                title={t('payroll.settings_title')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
+            >
                 <FlashMessages errorKeys={['bracket']} />
 
                 <Alert tone="warning" title={t('payroll.unverified_title')}>{t('payroll.unverified_body')}</Alert>
@@ -68,11 +72,11 @@ export default function Settings({ canManage, pensionEmployeeRate, pensionEmploy
                         title={t('payroll.brackets_section_title')}
                         action={canManage && <Button size="sm" icon={PlusIcon} onClick={() => setDialog('new')}>{t('payroll.add_bracket_button')}</Button>}
                     />
-                    <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">{t('payroll.brackets_desc')}</p>
-                    <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="payroll-bracket-list">
+                    <p className="mb-4 text-sm text-stone-600 dark:text-stone-400">{t('payroll.brackets_desc')}</p>
+                    <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="payroll-bracket-list">
                         {brackets.map((b) => (
                             <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="payroll-bracket-row">
-                                <span className="text-base text-gray-900 dark:text-gray-100">
+                                <span className="text-base text-stone-900 dark:text-stone-100">
                                     {b.min_amount.toLocaleString()} &ndash; {b.max_amount != null ? b.max_amount.toLocaleString() : '∞'} &middot; {(b.rate * 100).toFixed(0)}% &minus; {b.deduction.toLocaleString()}
                                 </span>
                                 {canManage && (

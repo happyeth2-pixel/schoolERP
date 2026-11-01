@@ -1,12 +1,33 @@
 import { MarkProgress, STATUSES, statusLabelKey } from '@/Components/AttendanceParts';
 import DateInput from '@/Components/DateInput';
 import DateText from '@/Components/DateText';
-import { Alert, BackLink, Button, Card, Disclosure, EmptyState, Page, SuccessPanel, useConfirm } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, Disclosure, EmptyState, Field, Page, SuccessPanel, TextArea, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { ArrowDownTrayIcon, CheckIcon, ExclamationTriangleIcon, UsersIcon } from '@heroicons/react/24/outline';
-import { Link, router, usePage } from '@inertiajs/react';
+import { ArrowDownTrayIcon, ChatBubbleLeftRightIcon, CheckIcon, ExclamationTriangleIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+function MessageClassForm({ sectionId }) {
+    const { t } = useTranslation();
+    const { data, setData, post, processing, errors, reset } = useForm({ body: '' });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(route('sections.messages.broadcast', sectionId), { preserveScroll: true, onSuccess: () => reset('body') });
+    };
+
+    return (
+        <Disclosure title={t('messages.class_broadcast_title')} description={t('messages.class_broadcast_desc')}>
+            <form onSubmit={submit} className="space-y-3">
+                <Field id="broadcast_body" label={t('messages.write_label')} error={errors.body}>
+                    <TextArea value={data.body} onChange={(e) => setData('body', e.target.value)} rows={3} maxLength={2000} />
+                </Field>
+                <Button type="submit" busy={processing} disabled={data.body.trim() === ''}>{t('messages.send_to_class_button')}</Button>
+            </form>
+        </Disclosure>
+    );
+}
 
 // The teacher's daily task: choose the class (previous page) -> see the students -> mark -> save -> a clear confirmation.
 //
@@ -37,10 +58,10 @@ function StatusButtons({ row, value, onChange }) {
                         role="radio"
                         aria-checked={selected}
                         onClick={() => onChange(s.value)}
-                        className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border-2 px-0.5 py-1.5 text-center text-[13px] font-semibold leading-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                        className={`relative flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl border-2 px-0.5 py-1.5 text-center text-[13px] font-semibold leading-tight transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
                             selected
                                 ? s.on
-                                : 'border-gray-300 bg-white text-gray-800 hover:border-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-400'
+                                : 'border-stone-300 bg-white text-stone-800 hover:border-stone-500 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:hover:border-stone-400'
                         }`}
                     >
                         <s.icon className="h-6 w-6" aria-hidden="true" />
@@ -53,7 +74,7 @@ function StatusButtons({ row, value, onChange }) {
     );
 }
 
-export default function Take({ section, date, today, roster, last_saved_by, classCount = 1, singleClass = false }) {
+export default function Take({ section, date, today, roster, last_saved_by, classCount = 1, singleClass = false, canMessage = false }) {
     const { t } = useTranslation();
     const { errors } = usePage().props;
     const [ask, confirmDialog] = useConfirm();
@@ -181,7 +202,7 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
     // ------------------------------------------------------------------ the confirmation screen
     if (saved) {
         return (
-            <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+            <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
                 <Page title={title} width="narrow">
                     <SuccessPanel
                         title={t('attendance.saved_title')}
@@ -222,7 +243,7 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
 
     // ------------------------------------------------------------------ marking
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
             <Page title={title} description={t('attendance.take_intro')} width="narrow" back={<BackLink href={backHref}>{backLabel}</BackLink>}>
                 {serverError && <Alert tone="danger" title={t('attendance.error_title')}>{serverError}</Alert>}
 
@@ -230,9 +251,9 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                     {otherDay ? (
                         <Alert tone="warning" title={t('attendance.other_day_title')}>{t('attendance.other_day_body')} <strong><DateText value={date} /></strong></Alert>
                     ) : (
-                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('attendance.today_is')} <DateText value={date} /></p>
+                        <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('attendance.today_is')} <DateText value={date} /></p>
                     )}
-                    {last_saved_by && <p className="mt-3 text-base text-gray-700 dark:text-gray-300" data-testid="last-saved">{t('attendance.last_saved_by', { name: last_saved_by })}</p>}
+                    {last_saved_by && <p className="mt-3 text-base text-stone-700 dark:text-stone-300" data-testid="last-saved">{t('attendance.last_saved_by', { name: last_saved_by })}</p>}
                     <div className="mt-4">
                         <Disclosure title={t('attendance.change_date')} description={t('attendance.change_date_desc')}>
                             <DateInput large value={date} onChange={changeDate} />
@@ -253,7 +274,6 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                                     <Button onClick={markRestPresent} fullWidth icon={CheckIcon}>
                                         {unmarkedCount === total ? t('attendance.mark_everyone_present') : t('attendance.mark_rest_present', { n: unmarkedCount })}
                                     </Button>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{unmarkedCount === total ? t('attendance.mark_all_hint') : t('attendance.mark_rest_hint')}</p>
                                     {unmarkedCount < total && (
                                         <div role="radiogroup" aria-label={t('attendance.filter')} className="flex gap-2">
                                             {[['all', t('attendance.show_all')], ['unmarked', t('attendance.show_unmarked', { n: unmarkedCount })]].map(([value, label]) => (
@@ -263,7 +283,7 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                                                     role="radio"
                                                     aria-checked={view === value}
                                                     onClick={() => setView(value)}
-                                                    className={`min-h-[48px] flex-1 rounded-xl border-2 px-3 text-base font-semibold ${view === value ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}
+                                                    className={`min-h-[48px] flex-1 rounded-xl border-2 px-3 text-base font-semibold ${view === value ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}
                                                 >
                                                     {label}
                                                 </button>
@@ -288,13 +308,24 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                                             state === 'unmarked'
                                                 ? 'border-dashed border-amber-500 bg-amber-50/70 dark:border-amber-600 dark:bg-amber-900/15'
                                                 : state === 'changed'
-                                                  ? 'border-amber-400 bg-white dark:bg-gray-800'
-                                                  : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+                                                  ? 'border-amber-400 bg-white dark:bg-stone-800'
+                                                  : 'border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-800'
                                         }`}
                                     >
                                         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{r.student_name}</p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{r.student_id_number}</p>
+                                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{r.student_name}</p>
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-sm text-stone-600 dark:text-stone-400">{r.student_id_number}</p>
+                                                {canMessage && (
+                                                    <Link
+                                                        href={route('students.messages.index', r.student_id)}
+                                                        className="flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                                                        data-testid="message-parent-link"
+                                                    >
+                                                        <ChatBubbleLeftRightIcon className="h-4 w-4" aria-hidden="true" /> {t('messages.nav_button')}
+                                                    </Link>
+                                                )}
+                                            </div>
                                         </div>
                                         {state === 'unmarked' && (
                                             <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-amber-900 dark:text-amber-300">
@@ -314,17 +345,17 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                             })}
                         </ul>
 
-                        <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 sm:mx-0 sm:rounded-2xl sm:border-2">
+                        <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-stone-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 sm:mx-0 sm:rounded-2xl sm:border-2">
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                                <p className="text-base font-semibold text-gray-900 dark:text-gray-100" data-testid="bar-text">
+                                <p className="text-base font-semibold text-stone-900 dark:text-stone-100" data-testid="bar-text">
                                     {t('attendance.progress_short', { marked: markedCount, count: total })}
-                                    {changes.length > 0 && <span className="block text-sm font-medium text-gray-600 dark:text-gray-400">{t('attendance.ready_to_save', { n: changes.length })}</span>}
+                                    {changes.length > 0 && <span className="block text-sm font-medium text-stone-600 dark:text-stone-400">{t('attendance.ready_to_save', { n: changes.length })}</span>}
                                 </p>
                                 <Button onClick={requestSave} disabled={changes.length === 0} busy={saving}>
                                     {t(last_saved_by ? 'attendance.save_changes' : 'attendance.save_button')}
                                 </Button>
                             </div>
-                            {disabledWhy && <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300" role="status">{disabledWhy}</p>}
+                            {disabledWhy && <p className="mt-2 text-sm font-medium text-stone-700 dark:text-stone-300" role="status">{disabledWhy}</p>}
                         </div>
 
                         <div>
@@ -332,6 +363,12 @@ export default function Take({ section, date, today, roster, last_saved_by, clas
                                 {t('attendance.export_excel')}
                             </Button>
                         </div>
+
+                        {canMessage && (
+                            <Card>
+                                <MessageClassForm sectionId={section.id} />
+                            </Card>
+                        )}
                     </>
                 )}
             </Page>

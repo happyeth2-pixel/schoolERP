@@ -20,7 +20,7 @@ export default function MarkLoanLostDamagedDialog({ open, loan, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && loan && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="mark-lost-damaged-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('library.mark_lost_damaged_title', { book: loan.book_title })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('library.mark_lost_damaged_title', { book: loan.book_title })}</h2>
                     <Field id="mark_status" label={t('library.what_happened_label')} error={errors.status}>
                         <Select id="mark_status" value={data.status} onChange={(e) => setData('status', e.target.value)}>
                             <option value="lost">{t('library.status_lost')}</option>

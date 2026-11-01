@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\AttendanceRecord;
+use App\Models\Invoice;
 use App\Models\Mark;
 use App\Models\Student;
 use App\Models\Term;
 use App\Models\TimetableSlot;
+use App\Services\Finance;
+use App\Services\PaymentStatements;
 use App\Support\SchoolCalendar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -257,6 +260,75 @@ class FamilyController extends Controller
         ]);
     }
 
+    /**
+     * Every invoice across every one of the parent's children, in one place -- not just whichever single
+     * invoice a notification happened to link to. A family may pay any of them, in any order, whenever
+     * they wish (InvoicePolicy::pay already allows that); this page exists so they can actually find
+     * them all to do so, and see which are overdue.
+     */
+    public function invoices(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user->hasRole('parent'), 403);
+
+        $childIds = $user->children()->pluck('students.id');
+        $status = $request->query('status');
+
+        $allInvoices = Invoice::whereIn('student_id', $childIds)
+            ->with(['student', 'items', 'payments.refunds'])
+            ->get();
+
+        // Lifetime total paid per child -- across every period, every academic year -- from the same
+        // Finance figures as everything else, never a second copy of this arithmetic.
+        $totalsByChild = $allInvoices->groupBy('student_id')
+            ->map(fn ($group) => Finance::summarize($group)['collected']);
+
+        $invoices = $allInvoices
+            ->map(fn (Invoice $i) => [
+                'id' => $i->id,
+                'invoice_number' => $i->invoice_number,
+                'student_id' => $i->student_id,
+                'student' => $i->student->fullName(),
+                'period' => $i->period_label ?? 'Full Year',
+                'period_start' => $i->period_start->toDateString(),
+                'total' => $i->totalAmount(),
+                'paid' => $i->paidAmount(),
+                'balance' => $i->balance(),
+                'status' => $i->statusLabel(),
+                'due_date' => $i->is_waived ? null : $i->dueDate()->toDateString(),
+                'is_overdue' => $i->isOverdue(),
+                'paid_at' => optional($i->payments->where('status', 'verified')->sortByDesc('verified_at')->first())
+                    ->verified_at?->toDateString(),
+            ])
+            // 'owing' (used by the Payment hub's "What's not paid" button) means anything still owed,
+            // whether nothing or only part of it has been paid -- a parent asking "what's not paid"
+            // means both, not just the ones with zero paid toward them.
+            ->when($status === 'owing', fn ($c) => $c->whereIn('status', ['unpaid', 'partially_paid']))
+            ->when($status && $status !== 'owing', fn ($c) => $c->where('status', $status))
+            ->sortByDesc('period_start')
+            ->values();
+
+        return Inertia::render('Family/Invoices', [
+            'invoices' => $invoices,
+            'children' => $user->children()->orderBy('first_name')->get()->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->fullName(),
+                'total_paid' => $totalsByChild->get($c->id, 0.0),
+                'statement_url' => route('family.invoices.statement', $c->id),
+            ]),
+            'filters' => $request->only('status'),
+        ]);
+    }
+
+    /** The parent's printable copy of their child's full payment history -- the same statement a
+     * member of staff can print at the school desk (App\Services\PaymentStatements). */
+    public function statement(Request $request, Student $student)
+    {
+        Gate::authorize('viewRecords', $student);
+
+        return PaymentStatements::pdf($student)->download("statement-{$student->student_id_number}.pdf");
+    }
+
     /** A hub linking each of the parent's children to their report card. */
     public function reportCards(Request $request): Response
     {
@@ -272,5 +344,18 @@ class FamilyController extends Controller
                     : null,
             ]),
         ]);
+    }
+
+    /**
+     * Three big buttons, nothing else -- all three land on the same `invoices()` list above, which
+     * already knows how to filter by status; this page just picks the filter for them instead of
+     * making a parent find it themselves.
+     */
+    public function paymentsHub(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user->hasRole('parent'), 403);
+
+        return Inertia::render('Family/PaymentsHub');
     }
 }

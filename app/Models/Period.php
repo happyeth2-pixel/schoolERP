@@ -18,7 +18,9 @@ class Period extends Model
     use Audited;
     use GuardsDeletion;
 
-    protected $fillable = ['school_id', 'period_number', 'name', 'start_time', 'end_time'];
+    public const TYPES = ['teaching', 'break', 'lunch'];
+
+    protected $fillable = ['school_id', 'period_number', 'name', 'type', 'start_time', 'end_time'];
 
     public function school(): BelongsTo
     {
@@ -30,11 +32,19 @@ class Period extends Model
         return $this->hasMany(TimetableSlot::class);
     }
 
+    public function optionalServices(): HasMany
+    {
+        return $this->hasMany(OptionalService::class);
+    }
+
     public function deletionBlockers(): array
     {
         $blockers = [];
         if (($count = $this->timetableSlots()->count()) > 0) {
             $blockers[] = "{$count} timetable slot(s)";
+        }
+        if (($count = $this->optionalServices()->count()) > 0) {
+            $blockers[] = "{$count} after-school programme(s)";
         }
 
         return $blockers;

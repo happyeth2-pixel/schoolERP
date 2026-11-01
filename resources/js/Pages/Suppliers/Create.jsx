@@ -1,4 +1,4 @@
-import { Button, Field, FlashMessages, Input, Page, TextArea } from '@/Components/ui';
+import { BackLink, Button, Field, FlashMessages, Input, Page, TextArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -16,8 +16,8 @@ export default function Create() {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('supplier.add_button')}</h2>}>
-            <Page title={t('supplier.add_button')} description={t('supplier.add_desc')} width="narrow">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('supplier.add_button')}</h2>}>
+            <Page title={t('supplier.add_button')} description={t('supplier.add_desc')} width="narrow" back={<BackLink href={route('suppliers.index')}>{t('supplier.back_to_list')}</BackLink>}>
                 <FlashMessages />
                 <form onSubmit={submit} className="space-y-6">
                     <Field id="supplier_name" label={t('supplier.name')} error={errors.name}>

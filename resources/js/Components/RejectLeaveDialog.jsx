@@ -19,7 +19,7 @@ export default function RejectLeaveDialog({ open, request, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="reject-leave-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('leave.reject_title', { name: request.employee_name })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('leave.reject_title', { name: request.employee_name })}</h2>
                     <Field id="reject_reason" label={t('leave.reject_reason_label')} error={errors.rejection_reason}>
                         <TextArea value={data.rejection_reason} onChange={(e) => setData('rejection_reason', e.target.value)} rows={3} maxLength={1000} autoFocus />
                     </Field>

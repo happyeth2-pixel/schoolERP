@@ -49,8 +49,8 @@ export function useServiceSummary() {
 function Group({ title, hint, children }) {
     return (
         <section>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-            {hint && <p className="mb-3 mt-0.5 text-base text-gray-600 dark:text-gray-400">{hint}</p>}
+            <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{title}</h3>
+            {hint && <p className="mb-3 mt-0.5 text-base text-stone-600 dark:text-stone-400">{hint}</p>}
             {children}
         </section>
     );
@@ -110,9 +110,9 @@ export default function ServiceChoices({ services, selectedIds, onPick, onDrop, 
                 </Group>
             )}
 
-            <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-900/20" aria-live="polite" data-testid="service-summary">
-                <p className="text-sm font-medium text-indigo-900 dark:text-indigo-200">{t('services.summary_title')}</p>
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{summarise(services, selectedIds)}</p>
+            <div className="rounded-xl border-2 border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-900/20" aria-live="polite" data-testid="service-summary">
+                <p className="text-sm font-medium text-brand-900 dark:text-brand-200">{t('services.summary_title')}</p>
+                <p className="mt-1 text-lg font-semibold text-stone-900 dark:text-stone-100">{summarise(services, selectedIds)}</p>
             </div>
         </div>
     );

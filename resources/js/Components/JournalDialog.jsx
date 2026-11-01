@@ -16,7 +16,7 @@ export default function JournalDialog({ open, types, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="journal-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('journal.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('journal.add_title')}</h2>
                     <Field id="journal_code" label={t('journal.code')} error={errors.code}>
                         <Input value={data.code} onChange={(e) => setData('code', e.target.value.toUpperCase())} maxLength={20} autoComplete="off" />
                     </Field>

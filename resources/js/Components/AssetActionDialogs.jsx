@@ -19,7 +19,7 @@ export function PersonDialog({ open, asset, people, routeName, title, buttonLabe
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="asset-person-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{title}</h2>
                     <Field id="asset_person" label={t('asset.person')} error={errors.user_id}>
                         <Select value={data.user_id} onChange={(e) => setData('user_id', e.target.value)}>
                             <option value="">--</option>
@@ -52,7 +52,7 @@ export function StoreDialog({ open, asset, stores, routeName, title, buttonLabel
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="asset-store-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{title}</h2>
                     <Field id="asset_store" label={t('asset.store')} error={errors.store_id}>
                         <Select value={data.store_id} onChange={(e) => setData('store_id', e.target.value)}>
                             <option value="">--</option>
@@ -85,7 +85,7 @@ export function NotesDialog({ open, asset, routeName, title, buttonLabel, tone =
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="asset-notes-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{title}</h2>
                     <Field id="asset_notes" label={t('asset.reason')} optional={!required} error={errors.notes}>
                         <TextArea id="asset_notes" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
                     </Field>
@@ -112,7 +112,7 @@ export function RepairCompleteDialog({ open, asset, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="asset-repair-complete-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('asset.repair_complete_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('asset.repair_complete_title')}</h2>
                     <ChoiceGroup
                         heading={t('asset.repair_outcome')}
                         layout="segmented"

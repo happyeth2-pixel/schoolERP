@@ -1,10 +1,10 @@
 import AttendanceStatusBadge from '@/Components/AttendanceStatusBadge';
 import DateInput from '@/Components/DateInput';
 import DateText from '@/Components/DateText';
-import { Alert, Button, Card, EmptyState, Field, Page, Select } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, EmptyState, Field, Page, Select } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarDaysIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 // Step 1 of taking period attendance: which class period, today (or another day)? One card per scheduled
@@ -19,18 +19,18 @@ function SlotCard({ slot, date }) {
         <Card as="section" aria-label={`${slot.subject} -- ${slot.section}`} data-testid="period-slot-card" data-status={slot.status}>
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{slot.subject}</h2>
-                    <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{slot.period_label} &middot; {slot.section}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('period_attendance.taught_by', { name: slot.teacher })}</p>
+                    <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{slot.subject}</h2>
+                    <p className="mt-1 text-base text-stone-600 dark:text-stone-400">{slot.period_label} &middot; {slot.section}</p>
+                    <p className="text-sm text-stone-600 dark:text-stone-400">{t('period_attendance.taught_by', { name: slot.teacher })}</p>
                 </div>
                 <AttendanceStatusBadge status={slot.status} className="!text-sm" />
             </div>
 
             {slot.roster_count === 0 ? (
-                <p className="text-base text-gray-600 dark:text-gray-400">{t('attendance.no_students_enrolled')}</p>
+                <p className="text-base text-stone-600 dark:text-stone-400">{t('attendance.no_students_enrolled')}</p>
             ) : (
                 <>
-                    <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">{t('period_attendance.marked_of', { marked: slot.marked_count, total: slot.roster_count })}</p>
+                    <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">{t('period_attendance.marked_of', { marked: slot.marked_count, total: slot.roster_count })}</p>
                     <Button as={Link} href={href} variant={slot.status === 'complete' ? 'secondary' : 'primary'} icon={ClipboardDocumentCheckIcon} fullWidth>
                         {label}
                     </Button>
@@ -42,13 +42,15 @@ function SlotCard({ slot, date }) {
 
 export default function Index({ date, today, teachers, teacherId, slots }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const showPicker = teachers.length > 0;
 
     const navigate = (next) => router.get(route('period-attendance.index'), { teacher_id: teacherId, date, ...next }, { preserveState: true });
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('period_attendance.title')}</h2>}>
-            <Page title={t('period_attendance.title')} description={<>{t('period_attendance.desc')} <DateText value={date} /></>} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('period_attendance.title')}</h2>}>
+            <Page title={t('period_attendance.title')} description={<>{t('period_attendance.desc')} <DateText value={date} /></>} width="default" back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}>
                 <Card>
                     <div className={`grid gap-4 ${showPicker ? 'sm:grid-cols-2' : ''}`}>
                         {showPicker && (

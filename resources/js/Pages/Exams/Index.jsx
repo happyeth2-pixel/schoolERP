@@ -1,8 +1,8 @@
 import Modal from '@/Components/Modal';
-import { Alert, Button, Card, ChoiceGroup, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, ChoiceGroup, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,7 +42,7 @@ function ExamForm({ exam, terms, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-6 p-6" data-testid="exam-form">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{isEdit ? t('exam.edit_title', { name: exam.name }) : t('exam.add_title')}</h2>
+            <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{isEdit ? t('exam.edit_title', { name: exam.name }) : t('exam.add_title')}</h2>
 
             {!isEdit && (
                 <div>
@@ -51,18 +51,18 @@ function ExamForm({ exam, terms, onDone }) {
                 </div>
             )}
             {!isEdit && term?.locked && <Alert tone="warning" title={t('exam.locked_title')}>{t('exam.locked_body')}</Alert>}
-            {isEdit && <p className="rounded-xl bg-gray-50 p-4 text-base text-gray-800 dark:bg-gray-900/40 dark:text-gray-200">{t('exam.edit_locked', { term: exam.term })}</p>}
+            {isEdit && <p className="rounded-xl bg-stone-50 p-4 text-base text-stone-800 dark:bg-stone-900/40 dark:text-stone-200">{t('exam.edit_locked', { term: exam.term })}</p>}
 
             <Field id="exam_name" label={t('exam.name_label')} hint={t('exam.name_hint')} error={errors.name}>
                 <Input value={data.name} onChange={(e) => set('name')(e.target.value)} autoComplete="off" maxLength={255} />
             </Field>
 
             <div>
-                <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100" id="exam-type-q">{t('exam.q_type')}</p>
+                <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100" id="exam-type-q">{t('exam.q_type')}</p>
                 <div role="radiogroup" aria-labelledby="exam-type-q" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {TYPES.map((k) => (
                         <button key={k} type="button" role="radio" aria-checked={data.type === k} onClick={() => set('type')(k)}
-                            className={`min-h-[56px] rounded-xl border-2 px-3 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${data.type === k ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}>
+                            className={`min-h-[56px] rounded-xl border-2 px-3 text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${data.type === k ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}>
                             {t(`exam.type_${k}`)}
                         </button>
                     ))}
@@ -74,7 +74,7 @@ function ExamForm({ exam, terms, onDone }) {
                 <Input inputMode="decimal" value={data.weight_percent} onChange={(e) => set('weight_percent')(e.target.value)} autoComplete="off" />
             </Field>
             {term && weightOk && (
-                <p className={`rounded-xl border-2 p-4 text-lg font-semibold ${total > 100 ? 'border-red-400 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-100' : total === 100 ? 'border-emerald-400 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 'border-indigo-300 bg-indigo-50 text-gray-900 dark:bg-indigo-900/20 dark:text-gray-100'}`} data-testid="weight-preview">
+                <p className={`rounded-xl border-2 p-4 text-lg font-semibold ${total > 100 ? 'border-red-400 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-100' : total === 100 ? 'border-emerald-400 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 'border-brand-300 bg-brand-50 text-stone-900 dark:bg-brand-900/20 dark:text-stone-100'}`} data-testid="weight-preview">
                     {total > 100 ? t('exam.preview_over', { label: term.label, total }) : total === 100 ? t('exam.preview_complete', { label: term.label }) : t('exam.preview_more', { label: term.label, total, left: round2(100 - total) })}
                 </p>
             )}
@@ -89,6 +89,7 @@ function ExamForm({ exam, terms, onDone }) {
 
 export default function Index({ exams, terms }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [ask, confirmDialog] = useConfirm();
     const [showCreate, setShowCreate] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -103,11 +104,12 @@ export default function Index({ exams, terms }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('exam.page_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('exam.page_title')}</h2>}>
             <Page
                 title={t('exam.page_title')}
                 description={t('exam.page_desc')}
                 width="default"
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={<Button icon={PlusIcon} onClick={() => setShowCreate(true)} disabled={terms.length === 0}>{t('exam.add_button')}</Button>}
             >
                 <FlashMessages errorKeys={['exam']} />
@@ -116,9 +118,9 @@ export default function Index({ exams, terms }) {
 
                 <div className="space-y-3" data-testid="terms">
                     {terms.map((tm) => (
-                        <div key={tm.id} data-testid="term-row" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{tm.label}</p>
-                            <p className="flex flex-wrap items-center gap-2 text-base text-gray-800 dark:text-gray-200">
+                        <div key={tm.id} data-testid="term-row" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800">
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{tm.label}</p>
+                            <p className="flex flex-wrap items-center gap-2 text-base text-stone-800 dark:text-stone-200">
                                 {t('exam.term_total', { total: tm.weight_total })}
                                 {tm.complete ? <StatusBadge tone="success" label={t('exam.complete')} /> : <StatusBadge tone="warning" label={tm.weight_total < 100 ? t('exam.add_more', { left: round2(100 - tm.weight_total) }) : t('exam.over')} />}
                                 {tm.locked && <StatusBadge tone="neutral" label={t('exam.locked')} />}
@@ -134,9 +136,9 @@ export default function Index({ exams, terms }) {
                         {exams.map((e) => (
                             <li key={e.id}>
                                 <Card data-testid="exam-card" className="h-full">
-                                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{e.name}</p>
-                                    <p className="text-base text-gray-600 dark:text-gray-400">{e.academic_year} — {e.term}</p>
-                                    <p className="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t(`exam.type_${e.type}`)} · {t('exam.weight_value', { weight: e.weight_percent })}</p>
+                                    <p className="text-xl font-bold text-stone-900 dark:text-stone-100">{e.name}</p>
+                                    <p className="text-base text-stone-600 dark:text-stone-400">{e.academic_year} — {e.term}</p>
+                                    <p className="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t(`exam.type_${e.type}`)} · {t('exam.weight_value', { weight: e.weight_percent })}</p>
                                     <div className="mt-4 flex flex-wrap gap-2">
                                         <Button size="md" variant="secondary" onClick={() => setEditing(e)}>{t('exam.change')}</Button>
                                         <Button size="md" variant="quiet" onClick={() => remove(e)}>{t('exam.remove')}</Button>

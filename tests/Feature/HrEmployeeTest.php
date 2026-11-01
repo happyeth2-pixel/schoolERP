@@ -206,4 +206,41 @@ class HrEmployeeTest extends TestCase
 
         $this->assertSame(0, Employee::count());
     }
+
+    public function test_an_employee_can_be_registered_with_an_age_instead_of_a_birthdate(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow('2026-10-15 09:00:00');
+        $manager = $this->hrManager();
+
+        $this->actingAs($manager)->post('/employees', [
+            'full_name' => 'Tigist Alemu', 'phone' => '0911000002', 'hire_date' => '2026-01-15', 'age' => 30,
+            'employment_status' => 'active', 'employment_type' => 'full_time',
+        ])->assertSessionHasNoErrors();
+
+        $employee = Employee::firstOrFail();
+        $this->assertSame(30, $employee->age());
+        $this->assertNotNull($employee->date_of_birth);
+
+        $this->actingAs($manager)->put("/employees/{$employee->id}", [
+            'full_name' => 'Tigist Alemu', 'phone' => '0911000002', 'hire_date' => '2026-01-15', 'age' => 31,
+            'employment_status' => 'active', 'employment_type' => 'full_time',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(31, $employee->fresh()->age());
+    }
+
+    public function test_the_edit_page_is_given_an_age_not_a_raw_birthdate(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow('2026-10-15 09:00:00');
+        $manager = $this->hrManager();
+
+        $this->actingAs($manager)->post('/employees', [
+            'full_name' => 'Age Edit', 'phone' => '0911000003', 'hire_date' => '2026-01-15', 'age' => 25,
+            'employment_status' => 'active', 'employment_type' => 'full_time',
+        ]);
+        $employee = Employee::firstOrFail();
+
+        $page = $this->props($this->actingAs($manager)->get("/employees/{$employee->id}/edit")->assertOk());
+        $this->assertSame(25, $page['employee']['age']);
+        $this->assertArrayNotHasKey('date_of_birth', $page['employee']);
+    }
 }

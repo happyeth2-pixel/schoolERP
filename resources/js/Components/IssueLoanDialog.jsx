@@ -57,13 +57,13 @@ export default function IssueLoanDialog({ open, copyId, bookTitle, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="issue-loan-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('library.issue_title', { book: bookTitle })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('library.issue_title', { book: bookTitle })}</h2>
 
                     {selected ? (
-                        <div className="flex items-center justify-between rounded-xl border-2 border-indigo-600 bg-indigo-50 p-4 dark:border-indigo-400 dark:bg-indigo-900/30" data-testid="selected-borrower">
+                        <div className="flex items-center justify-between rounded-xl border-2 border-brand-600 bg-brand-50 p-4 dark:border-brand-400 dark:bg-brand-900/30" data-testid="selected-borrower">
                             <div>
-                                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{selected.name}</p>
-                                {selected.detail && <p className="text-sm text-gray-600 dark:text-gray-400">{selected.detail}</p>}
+                                <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{selected.name}</p>
+                                {selected.detail && <p className="text-sm text-stone-600 dark:text-stone-400">{selected.detail}</p>}
                             </div>
                             <Button type="button" variant="quiet" size="md" onClick={clearSelection}>{t('library.change_person')}</Button>
                         </div>
@@ -74,14 +74,14 @@ export default function IssueLoanDialog({ open, copyId, bookTitle, onClose }) {
                     )}
 
                     {!selected && query.trim().length >= 2 && (
-                        <ul className="divide-y divide-gray-200 rounded-xl border-2 border-gray-200 dark:divide-gray-700 dark:border-gray-700" data-testid="borrower-results">
-                            {searching && <li className="p-3 text-sm text-gray-600 dark:text-gray-400">{t('common.searching')}</li>}
-                            {!searching && results.length === 0 && <li className="p-3 text-sm text-gray-600 dark:text-gray-400">{t('library.no_people_found')}</li>}
+                        <ul className="divide-y divide-stone-200 rounded-xl border-2 border-stone-200 dark:divide-stone-700 dark:border-stone-700" data-testid="borrower-results">
+                            {searching && <li className="p-3 text-sm text-stone-600 dark:text-stone-400">{t('common.searching')}</li>}
+                            {!searching && results.length === 0 && <li className="p-3 text-sm text-stone-600 dark:text-stone-400">{t('library.no_people_found')}</li>}
                             {results.map((r) => (
                                 <li key={`${r.type}-${r.id}`}>
-                                    <button type="button" className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700" onClick={() => pick(r)}>
-                                        <span className="font-medium text-gray-900 dark:text-gray-100">{r.name}</span>
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">{r.detail}</span>
+                                    <button type="button" className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-stone-50 dark:hover:bg-stone-700" onClick={() => pick(r)}>
+                                        <span className="font-medium text-stone-900 dark:text-stone-100">{r.name}</span>
+                                        <span className="text-sm text-stone-600 dark:text-stone-400">{r.detail}</span>
                                     </button>
                                 </li>
                             ))}

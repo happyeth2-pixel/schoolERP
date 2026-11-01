@@ -47,6 +47,7 @@ class AuditLogController extends Controller
             'entities' => (clone $base)->distinct()->pluck('auditable_type')->map(fn ($t) => class_basename($t))->sort()->values(),
             'actions' => (clone $base)->distinct()->orderBy('action')->pluck('action'),
             'actors' => User::whereIn('id', (clone $base)->whereNotNull('user_id')->distinct()->pluck('user_id'))->orderBy('name')->get(['id', 'name']),
+            'canViewSecurityLog' => $user->can('view-security-log'),
         ]);
     }
 

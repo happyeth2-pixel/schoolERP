@@ -167,7 +167,7 @@ class AuditTrailTest extends TestCase
 
     public function test_staff_role_and_permission_changes_are_logged(): void
     {
-        $this->actingAs($this->owner)->post('/staff', ['name' => 'Vera Vice', 'email' => 'vera@t.test', 'phone' => '0911000222', 'phone_confirmation' => '0911000222', 'role' => 'branch_admin', 'branch_id' => $this->branch->id, 'permissions' => ['manage-students']])->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->post('/staff', ['name' => 'Vera Vice', 'email' => 'vera@t.test', 'phone' => '0911000222', 'role' => 'branch_admin', 'branch_id' => $this->branch->id, 'permissions' => ['manage-students']])->assertSessionHasNoErrors();
         $vera = User::where('email', 'vera@t.test')->firstOrFail();
 
         $assigned = $this->last('staff.role_assigned');
@@ -187,7 +187,7 @@ class AuditTrailTest extends TestCase
 
     public function test_settings_changes_and_archiving_are_logged_and_secrets_never_are(): void
     {
-        $this->actingAs($this->owner)->patch('/settings/school', ['name' => 'New Name', 'address' => 'X', 'phone' => '0911223344', 'calendar_preference' => 'both', 'missing_mark_policy' => 'zero', 'enabled_languages' => ['en'], 'discount_limit_percent' => 10, 'waiver_limit_amount' => 1000, 'allow_overlapping_terms' => false])->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->patch('/settings/school', ['name' => 'New Name', 'address' => 'X', 'phone' => '0911223344', 'calendar_preference' => 'both', 'missing_mark_policy' => 'zero', 'enabled_languages' => ['en'], 'discount_limit_percent' => 10, 'waiver_limit_amount' => 1000, 'payment_due_days' => 14, 'allow_overlapping_terms' => false])->assertSessionHasNoErrors();
         $settings = $this->last('school.settings_changed');
         $this->assertSame('New Name', $settings->after['name']);
         $this->assertSame('S', $settings->before['name']);
@@ -197,7 +197,7 @@ class AuditTrailTest extends TestCase
         $archived = $this->last('fee_structure.archived');
         $this->assertSame('Bus', $archived->before['name']);
 
-        $this->actingAs($this->owner)->post('/staff', ['name' => 'T', 'email' => 't@t.test', 'phone' => '0911000333', 'phone_confirmation' => '0911000333', 'role' => 'teacher']);
+        $this->actingAs($this->owner)->post('/staff', ['name' => 'T', 'email' => 't@t.test', 'phone' => '0911000333', 'role' => 'teacher']);
         $all = json_encode(AuditLog::all()->map(fn ($l) => [$l->before, $l->after])->all());
         $this->assertStringNotContainsString('password', $all);
         $this->assertStringNotContainsString('id_card_token', $all);
@@ -226,7 +226,7 @@ class AuditTrailTest extends TestCase
         $other = School::create(['name' => 'Other', 'code' => 'O'.Str::random(3)]);
         $stranger = User::create(['school_id' => $other->id, 'name' => 'Stranger', 'email' => 's@t.test', 'password' => 'x', 'status' => 'active', 'email_verified_at' => now()]);
         $this->actingAs($this->owner)->patch("/students/{$this->student->id}", ['first_name' => 'Almaz', 'gender' => 'female', 'status' => 'active', 'address' => 'Bole']);
-        $this->actingAs($this->owner)->patch('/settings/school', ['name' => 'Renamed', 'calendar_preference' => 'both', 'missing_mark_policy' => 'zero', 'enabled_languages' => ['en'], 'discount_limit_percent' => 10, 'waiver_limit_amount' => 1000, 'allow_overlapping_terms' => false]);
+        $this->actingAs($this->owner)->patch('/settings/school', ['name' => 'Renamed', 'calendar_preference' => 'both', 'missing_mark_policy' => 'zero', 'enabled_languages' => ['en'], 'discount_limit_percent' => 10, 'waiver_limit_amount' => 1000, 'payment_due_days' => 14, 'allow_overlapping_terms' => false])->assertSessionHasNoErrors();
 
         AuditLog::record($stranger, 'student.updated', $this->student, null, ['x' => 1], 'not for us');
 

@@ -32,7 +32,7 @@ export default function Show({ run, canManage, skipped, payslips, totals }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{run.branch} &middot; {run.label}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{run.branch} &middot; {run.label}</h2>}>
             <Page
                 title={`${run.branch} · ${run.label}`}
                 back={<BackLink href={route('payroll-runs.index')}>{t('payroll.runs_title')}</BackLink>}
@@ -60,7 +60,7 @@ export default function Show({ run, canManage, skipped, payslips, totals }) {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm" data-testid="payslip-table">
                             <thead>
-                                <tr className="border-b border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-400">
+                                <tr className="border-b border-stone-200 text-stone-600 dark:border-stone-700 dark:text-stone-400">
                                     <th className="py-2 pr-3">{t('payroll.col_employee')}</th>
                                     <th className="py-2 pr-3 text-right">{t('payroll.col_basic_salary')}</th>
                                     <th className="py-2 pr-3 text-right">{t('payroll.col_income_tax')}</th>
@@ -69,20 +69,20 @@ export default function Show({ run, canManage, skipped, payslips, totals }) {
                                     <th className="py-2 text-right">{t('payroll.col_net_pay')}</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                                 {payslips.map((p) => (
                                     <tr key={p.id} data-testid="payslip-row">
-                                        <td className="py-2 pr-3 text-gray-900 dark:text-gray-100">{p.employee}</td>
-                                        <td className="py-2 pr-3 text-right text-gray-800 dark:text-gray-200">{money(p.basic_salary)}</td>
-                                        <td className="py-2 pr-3 text-right text-gray-800 dark:text-gray-200">{money(p.income_tax)}</td>
-                                        <td className="py-2 pr-3 text-right text-gray-800 dark:text-gray-200">{money(p.employee_pension)}</td>
-                                        <td className="py-2 pr-3 text-right text-gray-800 dark:text-gray-200">{money(p.employer_pension)}</td>
-                                        <td className="py-2 text-right font-semibold text-gray-900 dark:text-gray-100">{money(p.net_pay)}</td>
+                                        <td className="py-2 pr-3 text-stone-900 dark:text-stone-100">{p.employee}</td>
+                                        <td className="py-2 pr-3 text-right text-stone-800 dark:text-stone-200">{money(p.basic_salary)}</td>
+                                        <td className="py-2 pr-3 text-right text-stone-800 dark:text-stone-200">{money(p.income_tax)}</td>
+                                        <td className="py-2 pr-3 text-right text-stone-800 dark:text-stone-200">{money(p.employee_pension)}</td>
+                                        <td className="py-2 pr-3 text-right text-stone-800 dark:text-stone-200">{money(p.employer_pension)}</td>
+                                        <td className="py-2 text-right font-semibold text-stone-900 dark:text-stone-100">{money(p.net_pay)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot>
-                                <tr className="border-t-2 border-gray-300 font-semibold text-gray-900 dark:border-gray-600 dark:text-gray-100" data-testid="payslip-totals-row">
+                                <tr className="border-t-2 border-stone-300 font-semibold text-stone-900 dark:border-stone-600 dark:text-stone-100" data-testid="payslip-totals-row">
                                     <td className="py-2 pr-3">{t('payroll.totals_label')}</td>
                                     <td className="py-2 pr-3 text-right">{money(totals.gross)}</td>
                                     <td className="py-2 pr-3 text-right">{money(totals.income_tax)}</td>

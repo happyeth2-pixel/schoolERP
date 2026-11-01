@@ -25,8 +25,8 @@ export default function CorrectionDialog({ open, row, statuses, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="correction-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('staff_attendance.correction_title', { name: row.full_name })}</h2>
-                    <p className="text-base text-gray-600 dark:text-gray-400">{t('staff_attendance.correction_hint')}</p>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('staff_attendance.correction_title', { name: row.full_name })}</h2>
+                    <p className="text-base text-stone-600 dark:text-stone-400">{t('staff_attendance.correction_hint')}</p>
 
                     <Field id="correction_status" label={t('staff_attendance.status')} error={errors.new_status}>
                         <Select id="correction_status" value={data.new_status} onChange={(e) => setData('new_status', e.target.value)}>

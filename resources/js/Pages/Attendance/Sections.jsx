@@ -1,10 +1,10 @@
 import AttendanceStatusBadge from '@/Components/AttendanceStatusBadge';
 import { MarkProgress } from '@/Components/AttendanceParts';
 import DateText from '@/Components/DateText';
-import { Alert, Button, Card, EmptyState, Page } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, EmptyState, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ClipboardDocumentCheckIcon, UsersIcon } from '@heroicons/react/24/outline';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 // Step 1 of taking attendance: which class? One large card per class, showing today's progress in words
@@ -19,8 +19,8 @@ function SectionCard({ section, date }) {
         <Card as="section" aria-label={section.label} data-testid="class-card" data-status={section.attendance_status}>
             <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{section.label}</h2>
-                    <p className="mt-1 flex items-center gap-1.5 text-base text-gray-600 dark:text-gray-400">
+                    <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{section.label}</h2>
+                    <p className="mt-1 flex items-center gap-1.5 text-base text-stone-600 dark:text-stone-400">
                         <UsersIcon className="h-5 w-5" aria-hidden="true" /> {t('attendance.card_students', { count: section.roster_count })}
                     </p>
                 </div>
@@ -29,12 +29,12 @@ function SectionCard({ section, date }) {
 
             {section.roster_count > 0 && <MarkProgress marked={section.marked_count} total={section.roster_count} />}
             {section.last_marked_by && (
-                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{t('attendance.card_last', { name: section.last_marked_by, when: section.last_marked_at })}</p>
+                <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">{t('attendance.card_last', { name: section.last_marked_by, when: section.last_marked_at })}</p>
             )}
 
             <div className="mt-5">
                 {section.roster_count === 0 ? (
-                    <p className="text-base text-gray-600 dark:text-gray-400">{t('attendance.no_students_enrolled')}</p>
+                    <p className="text-base text-stone-600 dark:text-stone-400">{t('attendance.no_students_enrolled')}</p>
                 ) : (
                     <Button as={Link} href={href} variant={section.attendance_status === 'complete' ? 'secondary' : 'primary'} icon={ClipboardDocumentCheckIcon} fullWidth>
                         {label}
@@ -47,10 +47,16 @@ function SectionCard({ section, date }) {
 
 export default function Sections({ sections, date, taughtOnly = [] }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('attendance.choose_title')}</h2>}>
-            <Page title={t('attendance.choose_title')} description={<>{t('attendance.choose_today')} <DateText value={date} />. {t('attendance.choose_desc')}</>} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('attendance.choose_title')}</h2>}>
+            <Page
+                title={t('attendance.choose_title')}
+                description={<>{t('attendance.choose_today')} <DateText value={date} />. {t('attendance.choose_desc')}</>}
+                width="default"
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
+            >
                 {sections.length === 0 && (
                     <Card>
                         <EmptyState icon={ClipboardDocumentCheckIcon} title={t('attendance.no_class_title')}>{t('attendance.no_class_body')}</EmptyState>

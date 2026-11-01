@@ -4,9 +4,14 @@
 // See resources/js/lang/review-status.json and LOCALIZATION.md.
 return [
 
-    'student_marked_absent' => [
+    'student_marked_absent_male' => [
         'title' => 'ምዝገባ ምጥፋእ',
         'body' => ':student ብ:date ከም ዝጠፍአ ተመዝጊቡ። እዚ ጌጋ እንተኾይኑ ቤት ትምህርቲ ከዐርዮ እዩ፣ ንስኹምውን ክትሕበሩ ኢኹም።',
+    ],
+
+    'student_marked_absent_female' => [
+        'title' => 'ምዝገባ ምጥፋእ',
+        'body' => ':student ብ:date ከም ዝጠፍአት ተመዝጊባ። እዚ ጌጋ እንተኾይኑ ቤት ትምህርቲ ከዐርዮ እዩ፣ ንስኹምውን ክትሕበሩ ኢኹም።',
     ],
 
     'attendance_corrected' => [
@@ -22,6 +27,11 @@ return [
     'announcement_published' => [
         'title' => 'ሓድሽ ኣዋጅ',
         'body' => 'ሓድሽ ኣዋጅ፦ :title',
+    ],
+
+    'contact_inquiry_received' => [
+        'title' => 'ሓድሽ መልእኽቲ ርክብ',
+        'body' => 'ካብ :name (:phone)',
     ],
 
     'complaint_updated' => [
@@ -185,6 +195,31 @@ return [
     'assignment_due_soon' => [
         'title' => 'ምደባ ጽባሕ ይበቅዕ',
         'body' => 'ናይ :subject ምደባ «:title» ጽባሕ ይበቅዕ።',
+    ],
+
+    'new_parent_message' => [
+        'title' => 'ሓድሽ መልእኽቲ',
+        'body' => ':sender ብዛዕባ :student መልእኽቲ ልኢኹ።',
+    ],
+
+    'section_capacity_exceeded' => [
+        'title' => 'ክፍሊ ካብ ዓቕሙ ንላዕሊ',
+        'body' => ':section ሕጂ :occupied ተምሃሮ ኣለዉዎ፣ ካብቲ ንቡር :capacity ንላዕሊ።',
+    ],
+
+    'invoice_overdue' => [
+        'title' => 'ደረሰኝ ጊዜኡ ሓሊፉ',
+        'body' => 'ናይ :student ደረሰኝ:period (:balance ብር ጌና ዝተሓደገ) ዕለት :date ክኽፈል ነይሩዎ። ነቲ ቤተሰብ ተከተል።',
+    ],
+
+    'mark_batch_submitted' => [
+        'title' => 'ውጺኢት ምስክር ትጽበዩ ኣሎ',
+        'body' => ':teacher ናይ :subject ውጺኢት ን:section (:exam) ንምስክር ኣእትዎ።',
+    ],
+
+    'mark_batch_published' => [
+        'title' => 'ሓድሽ ናይ ፈተና ውጺኢት ተሓቲሙ',
+        'body' => 'ናይ :student ናይ :subject ውጺኢት ን:exam ሕጂ ተሓቲሙ።',
     ],
 
 ];

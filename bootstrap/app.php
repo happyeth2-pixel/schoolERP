@@ -14,6 +14,16 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Registered by hand (not via withRouting's own `channels:` option) specifically so the
+    // broadcasting auth endpoint -- hit once per browser tab whenever Echo opens its private
+    // notification channel -- carries the same real-signed-in-user requirement and the same
+    // 'notifications' rate limiter as the rest of the live-update surface (see
+    // RateLimitServiceProvider); withRouting's own shortcut always registers it with the bare
+    // 'web' group and no way to add middleware to it.
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['middleware' => ['web', 'auth', 'throttle:notifications']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             \App\Http\Middleware\EnsureAccountIsActive::class,
@@ -59,16 +69,42 @@ return Application::configure(basePath: dirname(__DIR__))
         // configured (local/testing always have none; see config/sentry.php).
         \Sentry\Laravel\Integration::handles($exceptions);
 
-        // Production-readiness audit finding: this app is 100% Inertia (no server-rendered Blade
-        // screens except PDFs/print), but nothing here ever rendered an Inertia-aware error page --
-        // a 403/404/419/500/503 fell through to Laravel's own bare default error view instead of
-        // the app's own plain-language, low-literacy-friendly design. Skipped entirely when
-        // APP_DEBUG is on, so local development still sees the real stack trace.
+        // Every rate-limit violation in the app (whichever named limiter tripped -- see
+        // RateLimitServiceProvider) ends up here as a 429. Laravel's default exception handler never calls
+        // report() for this exception (HttpException -- which TooManyRequestsHttpException extends -- is in
+        // the framework's own internal "don't report" list, since an ordinary 403/404/429 isn't normally an
+        // application error worth reporting to Sentry/logs), so the logging has to happen here in respond()
+        // instead, which runs for every response regardless of that list -- and deliberately OUTSIDE the
+        // app.debug-guarded block below, so a violation is still logged in local/staging even with debug on.
+        // One SecurityEvent per route+identity, debounced to at most one write every 5 minutes no matter how
+        // fast the offender keeps retrying, specifically so the logging itself can never become the
+        // resource-exhaustion attack (see RATE_LIMITING_AND_ABUSE_PROTECTION.md). Never logs the request body, so no
+        // password/token typed into a throttled form ever reaches this (or any) log.
         $exceptions->respond(function (Response $response, \Throwable $e, Request $request) {
+            if ($response->getStatusCode() === 429) {
+                \App\Support\RateLimitLog::record($request);
+            }
+
+            // Production-readiness audit finding: this app is 100% Inertia (no server-rendered Blade
+            // screens except PDFs/print), but nothing here ever rendered an Inertia-aware error page --
+            // a 403/404/419/500/503 fell through to Laravel's own bare default error view instead of
+            // the app's own plain-language, low-literacy-friendly design. Skipped entirely when
+            // APP_DEBUG is on, so local development still sees the real stack trace.
             if (! config('app.debug') && in_array($response->getStatusCode(), [403, 404, 419, 429, 500, 503], true)) {
-                return Inertia::render('Error', ['status' => $response->getStatusCode()])
+                $friendly = Inertia::render('Error', ['status' => $response->getStatusCode()])
                     ->toResponse($request)
                     ->setStatusCode($response->getStatusCode());
+
+                // A 429's Retry-After / X-RateLimit-* headers are real, useful information for whatever is on
+                // the other end (a human's browser retry, or a well-behaved script) -- carry them onto the
+                // friendly page instead of silently dropping them when swapping in this response.
+                foreach (['Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'] as $header) {
+                    if ($response->headers->has($header)) {
+                        $friendly->headers->set($header, $response->headers->get($header));
+                    }
+                }
+
+                return $friendly;
             }
 
             return $response;

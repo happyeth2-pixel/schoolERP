@@ -32,9 +32,7 @@ class StaffLifecycleTest extends TestCase
 
     private function payload(array $over = []): array
     {
-        $data = array_merge(['name' => 'Tigist Alemu', 'phone' => '0922 33 44 55', 'title' => 'Maths teacher', 'role' => 'teacher', 'branch_id' => $this->branchA->id], $over);
-
-        return $data + ['phone_confirmation' => $data['phone']];
+        return array_merge(['name' => 'Tigist Alemu', 'phone' => '0922 33 44 55', 'title' => 'Maths teacher', 'role' => 'teacher', 'branch_id' => $this->branchA->id], $over);
     }
 
     private function create(array $over = [], ?User $as = null)
@@ -58,6 +56,15 @@ class StaffLifecycleTest extends TestCase
     }
 
     // ------------------------------------------------------------------ creating an account
+
+    /** The phone number is typed once, not twice -- a "type it again" confirmation field used to be
+     * required here and was dropped as needless friction once a number is already typed correctly. */
+    public function test_the_phone_number_is_typed_only_once(): void
+    {
+        $this->create()->assertSessionHasNoErrors();
+
+        $this->assertNotNull($this->account());
+    }
 
     public function test_an_account_is_created_without_any_email(): void
     {
@@ -118,17 +125,6 @@ class StaffLifecycleTest extends TestCase
             $this->create(['temporary_password' => $weak, 'phone' => '0955000001'])->assertSessionHasErrors('temporary_password');
         }
         $this->assertNull(User::where('login_phone', '+251955000001')->first());
-    }
-
-    public function test_the_phone_must_be_typed_twice_and_match(): void
-    {
-        $this->create(['phone_confirmation' => '0922334466'])->assertSessionHasErrors('phone_confirmation');
-        $this->assertNull(User::where('login_phone', '+251922334455')->first());
-
-        $this->actingAs($this->owner)->post('/staff', array_diff_key($this->payload(), ['phone_confirmation' => 1]))->assertSessionHasErrors('phone_confirmation');
-
-        // a different way of writing the same number is the same number
-        $this->create(['phone_confirmation' => '+251 922 33 44 55'])->assertSessionHasNoErrors();
     }
 
     public function test_email_stays_optional_contact_information_and_is_kept_when_given(): void

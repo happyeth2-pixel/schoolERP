@@ -22,11 +22,11 @@ const norm = (s) => String(s ?? '').trim().replace(',', '.');
 const canon = (s) => { const v = norm(s); return v !== '' && SCORE.test(v) ? String(Number(v)) : v; };
 const fmt = (v) => (v === null || v === undefined || v === '' ? '' : String(Number(v)));
 
-export default function Enter({ batch, exam, section, subject, roster, missing_mark_policy }) {
+export default function Enter({ batch, exam, section, subject, roster, missing_mark_policy, readOnly = false, backTo }) {
     const { t } = useTranslation();
     const { errors } = usePage().props;
     const [ask, confirmDialog] = useConfirm();
-    const isDraft = batch.status === 'draft';
+    const isDraft = batch.status === 'draft' && !readOnly;
 
     const saved = useMemo(() => Object.fromEntries(roster.map((r) => [r.enrollment_id, fmt(r.score)])), [roster]);
     const [scores, setScores] = useState(saved);
@@ -147,14 +147,16 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
         <dl className="flex flex-wrap gap-x-6 gap-y-1" data-testid="facts">
             {[[t('marks.fact_class'), section.label], [t('marks.fact_subject'), subject.name], [t('marks.fact_exam'), exam.name], [t('marks.fact_max'), shownMax]].map(([k, v]) => (
                 <div key={k} className="flex items-baseline gap-1.5">
-                    <dt className="text-sm text-gray-600 dark:text-gray-400">{k}</dt>
-                    <dd className="text-base font-semibold text-gray-900 dark:text-gray-100">{v}</dd>
+                    <dt className="text-sm text-stone-600 dark:text-stone-400">{k}</dt>
+                    <dd className="text-base font-semibold text-stone-900 dark:text-stone-100">{v}</dd>
                 </div>
             ))}
         </dl>
     );
-    const layoutHeader = <h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{section.label} — {subject.name} — {exam.name}</h2>;
-    const back = <BackLink href={route('marks.index')}>{t('marks.back_to_marks')}</BackLink>;
+    const layoutHeader = <h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{section.label} — {subject.name} — {exam.name}</h2>;
+    const back = backTo
+        ? <BackLink href={route(backTo.route, backTo.params)}>{t('marks.back_to_approvals')}</BackLink>
+        : <BackLink href={route('marks.index')}>{t('marks.back_to_marks')}</BackLink>;
 
     // ------------------------------------------------------------------ locked: submitted / approved / published
     if (!isDraft) {
@@ -169,17 +171,17 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                     <Card>
                         <div className="mb-4 flex flex-wrap items-center gap-3">
                             <StatusBadge status={batch.status} />
-                            <p className="text-base font-medium text-gray-900 dark:text-gray-100">{t(`marks.state_${batch.status}`)}</p>
+                            <p className="text-base font-medium text-stone-900 dark:text-stone-100">{t(`marks.state_${batch.status}`)}</p>
                         </div>
-                        <p className="mb-4 text-base text-gray-700 dark:text-gray-300">{t(`marks.state_${batch.status}_next`)}</p>
+                        <p className="mb-4 text-base text-stone-700 dark:text-stone-300">{t(`marks.state_${batch.status}_next`)}</p>
                         {facts}
                     </Card>
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="readonly-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="readonly-list">
                             {roster.map((r) => (
                                 <li key={r.enrollment_id} className="flex items-center justify-between gap-3 py-3">
-                                    <span className="text-lg text-gray-900 dark:text-gray-100">{r.student_name}</span>
-                                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{saved[r.enrollment_id] === '' ? <span className="font-normal text-gray-600 dark:text-gray-400">{t('marks.list_no_mark')}</span> : `${saved[r.enrollment_id]} / ${shownMax}`}</span>
+                                    <span className="text-lg text-stone-900 dark:text-stone-100">{r.student_name}</span>
+                                    <span className="text-lg font-semibold text-stone-900 dark:text-stone-100">{saved[r.enrollment_id] === '' ? <span className="font-normal text-stone-600 dark:text-stone-400">{t('marks.list_no_mark')}</span> : `${saved[r.enrollment_id]} / ${shownMax}`}</span>
                                 </li>
                             ))}
                         </ul>
@@ -215,7 +217,7 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                                         <ul className="mt-2 space-y-1">
                                             {blanks.slice(0, 8).map((r) => (
                                                 <li key={r.enrollment_id}>
-                                                    <button type="button" className="text-left font-semibold text-indigo-800 underline dark:text-indigo-300" onClick={() => goTo(roster.indexOf(r))}>{t('marks.done_go', { name: r.student_name })}</button>
+                                                    <button type="button" className="text-left font-semibold text-brand-800 underline dark:text-brand-300" onClick={() => goTo(roster.indexOf(r))}>{t('marks.done_go', { name: r.student_name })}</button>
                                                 </li>
                                             ))}
                                             {blanks.length > 8 && <li>{t('marks.done_more', { n: blanks.length - 8 })}</li>}
@@ -272,21 +274,21 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                         </div>
 
                         {view === 'focus' && current && (
-                            <Card className="border-2 border-indigo-500 dark:border-indigo-400" data-testid="current-student">
+                            <Card className="border-2 border-brand-500 dark:border-brand-400" data-testid="current-student">
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <p className="text-lg font-bold text-indigo-800 dark:text-indigo-300" data-testid="position">{t('marks.student_of', { n: index + 1, total })}</p>
-                                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="entered-progress">{t('marks.entered_progress', { entered, count: total })}</p>
+                                    <p className="text-lg font-bold text-brand-800 dark:text-brand-300" data-testid="position">{t('marks.student_of', { n: index + 1, total })}</p>
+                                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="entered-progress">{t('marks.entered_progress', { entered, count: total })}</p>
                                 </div>
-                                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={index + 1} aria-label={t('marks.student_of', { n: index + 1, total })}>
-                                    <div className="h-2 rounded-full bg-indigo-600" style={{ width: `${((index + 1) / total) * 100}%` }} />
+                                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={index + 1} aria-label={t('marks.student_of', { n: index + 1, total })}>
+                                    <div className="h-2 rounded-full bg-brand-600" style={{ width: `${((index + 1) / total) * 100}%` }} />
                                 </div>
 
-                                <h3 className="mt-5 break-words text-3xl font-bold text-gray-900 dark:text-gray-100" data-testid="student-name">{current.student_name}</h3>
-                                <p className="text-base text-gray-600 dark:text-gray-400">{current.student_id_number}</p>
+                                <h3 className="mt-5 break-words text-3xl font-bold text-stone-900 dark:text-stone-100" data-testid="student-name">{current.student_name}</h3>
+                                <p className="text-base text-stone-600 dark:text-stone-400">{current.student_id_number}</p>
 
                                 <p className="mt-3 flex flex-wrap items-center gap-2 text-base font-semibold" data-testid="saved-line">
                                     {savedValue === '' ? (
-                                        <span className="text-gray-700 dark:text-gray-300">{t('marks.no_saved_mark')}</span>
+                                        <span className="text-stone-700 dark:text-stone-300">{t('marks.no_saved_mark')}</span>
                                     ) : currentValue !== savedValue ? (
                                         <span className="text-amber-900 dark:text-amber-300">{t('marks.changed_from', { score: savedValue })}</span>
                                     ) : (
@@ -295,7 +297,7 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                                 </p>
 
                                 <form onSubmit={saveAndNext} className="mt-5">
-                                    <label htmlFor="mark-input" className="block text-lg font-semibold text-gray-900 dark:text-gray-100">{t('marks.input_label', { max: shownMax })}</label>
+                                    <label htmlFor="mark-input" className="block text-lg font-semibold text-stone-900 dark:text-stone-100">{t('marks.input_label', { max: shownMax })}</label>
                                     <div className="mt-2 flex items-center gap-3">
                                         <input
                                             id="mark-input"
@@ -307,23 +309,23 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                                             onChange={(e) => setScores((s) => ({ ...s, [current.enrollment_id]: e.target.value }))}
                                             aria-invalid={problem ? true : undefined}
                                             aria-describedby={problem ? 'mark-error' : 'mark-hint'}
-                                            className={`h-20 w-full min-w-0 rounded-2xl border-2 bg-white text-center text-4xl font-bold text-gray-900 shadow-sm focus:ring-4 dark:bg-gray-900 dark:text-gray-100 ${problem ? 'border-red-600 focus:border-red-600 focus:ring-red-200' : 'border-gray-400 focus:border-indigo-600 focus:ring-indigo-200 dark:border-gray-500'}`}
+                                            className={`h-20 w-full min-w-0 rounded-2xl border-2 bg-white text-center text-4xl font-bold text-stone-900 shadow-sm focus:ring-4 dark:bg-stone-900 dark:text-stone-100 ${problem ? 'border-red-600 focus:border-red-600 focus:ring-red-200' : 'border-stone-400 focus:border-brand-600 focus:ring-brand-200 dark:border-stone-500'}`}
                                         />
-                                        <span className="whitespace-nowrap text-2xl font-semibold text-gray-600 dark:text-gray-300">/ {shownMax}</span>
+                                        <span className="whitespace-nowrap text-2xl font-semibold text-stone-600 dark:text-stone-300">/ {shownMax}</span>
                                     </div>
                                     {problem ? (
                                         <p id="mark-error" role="alert" className="mt-2 flex items-center gap-1.5 text-base font-semibold text-red-700 dark:text-red-300"><ExclamationTriangleIcon className="h-5 w-5" aria-hidden="true" />{problemText(current)}</p>
                                     ) : (
-                                        <p id="mark-hint" className="mt-2 text-base text-gray-600 dark:text-gray-400">{t('marks.input_hint')}</p>
+                                        <p id="mark-hint" className="mt-2 text-base text-stone-600 dark:text-stone-400">{t('marks.input_hint')}</p>
                                     )}
 
-                                    <div className="sticky bottom-0 z-10 -mx-5 mt-5 border-t-2 border-gray-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-800/95 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+                                    <div className="sticky bottom-0 z-10 -mx-5 mt-5 border-t-2 border-stone-200 bg-white/95 px-5 py-3 backdrop-blur dark:border-stone-700 dark:bg-stone-800/95 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
                                         <Button key={isLast ? 'finish' : 'next'} type="submit" fullWidth busy={saving} disabled={blocked} className="!min-h-[64px] text-xl">
                                             {isLast ? t('marks.btn_save_finish') : t('marks.btn_save_next')}
                                         </Button>
                                     </div>
-                                    {blocked && why && <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300" role="status">{why}</p>}
-                                    {!isLast && next && !blocked && <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400" data-testid="next-up">{t('marks.next_up', { name: next.student_name })}</p>}
+                                    {blocked && why && <p className="mt-2 text-sm font-medium text-stone-700 dark:text-stone-300" role="status">{why}</p>}
+                                    {!isLast && next && !blocked && <p className="mt-2 text-center text-sm text-stone-600 dark:text-stone-400" data-testid="next-up">{t('marks.next_up', { name: next.student_name })}</p>}
                                 </form>
 
                                 <div className="mt-5 grid grid-cols-2 gap-3">
@@ -336,21 +338,21 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
 
                         {view === 'list' && (
                             <Card>
-                                <p className="text-lg font-bold text-gray-900 dark:text-gray-100" data-testid="entered-progress">{t('marks.entered_progress', { entered, count: total })}</p>
-                                <ul className="mt-4 divide-y divide-gray-200 dark:divide-gray-700" data-testid="student-list">
+                                <p className="text-lg font-bold text-stone-900 dark:text-stone-100" data-testid="entered-progress">{t('marks.entered_progress', { entered, count: total })}</p>
+                                <ul className="mt-4 divide-y divide-stone-200 dark:divide-stone-700" data-testid="student-list">
                                     {roster.map((r, i) => {
                                         const v = valueOf(r);
                                         const p = problemOf(r);
                                         const state = p ? 'invalid' : isChanged(r) ? 'unsaved' : v === '' ? 'blank' : 'saved';
                                         return (
                                             <li key={r.enrollment_id}>
-                                                <button type="button" data-state={state} aria-label={t('marks.list_open', { name: r.student_name })} onClick={() => goTo(i)} className="flex min-h-[64px] w-full items-center justify-between gap-3 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                                                <button type="button" data-state={state} aria-label={t('marks.list_open', { name: r.student_name })} onClick={() => goTo(i)} className="flex min-h-[64px] w-full items-center justify-between gap-3 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
                                                     <span className="min-w-0">
-                                                        <span className="block text-lg font-semibold text-gray-900 dark:text-gray-100">{r.student_name}</span>
-                                                        <span className="block text-sm text-gray-600 dark:text-gray-400">{r.student_id_number}</span>
+                                                        <span className="block text-lg font-semibold text-stone-900 dark:text-stone-100">{r.student_name}</span>
+                                                        <span className="block text-sm text-stone-600 dark:text-stone-400">{r.student_id_number}</span>
                                                     </span>
                                                     <span className="text-right">
-                                                        <span className="block text-xl font-bold text-gray-900 dark:text-gray-100">{v === '' ? <span className="text-base font-medium text-gray-600 dark:text-gray-400">{t('marks.list_no_mark')}</span> : `${v} / ${shownMax}`}</span>
+                                                        <span className="block text-xl font-bold text-stone-900 dark:text-stone-100">{v === '' ? <span className="text-base font-medium text-stone-600 dark:text-stone-400">{t('marks.list_no_mark')}</span> : `${v} / ${shownMax}`}</span>
                                                         {state === 'unsaved' && <span className="block text-sm font-semibold text-amber-900 dark:text-amber-300">{t('marks.list_unsaved')}</span>}
                                                         {state === 'invalid' && <span className="block text-sm font-semibold text-red-700 dark:text-red-300">{problemText(r)}</span>}
                                                         {state === 'saved' && <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 dark:text-emerald-300"><CheckCircleIcon className="h-4 w-4" aria-hidden="true" />{t('marks.list_saved')}</span>}
@@ -362,7 +364,7 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                                 </ul>
                                 <div className="mt-5 space-y-3">
                                     <Button fullWidth variant={dirty ? 'primary' : 'secondary'} busy={saving} disabled={blocked || !dirty} onClick={saveAll}>{t('marks.btn_save_only')}</Button>
-                                    {blocked && why && <p className="text-sm font-medium text-gray-700 dark:text-gray-300" role="status">{why}</p>}
+                                    {blocked && why && <p className="text-sm font-medium text-stone-700 dark:text-stone-300" role="status">{why}</p>}
                                 </div>
                             </Card>
                         )}
@@ -370,9 +372,8 @@ export default function Enter({ batch, exam, section, subject, roster, missing_m
                         {maxControl}
 
                         <Card>
-                            <p className="mb-3 text-base text-gray-700 dark:text-gray-300">{t('marks.submit_intro')}</p>
                             <Button fullWidth variant="secondary" onClick={submit} disabled={blocked || entered === 0}>{t('marks.btn_submit')}</Button>
-                            {entered === 0 && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('marks.why_submit_none')}</p>}
+                            {entered === 0 && <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">{t('marks.why_submit_none')}</p>}
                         </Card>
                     </>
                 )}

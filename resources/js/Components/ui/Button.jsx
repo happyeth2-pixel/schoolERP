@@ -16,12 +16,12 @@ import { FOCUS } from './tokens';
 //            md = 44px (dense staff tables where a 56px button would not fit)
 
 const VARIANTS = {
-    primary: 'border-transparent bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800',
+    primary: 'border-transparent bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900',
     secondary:
-        'border-gray-400 bg-white text-gray-900 hover:bg-gray-50 active:bg-gray-100 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700',
-    danger: 'border-transparent bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
+        'border-stone-300 bg-white text-stone-900 hover:bg-stone-50 active:bg-stone-100 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700',
+    danger: 'border-transparent bg-red-700 text-white hover:bg-red-800 active:bg-red-900',
     success: 'border-transparent bg-emerald-700 text-white hover:bg-emerald-800 active:bg-emerald-900', // 700, not 600: white on 600 is only 3.8:1
-    quiet: 'border-transparent bg-transparent text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-900/30',
+    quiet: 'border-transparent bg-transparent text-brand-700 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/30',
 };
 
 const SIZES = {
@@ -66,7 +66,7 @@ export default function Button({
             {...(isNativeButton ? { type, disabled: inactive } : {})}
             aria-busy={busy || undefined}
             aria-disabled={!isNativeButton && inactive ? true : undefined}
-            className={`inline-flex items-center justify-center gap-2 rounded-xl border-2 font-semibold transition ${FOCUS} ${SIZES[size]} ${VARIANTS[variant]} ${
+            className={`inline-flex items-center justify-center gap-2 rounded-lg border-2 font-semibold tracking-[-0.01em] transition ${FOCUS} ${SIZES[size]} ${VARIANTS[variant]} ${
                 fullWidth ? 'w-full' : ''
             } ${inactive ? 'cursor-not-allowed opacity-50' : ''} ${className}`}
         >
@@ -92,7 +92,7 @@ export function IconButton({ icon: Icon, label, badge, className = '', ...props 
             aria-label={label}
             title={label}
             {...props}
-            className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 md:h-10 md:w-10 ${FOCUS} ${className}`}
+            className={`relative inline-flex h-12 w-12 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 md:h-10 md:w-10 ${FOCUS} ${className}`}
         >
             <Icon className="h-6 w-6" aria-hidden="true" />
             {badge ? (

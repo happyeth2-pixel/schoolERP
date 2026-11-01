@@ -82,6 +82,9 @@ class DashboardController extends Controller
 
         $marked = $todayRecords->count();
         $present = $todayRecords->whereIn('status', ['present', 'late'])->count();
+        // Purely additive: a status-by-status count for the dashboard's attendance chart, alongside the
+        // existing single present/absent rate -- never changes what today_attendance_rate itself means.
+        $attendanceByStatus = $todayRecords->countBy('status');
 
         // Money figures follow the same permissions as the finance screens (a front-desk registrar, who holds
         // none of them, used to be sent every fee figure and the pending-payment count regardless), so they are
@@ -94,6 +97,13 @@ class DashboardController extends Controller
             'total_teachers' => $teachersQuery->count(),
             'today_attendance_rate' => $marked > 0 ? round($present / $marked * 100, 1) : null,
             'today_marked' => $marked,
+            'today_attendance_breakdown' => $marked > 0 ? [
+                'present' => $attendanceByStatus->get('present', 0),
+                'late' => $attendanceByStatus->get('late', 0),
+                'absent' => $attendanceByStatus->get('absent', 0),
+                'excused' => $attendanceByStatus->get('excused', 0),
+                'sick' => $attendanceByStatus->get('sick', 0),
+            ] : null,
             'fee_collection_rate' => $money['collection_rate'] ?? null,
             'fees_total' => $money['due'] ?? null,
             'fees_paid' => $money['collected'] ?? null,
@@ -106,6 +116,80 @@ class DashboardController extends Controller
             'procurement' => $this->procurementStats($user),
             'assets' => $this->assetStats($user),
             'hr' => $this->hrStats($user),
+            'medical' => $this->medicalStats($user),
+            'demographics' => $this->studentDemographics($user),
+        ];
+    }
+
+    /** Gender split, grade split (current enrollment), and a male/female headcount per academic year
+     * (every year on record, not just the current one) -- all in this person's scope, the same scope
+     * total_students already uses. Not owner-only: both orgStats() (owner, branch_admin, auditor) and
+     * accountantStats() below send this. */
+    private function studentDemographics(User $user): array
+    {
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+
+        $query = Student::where('school_id', $user->school_id)->enrolled();
+        if (! $user->isOrgWide()) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $students = $query->with('currentEnrollment.section.grade')->get(['id', 'branch_id', 'gender', 'date_of_birth']);
+
+        $byGender = $students->countBy('gender');
+        $byGrade = $students
+            ->groupBy(fn (Student $s) => $s->currentEnrollment?->section?->grade?->name)
+            ->filter(fn ($_, $grade) => $grade !== null)
+            ->map->count();
+
+        return [
+            'total' => $students->count(),
+            'by_gender' => ['male' => $byGender->get('male', 0), 'female' => $byGender->get('female', 0)],
+            'by_grade' => $byGrade->map(fn ($count, $grade) => ['grade' => $grade, 'count' => $count])->values(),
+            'by_year_gender' => $this->genderCountsByYear($user->school_id, $branchIds),
+        ];
+    }
+
+    /** One row per academic year on record (oldest first): how many male/female students had an
+     * enrollment into a section of that year, in branch scope. A student who changed section mid-year
+     * is counted once (distinct student per year), never once per enrollment row. */
+    private function genderCountsByYear(int $schoolId, $branchIds): array
+    {
+        $years = \App\Models\AcademicYear::where('school_id', $schoolId)->orderBy('start_date')->get();
+
+        return $years->map(function (\App\Models\AcademicYear $year) use ($branchIds) {
+            $sectionIds = Section::where('academic_year_id', $year->id)->whereIn('branch_id', $branchIds)->pluck('id');
+
+            $genders = \App\Models\Enrollment::whereIn('section_id', $sectionIds)
+                ->with('student:id,gender')
+                ->get()
+                ->unique('student_id')
+                ->pluck('student.gender');
+
+            return [
+                'year' => $year->name,
+                'male' => $genders->filter(fn ($g) => $g === 'male')->count(),
+                'female' => $genders->filter(fn ($g) => $g === 'female')->count(),
+            ];
+        })->values()->all();
+    }
+
+    /** null = this person has no medical-records access at all. Counts only -- never the actual medical
+     * content, the same privacy discipline StudentMedicalRecordController keeps everywhere. Checked the same
+     * precise way that controller's own canView() does -- view OR manage OR auditor -- since
+     * canViewOrManage() alone would wrongly exclude someone who only holds the manage permission. */
+    private function medicalStats(User $user): ?array
+    {
+        if (! $user->can('medical-records-view') && ! $user->can('medical-records-manage') && ! $user->hasRole('auditor')) {
+            return null;
+        }
+
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+        $studentsQuery = Student::whereIn('branch_id', $branchIds)->enrolled();
+
+        return [
+            'total_enrolled' => (clone $studentsQuery)->count(),
+            'on_file' => (clone $studentsQuery)->whereHas('medicalRecord')->count(),
         ];
     }
 
@@ -289,6 +373,7 @@ class DashboardController extends Controller
             'pending_payments_count' => $this->pendingPaymentsCount($user),
             'inventory' => $this->inventoryStats($user),
             'requisitions' => $this->requisitionStats($user),
+            'demographics' => $this->studentDemographics($user),
         ];
     }
 

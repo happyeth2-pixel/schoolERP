@@ -25,13 +25,20 @@ Route::middleware('guest')->group(function () {
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Previously had no rate limit of any kind (a real gap: unlike the sign-in form itself --
+    // App\Security\LoginThrottle -- this endpoint sends an email/notification and can be aimed at a
+    // different address on every single request, so nothing here stopped either a mail-flooding run or
+    // using the response to enumerate which addresses have an account). IP-keyed, since this always
+    // happens before anyone is signed in. See config/rate_limits.php ("password_reset").
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:password_reset')
         ->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:password_reset')
         ->name('password.store');
 });
 

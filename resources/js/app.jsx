@@ -23,16 +23,16 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 /** Shown instead of a blank white screen if a page genuinely crashes; Sentry.ErrorBoundary reports the error and renders this. */
 function CrashFallback() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
+        <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4 dark:bg-stone-900">
             <div className="max-w-sm text-center">
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Something went wrong.</p>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">Something went wrong.</p>
+                <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
                     This has been reported. Reloading the page usually fixes it.
                 </p>
                 <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+                    className="mt-4 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500"
                 >
                     Reload
                 </button>

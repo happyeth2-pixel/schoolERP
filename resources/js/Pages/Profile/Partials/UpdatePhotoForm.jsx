@@ -1,49 +1,37 @@
-import InputError from '@/Components/InputError';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { useForm, usePage } from '@inertiajs/react';
+import StudentPhotoField from '@/Components/StudentPhotoField';
+import { router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function UpdatePhotoForm({ className = '' }) {
     const { t } = useTranslation();
     const user = usePage().props.auth.user;
-    const { data, setData, post, processing, errors, reset } = useForm({ photo: null });
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
 
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('profile.photo'), {
+    const upload = (file) => {
+        setError(null);
+        router.post(route('profile.photo'), { photo: file }, {
             forceFormData: true,
-            onSuccess: () => reset(),
+            preserveScroll: true,
+            onStart: () => setBusy(true),
+            onError: (errs) => setError(errs.photo ?? t('photo.err_unreadable')),
+            onFinish: () => setBusy(false),
         });
     };
 
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('profile.photo_title')}</h2>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">{t('profile.photo_title')}</h2>
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                     {t('profile.photo_desc')}
                 </p>
             </header>
 
-            <form onSubmit={submit} className="mt-4 flex items-center gap-4">
-                {user.profile_photo_url ? (
-                    <img src={user.profile_photo_url} alt="" className="h-16 w-16 rounded-full object-cover" />
-                ) : (
-                    <UserCircleIcon className="h-16 w-16 text-gray-300 dark:text-gray-600" />
-                )}
-                <div>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setData('photo', e.target.files[0])}
-                        className="block text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm dark:text-gray-300 dark:file:bg-gray-700 dark:file:text-gray-200"
-                    />
-                    <InputError message={errors.photo} className="mt-1" />
-                    <button type="submit" disabled={!data.photo || processing} className="mt-2 text-sm text-indigo-600 hover:underline disabled:opacity-50 dark:text-indigo-400">
-                        {t('profile.upload_button')}
-                    </button>
-                </div>
-            </form>
+            <div className="mt-4">
+                <StudentPhotoField currentUrl={user.profile_photo_url} onUse={upload} error={error} busy={busy} />
+            </div>
         </section>
     );
 }

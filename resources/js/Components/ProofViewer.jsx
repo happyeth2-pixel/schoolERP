@@ -19,10 +19,10 @@ export default function ProofViewer({ url, kind }) {
 
     if (kind === 'pdf') {
         return (
-            <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center dark:border-gray-600" data-testid="proof-pdf">
-                <DocumentTextIcon className="h-16 w-16 text-gray-500" aria-hidden="true" />
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('verify.proof_pdf_title')}</p>
-                <p className="text-base text-gray-700 dark:text-gray-300">{t('verify.proof_pdf_body')}</p>
+            <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-stone-300 p-8 text-center dark:border-stone-600" data-testid="proof-pdf">
+                <DocumentTextIcon className="h-16 w-16 text-stone-500" aria-hidden="true" />
+                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('verify.proof_pdf_title')}</p>
+                <p className="text-base text-stone-700 dark:text-stone-300">{t('verify.proof_pdf_body')}</p>
                 <Button as="a" href={url} target="_blank" rel="noreferrer" icon={ArrowTopRightOnSquareIcon}>{t('verify.proof_open_pdf')}</Button>
             </div>
         );
@@ -30,7 +30,7 @@ export default function ProofViewer({ url, kind }) {
 
     return (
         <div data-testid="proof-image">
-            <div className="flex min-h-[18rem] items-center justify-center overflow-auto rounded-xl border-2 border-gray-300 bg-gray-100 p-2 dark:border-gray-600 dark:bg-gray-900" style={{ maxHeight: '75vh' }}>
+            <div className="flex min-h-[18rem] items-center justify-center overflow-auto rounded-xl border-2 border-stone-300 bg-stone-100 p-2 dark:border-stone-600 dark:bg-stone-900" style={{ maxHeight: '75vh' }}>
                 <img
                     src={url}
                     alt={t('verify.proof_alt')}

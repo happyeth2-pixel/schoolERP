@@ -15,8 +15,8 @@ use App\Models\OptionalService;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\User;
-use App\Services\AccountOnboarding;
 use App\Support\SchoolCalendar;
+use App\Support\TemporaryPassword;
 use App\Http\Controllers\Concerns\PaginatesLists;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -24,11 +24,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use App\Rules\EthiopianMobileRule;
 use App\Rules\PhoneNumberRule;
+use App\Rules\UniqueAccountPhone;
 use App\Support\PhoneNumber;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -128,6 +130,7 @@ class StudentController extends Controller
             'id' => $s->id,
             'student_id_number' => $s->student_id_number,
             'name' => $s->fullName(),
+            'photo_url' => $s->photo_path ? Storage::disk('public')->url($s->photo_path) : null,
             'gender' => $s->gender,
             'age' => $s->age(),
             'status' => $s->status,
@@ -240,8 +243,14 @@ class StudentController extends Controller
             $sectionsQuery->where('branch_id', $user->branch_id);
         }
 
+        $branchesQuery = $user->school->branches();
+        if (! $user->isOrgWide()) {
+            $branchesQuery->whereKey($user->branch_id);
+        }
+
         return Inertia::render('Students/Create', [
             'guardianRelationships' => Student::GUARDIAN_RELATIONSHIPS,
+            'branches' => $branchesQuery->get(['id', 'name'])->all(),
             'sections' => SectionRecommendation::annotate($sectionsQuery->get()->map(fn (Section $s) => [
                 'id' => $s->id,
                 'label' => "{$s->grade->name} {$s->name}",
@@ -286,40 +295,61 @@ class StudentController extends Controller
         $request->user()->can('manage-students') || abort(403);
         $user = $request->user();
 
+        $this->ageToDateOfBirth($request);
+
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'grandfather_name' => ['nullable', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female'],
+            'age' => $this->ageRules(),
             'date_of_birth' => $this->dateOfBirthRules(),
             'address' => ['nullable', 'string', 'max:255'],
-            'emergency_contact' => ['nullable', 'string', 'max:50', new PhoneNumberRule],
+            'kebele' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            // Not required by default -- but with no guardian being linked (guardian_mode:none), this is the
+            // only contact the school will have for this child, so it stops being optional.
+            'emergency_contact' => ['required_if:guardian_mode,none', 'nullable', 'string', 'max:50', new PhoneNumberRule],
             'previous_school' => ['nullable', 'string', 'max:255'],
             'enrollment_date' => ['required', 'date', 'after_or_equal:date_of_birth'],
-            'section_id' => ['required', 'integer'],
+            // A class can be decided later (e.g. after a placement assessment): give a section now, or just a
+            // branch and place them in a section afterward (see transfer()). Never both missing.
+            'section_id' => ['nullable', 'integer', 'required_without:branch_id'],
+            'branch_id' => ['nullable', 'integer', 'required_without:section_id'],
             'override_capacity' => ['nullable', 'boolean'],
             'override_reason' => ['nullable', 'string', 'max:500'],
             'guardian_mode' => ['required', 'in:existing,new,none'],
-            'guardian_email' => ['required_if:guardian_mode,existing,new', 'nullable', 'email'],
+            'guardian_phone' => [
+                'required_if:guardian_mode,existing,new', 'nullable', 'string', 'max:50', new EthiopianMobileRule,
+                Rule::when($request->input('guardian_mode') === 'new', [new UniqueAccountPhone]),
+            ],
             'guardian_name' => ['required_if:guardian_mode,new', 'nullable', 'string', 'max:255'],
-            'guardian_phone' => ['nullable', 'string', 'max:50', new PhoneNumberRule],
             'guardian_relationship' => ['required_if:guardian_mode,existing,new', 'nullable', Rule::in(array_keys(Student::GUARDIAN_RELATIONSHIPS))],
             'service_ids' => ['nullable', 'array', 'max:20'],
             'service_ids.*' => ['integer', 'distinct'],
             'photo' => ['nullable', 'file', 'max:2048', new SafeUploadRule(['jpg', 'png'])],
         ]);
 
-        $section = Section::whereKey($validated['section_id'])->firstOrFail();
+        // A class can be decided later: $section stays null and $branchId is taken straight from the form
+        // instead of derived from a section. Everything below that only makes sense for an enrolled student
+        // (capacity, services) is simply skipped; the student is placed afterward via transfer(), which
+        // already tolerates "no current enrollment yet" (a student freshly registered this way looks no
+        // different, structurally, from one who was withdrawn and is being placed again).
+        $section = isset($validated['section_id'])
+            ? Section::whereKey($validated['section_id'])->firstOrFail()
+            : null;
+        $branchId = $section->branch_id ?? $validated['branch_id'];
         $branchIds = $user->school->branches()->pluck('id');
-        abort_unless($branchIds->contains($section->branch_id), 403);
+        abort_unless($branchIds->contains($branchId), 403);
         if (! $user->isOrgWide()) {
-            abort_unless($section->branch_id === $user->branch_id, 403);
+            abort_unless($branchId === $user->branch_id, 403);
         }
 
         // Opt-in services chosen at registration: same permission, branch and one-transport rules as on the profile.
+        // Only possible once a class is actually chosen (services are section/branch-specific).
         $services = collect();
-        if (! empty($validated['service_ids'])) {
+        if ($section && ! empty($validated['service_ids'])) {
             $user->can('manage-invoices') || abort(403);
             $services = OptionalService::whereIn('id', $validated['service_ids'])
                 ->where('branch_id', $section->branch_id)
@@ -333,13 +363,15 @@ class StudentController extends Controller
             }
         }
 
-        $student = DB::transaction(function () use ($validated, $section, $user, $services) {
-            // a seat must be free (or knowingly overridden) BEFORE the student is created
-            SectionCapacity::claim($section, 1, $user, (bool) ($validated['override_capacity'] ?? false), $validated['override_reason'] ?? null);
+        $student = DB::transaction(function () use ($validated, $section, $branchId, $user, $services) {
+            // a seat must be free (or auto-placed over it) BEFORE the student is created -- only when a class was actually chosen
+            if ($section) {
+                SectionCapacity::claim($section, 1, $user, (bool) ($validated['override_capacity'] ?? false), $validated['override_reason'] ?? null);
+            }
 
             $student = Student::create([
                 'school_id' => $user->school_id,
-                'branch_id' => $section->branch_id,
+                'branch_id' => $branchId,
                 'student_id_number' => $this->nextStudentIdNumber($user->school_id, $validated['enrollment_date']),
                 'first_name' => $validated['first_name'],
                 'father_name' => $validated['father_name'] ?? null,
@@ -348,6 +380,8 @@ class StudentController extends Controller
                 'gender' => $validated['gender'],
                 'date_of_birth' => $validated['date_of_birth'] ?? null,
                 'address' => $validated['address'] ?? null,
+                'kebele' => $validated['kebele'] ?? null,
+                'city' => $validated['city'] ?? null,
                 'emergency_contact' => $validated['emergency_contact'] ?? null,
                 'previous_school' => $validated['previous_school'] ?? null,
                 'enrollment_date' => $validated['enrollment_date'],
@@ -355,12 +389,14 @@ class StudentController extends Controller
                 'id_card_token' => Student::newCardToken(),
             ]);
 
-            Enrollment::create([
-                'student_id' => $student->id,
-                'section_id' => $section->id,
-                'enrolled_on' => $validated['enrollment_date'],
-                'status' => 'active',
-            ]);
+            if ($section) {
+                Enrollment::create([
+                    'student_id' => $student->id,
+                    'section_id' => $section->id,
+                    'enrolled_on' => $validated['enrollment_date'],
+                    'status' => 'active',
+                ]);
+            }
 
             if ($validated['guardian_mode'] !== 'none') {
                 $guardian = $this->resolveGuardian($user, $validated);
@@ -437,9 +473,10 @@ class StudentController extends Controller
                 'grandfather_name' => $student->grandfather_name,
                 'mother_name' => $student->mother_name,
                 'gender' => $student->gender,
-                'date_of_birth' => $student->date_of_birth?->format('Y-m-d'),
                 'age' => $student->age(),
                 'address' => $student->address,
+                'kebele' => $student->kebele,
+                'city' => $student->city,
                 'emergency_contact' => PhoneNumber::display($student->emergency_contact),
                 'previous_school' => $student->previous_school,
                 'status' => $student->status,
@@ -470,6 +507,8 @@ class StudentController extends Controller
             'canViewMedical' => $user->can('medical-records-view') || $user->can('medical-records-manage') || $user->hasRole('auditor'),
             // Capability flag only -- never the incident content itself. See DisciplineIncidentController.
             'canViewDiscipline' => $user->can('discipline-view') || $user->can('discipline-manage') || $user->hasRole('auditor'),
+            // Capability flag only -- never the message content itself. See ParentMessageController.
+            'canMessage' => Gate::forUser($user)->allows('viewMessages', $student),
         ]);
     }
 
@@ -571,14 +610,19 @@ class StudentController extends Controller
         $request->user()->can('manage-students') || abort(403);
         $this->assertInScope($request->user(), $student);
 
+        $this->ageToDateOfBirth($request);
+
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'grandfather_name' => ['nullable', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female'],
+            'age' => $this->ageRules(),
             'date_of_birth' => $this->dateOfBirthRules(),
             'address' => ['nullable', 'string', 'max:255'],
+            'kebele' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
             'emergency_contact' => ['nullable', 'string', 'max:50', new PhoneNumberRule],
             'previous_school' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,transferred,graduated,withdrawn,suspended,expelled,inactive'],
@@ -667,16 +711,18 @@ class StudentController extends Controller
 
         $validated = $request->validate([
             'guardian_mode' => ['required', 'in:existing,new'],
-            'guardian_email' => ['required', 'email'],
+            'guardian_phone' => [
+                'required', 'string', 'max:50', new EthiopianMobileRule,
+                Rule::when($request->input('guardian_mode') === 'new', [new UniqueAccountPhone]),
+            ],
             'guardian_name' => ['required_if:guardian_mode,new', 'nullable', 'string', 'max:255'],
-            'guardian_phone' => ['nullable', 'string', 'max:50', new PhoneNumberRule],
             'guardian_relationship' => ['required', Rule::in(array_keys(Student::GUARDIAN_RELATIONSHIPS))],
         ]);
 
         $guardian = $this->resolveGuardian($request->user(), $validated);
 
         if ($student->guardians()->where('parent_id', $guardian->id)->exists()) {
-            return back()->withErrors(['guardian_email' => 'This guardian is already linked to this student.']);
+            return back()->withErrors(['guardian_phone' => 'This guardian is already linked to this student.']);
         }
 
         $student->guardians()->attach($guardian->id, ['relationship' => $validated['guardian_relationship']]);
@@ -696,50 +742,47 @@ class StudentController extends Controller
         return back()->with('success', 'Guardian unlinked.');
     }
 
+    /**
+     * A guardian account signs in the same way a parent account created from the Parents page does: phone number,
+     * no email required. "existing" finds an already-registered parent by phone; "new" creates one on the spot with
+     * a system-generated temporary password, handed to the registrar once (TemporaryPassword::handOver) exactly like
+     * ParentController::store() -- there is only ever one way a guardian account is born, whichever screen started it.
+     */
     private function resolveGuardian($actor, array $data): User
     {
+        $canonical = PhoneNumber::normalizeMobile($data['guardian_phone']);
+
         if ($data['guardian_mode'] === 'existing') {
             $guardian = User::where('school_id', $actor->school_id)
-                ->where('email', $data['guardian_email'])
+                ->where('login_phone', $canonical)
                 ->whereHas('roles', fn ($q) => $q->where('name', 'parent'))
                 ->first();
 
-            abort_unless($guardian, 422, 'No parent account found with that email.');
+            abort_unless($guardian, 422, 'No parent account found with that phone number.');
 
             return $guardian;
         }
 
-        $guardian = User::firstOrCreate(
-            ['email' => $data['guardian_email']],
-            [
+        $temporary = TemporaryPassword::make();
+
+        try {
+            $guardian = User::create([
                 'school_id' => $actor->school_id,
                 'branch_id' => null,
                 'name' => $data['guardian_name'],
-                'phone' => $data['guardian_phone'] ?? null,
-                'password' => Hash::make(str()->random(24)),
+                'phone' => $canonical,
+                'login_phone' => $canonical,
+                'password' => $temporary,
+                'must_change_password' => true,
                 'status' => 'active',
-                'email_verified_at' => now(),
-            ]
-        );
-
-        if (! $guardian->hasRole('parent')) {
-            $guardian->assignTier('parent');
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            throw ValidationException::withMessages(['guardian_phone' => 'This phone number already belongs to another account. Check the number, or link the existing parent instead.']);
         }
 
-        // Families do share a number (so it is not unique), but the registrar should
-        // know when a "new" guardian's phone already belongs to somebody else.
-        if ($guardian->wasRecentlyCreated && $guardian->phone) {
-            $other = User::where('school_id', $actor->school_id)->where('phone', $guardian->phone)->where('id', '!=', $guardian->id)->first();
-            if ($other) {
-                session()->flash('warning', "The phone number {$other->phone} is already used by {$other->name} ({$other->email}). If this is the same person, link the existing parent instead of creating a second account.");
-            }
-        }
+        $guardian->assignTier('parent');
 
-        // A brand-new guardian account gets a "set your password" link instead of a
-        // password nobody knows; the registrar sees the link once to hand over.
-        if ($guardian->wasRecentlyCreated) {
-            AccountOnboarding::invite($guardian, $actor);
-        }
+        TemporaryPassword::handOver($guardian, $temporary, []);
 
         return $guardian;
     }
@@ -748,6 +791,28 @@ class StudentController extends Controller
     private function dateOfBirthRules(): array
     {
         return ['nullable', 'date', 'before_or_equal:'.SchoolCalendar::today()->toDateString(), 'after:'.SchoolCalendar::today()->subYears(40)->toDateString()];
+    }
+
+    private function ageRules(): array
+    {
+        return ['nullable', 'integer', 'min:0', 'max:40'];
+    }
+
+    /**
+     * Registration/edit ask for an age in whole years, not an exact birthdate -- most staff and parents
+     * know a child's age, not their precise date of birth. Converted to an approximate `date_of_birth`
+     * (today minus N years) and merged into the request BEFORE validation runs, so every existing rule
+     * that already depends on `date_of_birth` (this method's own range check, `enrollment_date`'s
+     * `after_or_equal:date_of_birth`, and every live age calculation via `Student::ageOn()`) keeps working
+     * completely unchanged against a real date -- nothing downstream needs to know age was typed instead
+     * of a birthdate. The exact day/month is therefore never exact, only the whole-year age is -- the same
+     * thing `Student::ageOn()`'s own docblock already says is the only value anything in this app relies on.
+     */
+    private function ageToDateOfBirth(Request $request): void
+    {
+        if ($request->filled('age')) {
+            $request->merge(['date_of_birth' => SchoolCalendar::today()->subYears((int) $request->input('age'))->toDateString()]);
+        }
     }
 
     private function assertInScope($user, Student $student): void

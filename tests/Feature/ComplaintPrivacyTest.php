@@ -105,4 +105,47 @@ class ComplaintPrivacyTest extends TestCase
         $c = $this->show($other);
         $this->assertTrue($c['student']['restricted'], 'the child is in branch A; this account manages students in branch B');
     }
+
+    // ------------------------------------------------------------------ actually filing one (store())
+
+    /** A parent account is never branch-scoped itself (branch_id is always null) -- the complaint's branch
+     * must come from the student it names instead, or filing it crashes on complaints.branch_id NOT NULL. */
+    public function test_filing_a_complaint_about_a_child_derives_the_branch_from_the_child(): void
+    {
+        $parent = $this->makeParent($this->studentA);
+        $this->assertNull($parent->branch_id);
+
+        $this->actingAs($parent)->post('/complaints', ['student_id' => $this->studentA->id, 'subject' => 'Lunch quality', 'body' => 'Too salty most days.'])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/complaints');
+
+        $complaint = Complaint::where('submitted_by', $parent->id)->firstOrFail();
+        $this->assertSame($this->branchA->id, $complaint->branch_id);
+    }
+
+    /** With no student named, the branch falls back to the parent's own linked children. */
+    public function test_filing_a_general_complaint_derives_the_branch_from_the_parents_children(): void
+    {
+        $parent = $this->makeParent($this->studentA);
+
+        $this->actingAs($parent)->post('/complaints', ['subject' => 'Website', 'body' => 'The parent portal is slow to load.'])
+            ->assertSessionHasNoErrors();
+
+        $complaint = Complaint::where('submitted_by', $parent->id)->firstOrFail();
+        $this->assertSame($this->branchA->id, $complaint->branch_id);
+        $this->assertNull($complaint->student_id);
+    }
+
+    /** A parent with no children linked at all and no student named has genuinely no branch to give it --
+     * it's still accepted (never a 500) and simply has no branch, visible to the owner (recipientsFor()). */
+    public function test_a_parent_with_no_children_can_still_file_a_general_complaint(): void
+    {
+        $lonelyParent = $this->makeUser('parent', null);
+
+        $this->actingAs($lonelyParent)->post('/complaints', ['subject' => 'Billing', 'body' => 'Could not reach anyone by phone.'])
+            ->assertSessionHasNoErrors();
+
+        $complaint = Complaint::where('submitted_by', $lonelyParent->id)->firstOrFail();
+        $this->assertNull($complaint->branch_id);
+    }
 }

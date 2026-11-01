@@ -1,5 +1,5 @@
 import { ChildSwitcher } from '@/Components/ParentParts';
-import { Card, EmptyState, Page } from '@/Components/ui';
+import { BackLink, Card, EmptyState, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarDaysIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
@@ -18,8 +18,8 @@ export default function Timetable({ children, student, termName, slots }) {
     const cellsFor = (periodLabel, day) => slots.filter((s) => s.period_label === periodLabel && s.day_of_week === day);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
-            <Page title={title} description={termName ? t('timetable.my_desc_x', { term: termName }) : t('timetable.my_desc_no_term')} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
+            <Page title={title} width="default" back={<BackLink big href={route('dashboard')}>{t('parent.back_home')}</BackLink>}>
                 {children.length === 0 && (
                     <Card><EmptyState icon={UserGroupIcon} title={t('parent.no_child_title')}>{t('parent.no_child_body')}</EmptyState></Card>
                 )}
@@ -35,22 +35,22 @@ export default function Timetable({ children, student, termName, slots }) {
                                 <table className="w-full border-collapse text-left text-sm" data-testid="family-timetable-grid">
                                     <thead>
                                         <tr>
-                                            <th className="border border-gray-200 p-2 dark:border-gray-700" />
+                                            <th className="border border-stone-200 p-2 dark:border-stone-700" />
                                             {DAYS.map((d) => (
-                                                <th key={d} className="border border-gray-200 p-2 text-gray-700 dark:border-gray-700 dark:text-gray-300">{t(`timetable.day_${d}`)}</th>
+                                                <th key={d} className="border border-stone-200 p-2 text-stone-700 dark:border-stone-700 dark:text-stone-300">{t(`timetable.day_${d}`)}</th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {periodLabels.map((label) => (
                                             <tr key={label}>
-                                                <td className="border border-gray-200 p-2 font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">{label}</td>
+                                                <td className="border border-stone-200 p-2 font-medium text-stone-700 dark:border-stone-700 dark:text-stone-300">{label}</td>
                                                 {DAYS.map((d) => (
-                                                    <td key={d} className="border border-gray-200 p-2 align-top dark:border-gray-700" data-testid="family-timetable-cell">
+                                                    <td key={d} className="border border-stone-200 p-2 align-top dark:border-stone-700" data-testid="family-timetable-cell">
                                                         {cellsFor(label, d).map((cell) => (
                                                             <div key={cell.id} data-testid="family-timetable-slot" className="mb-2 last:mb-0">
-                                                                <p className="font-semibold text-gray-900 dark:text-gray-100">{cell.subject}</p>
-                                                                <p className="text-xs text-gray-600 dark:text-gray-400">{cell.teacher} &middot; {cell.room ?? t('timetable.no_room')}</p>
+                                                                <p className="font-semibold text-stone-900 dark:text-stone-100">{cell.subject}</p>
+                                                                <p className="text-xs text-stone-600 dark:text-stone-400">{cell.teacher} &middot; {cell.room ?? t('timetable.no_room')}</p>
                                                             </div>
                                                         ))}
                                                     </td>

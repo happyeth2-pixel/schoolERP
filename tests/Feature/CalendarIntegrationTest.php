@@ -146,7 +146,7 @@ class CalendarIntegrationTest extends TestCase
 
         $this->actingAs($owner)->post('/students', [
             'first_name' => 'Kid', 'father_name' => 'One', 'gender' => 'male', 'date_of_birth' => E::toIso(2010, 5, 15),
-            'enrollment_date' => '2026-09-20', 'section_id' => $section->id, 'guardian_mode' => 'none',
+            'enrollment_date' => '2026-09-20', 'section_id' => $section->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('2018-01-23', Student::where('first_name', 'Kid')->first()->date_of_birth->toDateString());

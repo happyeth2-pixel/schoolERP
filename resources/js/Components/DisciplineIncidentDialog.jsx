@@ -1,3 +1,4 @@
+import DateInput from '@/Components/DateInput';
 import Modal from '@/Components/Modal';
 import { Button, Field, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
@@ -33,14 +34,14 @@ export default function DisciplineIncidentDialog({ open, studentId, incident, ca
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="discipline-incident-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('discipline.edit_title') : t('discipline.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('discipline.edit_title') : t('discipline.add_title')}</h2>
                     <Field id="inc_category" label={t('discipline.category_label')} error={errors.category}>
                         <Select id="inc_category" value={data.category} onChange={(e) => setData('category', e.target.value)}>
                             {categories.map((c) => <option key={c} value={c}>{t(`discipline.category_${c}`)}</option>)}
                         </Select>
                     </Field>
                     <Field id="inc_date" label={t('discipline.date_label')} error={errors.incident_date}>
-                        <input id="inc_date" type="date" value={data.incident_date} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setData('incident_date', e.target.value)} className="block w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+                        <DateInput id="inc_date" large value={data.incident_date} max={new Date().toISOString().slice(0, 10)} onChange={(v) => setData('incident_date', v)} />
                     </Field>
                     <Field id="inc_description" label={t('discipline.description_label')} error={errors.description}>
                         <TextArea value={data.description} onChange={(e) => setData('description', e.target.value)} rows={3} maxLength={2000} />

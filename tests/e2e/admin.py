@@ -82,9 +82,10 @@ def fill_who(pg, name, phone, title=None):
 
 
 def account_step(pg, phone, email=None, own_password=None, submit=True):
-    """From step 2 to step 3 (Account): retype the phone, optional email / own password, then Create Account."""
+    """From step 2 to step 3 (Account): optional email / own password, then Create Account. `phone` is
+    unused now (the "type it again" confirmation field was removed) but kept as a parameter so every
+    existing call site doesn't need editing."""
     nxt(pg).click(); wait_text(pg, "Step 3 of 3")
-    pg.fill("#staff_phone_confirmation", phone)
     if email:
         pg.fill("#staff_email", email)
     if own_password:
@@ -175,12 +176,8 @@ with sync_playwright() as p:
     check("review: the system role and what they will be able to do are listed", "Branch admin" in rv and page.locator("[data-testid=perm-summary] li").count() == 39)
     check("review: the permissions that were unticked are not in the list", "Manage staff accounts" not in page.locator("[data-testid=perm-summary]").inner_text())
     check("account step: the final button says Create Account, and the note says what happens with the temporary password", page.get_by_role("button", name="Create Account").count() == 1 and "temporary password" in rv)
-    check("account step: Create Account is off until the phone number is typed again, and says why", page.get_by_role("button", name="Create Account").is_disabled() and "Type the same phone number again" in body(page))
-    page.fill("#staff_phone_confirmation", "0911 22 33 55")
-    check("account step: a different second number is explained beside the field", "not the same" in body(page) and page.get_by_role("button", name="Create Account").is_disabled())
-    page.fill("#staff_phone_confirmation", "+251 911 22 33 44")
-    check("account step: the same number written another way is accepted", page.get_by_role("button", name="Create Account").is_enabled())
-    check("account step: 'Make one for me' is chosen by default and no password box is shown", page.get_by_role("radio", name=re.compile("^Make one for me")).get_attribute("aria-checked") == "true" and page.locator("#staff_temp_password").count() == 0)
+    check("account step: no phone confirmation field -- the number was already typed once, on step 1", page.locator("#staff_phone_confirmation").count() == 0)
+    check("account step: 'Make one for me' is chosen by default, no password box shown, and Create Account is already enabled", page.get_by_role("radio", name=re.compile("^Make one for me")).get_attribute("aria-checked") == "true" and page.locator("#staff_temp_password").count() == 0 and page.get_by_role("button", name="Create Account").is_enabled())
     page.get_by_role("radio", name=re.compile("^I will type one")).click()
     page.fill("#staff_temp_password", "abc")
     check("account step: a weak typed password is explained and blocks the button", "at least 8 characters" in body(page) and page.get_by_role("button", name="Create Account").is_disabled())
@@ -195,7 +192,7 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Back").click(); wait_text(page, "Step 2 of 3")
     check("Back keeps everything (role and 39 permissions still set)", page.get_by_role("radio", name=re.compile("^Branch admin")).get_attribute("aria-checked") == "true" and "39 of 71 permissions ticked" in page.locator("[data-testid=permission-picker]").inner_text())
     nxt(page).click(); wait_text(page, "Step 3 of 3")
-    check("Back and Next keep the second phone number and email typed on the account step", page.input_value("#staff_phone_confirmation") == "+251 911 22 33 44" and page.input_value("#staff_email") == "wiz.one@test.test")
+    check("Back and Next keep the email typed on the account step", page.input_value("#staff_email") == "wiz.one@test.test")
     page.get_by_role("button", name="Create Account").click()
     wait_text(page, "Account created successfully")
     row = q("select id, title, phone, branch_id, status from users where email='wiz.one@test.test'")

@@ -7,7 +7,7 @@ import { FOCUS } from './tokens';
 // the field in plain words, and inputs tall enough to hit with a thumb.
 
 const CONTROL =
-    'block min-h-[56px] w-full rounded-xl border-gray-400 bg-white text-base text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600 dark:border-gray-500 dark:bg-gray-900 dark:text-gray-100';
+    'block min-h-[56px] w-full rounded-lg border-stone-300 bg-white text-base text-stone-900 placeholder:text-stone-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-600 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100';
 const INVALID = 'border-red-600 focus:border-red-600 focus:ring-red-600';
 
 /**
@@ -40,11 +40,11 @@ export function Field({ id, label, hint, error, optional = false, children, clas
 
     return (
         <div className={className}>
-            <label htmlFor={fieldId} className="block text-base font-medium text-gray-900 dark:text-gray-100">
+            <label htmlFor={fieldId} className="block text-base font-medium text-stone-900 dark:text-stone-100">
                 {label}
-                {optional && <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({t('common.optional')})</span>}
+                {optional && <span className="ml-2 text-sm font-normal text-stone-500 dark:text-stone-400">({t('common.optional')})</span>}
             </label>
-            {hint && <p id={hintId} className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{hint}</p>}
+            {hint && <p id={hintId} className="mt-0.5 text-sm text-stone-600 dark:text-stone-400">{hint}</p>}
             <div className="mt-2">{control}</div>
             <FieldError id={errorId} message={error} />
         </div>
@@ -92,8 +92,8 @@ export function CheckRow({ checked, onChange, label, hint, disabled = false, id 
         <label
             htmlFor={rowId}
             className={`flex min-h-[56px] items-start gap-4 rounded-xl border-2 px-4 py-3 ${FOCUS} ${
-                checked ? 'border-indigo-600 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/30' : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'
-            } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-indigo-400'}`}
+                checked ? 'border-brand-600 bg-brand-50 dark:border-brand-400 dark:bg-brand-900/30' : 'border-stone-300 bg-white dark:border-stone-600 dark:bg-stone-800'
+            } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-brand-400'}`}
         >
             <input
                 id={rowId}
@@ -101,11 +101,11 @@ export function CheckRow({ checked, onChange, label, hint, disabled = false, id 
                 checked={checked}
                 disabled={disabled}
                 onChange={(e) => onChange(e.target.checked)}
-                className="mt-1 h-6 w-6 shrink-0 rounded-md border-gray-500 text-indigo-600 focus:ring-2 focus:ring-indigo-600"
+                className="mt-1 h-6 w-6 shrink-0 rounded-md border-stone-500 text-brand-600 focus:ring-2 focus:ring-brand-600"
             />
             <span>
-                <span className="block text-base font-semibold text-gray-900 dark:text-gray-100">{label}</span>
-                {hint && <span className="mt-0.5 block text-sm text-gray-600 dark:text-gray-400">{hint}</span>}
+                <span className="block text-base font-semibold text-stone-900 dark:text-stone-100">{label}</span>
+                {hint && <span className="mt-0.5 block text-sm text-stone-600 dark:text-stone-400">{hint}</span>}
             </span>
         </label>
     );

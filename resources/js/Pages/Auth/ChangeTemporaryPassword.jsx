@@ -19,8 +19,8 @@ export default function ChangeTemporaryPassword({ name }) {
         <GuestLayout>
             <Head title={t('pwreq.title')} />
 
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="welcome">{t('pwreq.welcome', { name })}</h1>
-            <p className="mt-2 text-lg text-gray-700 dark:text-gray-300">{t('pwreq.intro')}</p>
+            <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-100" data-testid="welcome">{t('pwreq.welcome', { name })}</h1>
+            <p className="mt-2 text-lg text-stone-700 dark:text-stone-300">{t('pwreq.intro')}</p>
 
             <form onSubmit={submit} className="mt-6 space-y-5" data-testid="change-form">
                 <PasswordField id="current_password" label={t('pwreq.current')} hint={t('pwreq.current_hint')} value={data.current_password} error={errors.current_password} onChange={set('current_password')} autoFocus />

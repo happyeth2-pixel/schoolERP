@@ -22,16 +22,16 @@ export function MarkProgress({ marked, total, counts, short = false }) {
 
     return (
         <div>
-            <p className="text-xl font-bold text-gray-900 dark:text-gray-100" data-testid="progress-text">{short ? t('attendance.progress_short', { marked, count: total }) : t('attendance.progress', { marked, count: total })}</p>
+            <p className="text-xl font-bold text-stone-900 dark:text-stone-100" data-testid="progress-text">{short ? t('attendance.progress_short', { marked, count: total }) : t('attendance.progress', { marked, count: total })}</p>
             <div
                 role="progressbar"
                 aria-label={t('attendance.progress', { marked, count: total })}
                 aria-valuemin={0}
                 aria-valuemax={total}
                 aria-valuenow={marked}
-                className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+                className="mt-2 h-3 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700"
             >
-                <div className={`h-3 rounded-full transition-all ${done ? 'bg-emerald-600' : 'bg-indigo-600'}`} style={{ width: `${pct}%` }} />
+                <div className={`h-3 rounded-full transition-all ${done ? 'bg-emerald-600' : 'bg-brand-600'}`} style={{ width: `${pct}%` }} />
             </div>
             {done ? (
                 <p className="mt-2 flex items-center gap-1.5 text-base font-semibold text-emerald-800 dark:text-emerald-300" data-testid="progress-state">

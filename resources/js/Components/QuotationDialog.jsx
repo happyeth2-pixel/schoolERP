@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +38,7 @@ export default function QuotationDialog({ open, purchaseRequest, suppliers, onCl
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="quotation-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('quotation.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('quotation.add_title')}</h2>
                     <Field id="quote_supplier" label={t('quotation.supplier')} error={errors.supplier_id}>
                         <Select value={data.supplier_id} onChange={(e) => setData('supplier_id', e.target.value)}>
                             <option value="">--</option>
@@ -48,20 +49,20 @@ export default function QuotationDialog({ open, purchaseRequest, suppliers, onCl
                         <Input value={data.reference} onChange={(e) => setData('reference', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>
                     <Field id="quote_date" label={t('quotation.quotation_date')} error={errors.quotation_date}>
-                        <Input type="date" value={data.quotation_date} onChange={(e) => setData('quotation_date', e.target.value)} />
+                        <DateInput value={data.quotation_date} onChange={(v) => setData('quotation_date', v)} />
                     </Field>
                     <Field id="quote_validity" label={t('quotation.validity_date')} optional error={errors.validity_date}>
-                        <Input type="date" value={data.validity_date} onChange={(e) => setData('validity_date', e.target.value)} />
+                        <DateInput value={data.validity_date} onChange={(v) => setData('validity_date', v)} />
                     </Field>
                     <Field id="quote_delivery" label={t('quotation.delivery_info')} optional error={errors.delivery_info}>
                         <Input value={data.delivery_info} onChange={(e) => setData('delivery_info', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>
 
-                    <div className="space-y-4 rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700">
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('quotation.prices_title')}</p>
+                    <div className="space-y-4 rounded-xl border-2 border-stone-200 p-4 dark:border-stone-700">
+                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('quotation.prices_title')}</p>
                         {purchaseRequest.items.map((i, index) => (
-                            <div key={i.id} className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0 dark:border-gray-700">
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{i.description}</p>
+                            <div key={i.id} className="space-y-2 border-b border-stone-200 pb-3 last:border-0 last:pb-0 dark:border-stone-700">
+                                <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{i.description}</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     <Field id={`quote_qty_${i.id}`} label={t('quotation.quantity')} error={errors[`items.${index}.quantity`]}>
                                         <Input inputMode="numeric" value={data.items[i.id].quantity} onChange={(e) => setLine(i.id, { quantity: e.target.value })} autoComplete="off" />
@@ -73,10 +74,10 @@ export default function QuotationDialog({ open, purchaseRequest, suppliers, onCl
                                         <Input inputMode="decimal" value={data.items[i.id].tax_amount} onChange={(e) => setLine(i.id, { tax_amount: e.target.value })} autoComplete="off" />
                                     </Field>
                                 </div>
-                                {lineTotal(i.id) !== null && <p className="text-sm text-gray-700 dark:text-gray-300">{t('quotation.line_total', { amount: money(lineTotal(i.id)) })}</p>}
+                                {lineTotal(i.id) !== null && <p className="text-sm text-stone-700 dark:text-stone-300">{t('quotation.line_total', { amount: money(lineTotal(i.id)) })}</p>}
                             </div>
                         ))}
-                        {allPriced && <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('quotation.grand_total', { amount: money(grandTotal) })}</p>}
+                        {allPriced && <p className="text-lg font-bold text-stone-900 dark:text-stone-100">{t('quotation.grand_total', { amount: money(grandTotal) })}</p>}
                     </div>
 
                     <Field id="quote_notes" label={t('quotation.notes')} optional error={errors.notes}>

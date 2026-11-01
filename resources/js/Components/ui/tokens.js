@@ -6,7 +6,16 @@ export const TAP = 'min-h-[56px]';
 
 /** Keyboard focus that is clearly visible (and only for keyboard users, so taps stay clean). */
 export const FOCUS =
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800';
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-stone-900';
+
+/** The one brand/action colour, used everywhere a former `indigo-*` meant "this is the primary thing
+ *  here": the selected state of a choice, the active nav item, a focused input's border, a link. */
+export const BRAND = {
+    text: 'text-brand-700 dark:text-brand-300',
+    border: 'border-brand-600 dark:border-brand-400',
+    bg: 'bg-brand-600 dark:bg-brand-500',
+    tint: 'bg-brand-50 dark:bg-brand-900/30',
+};
 
 /**
  * One meaning per tone, used by alerts, badges and callouts alike:
@@ -37,9 +46,9 @@ export const TONE = {
         icon: 'text-sky-600 dark:text-sky-400',
     },
     neutral: {
-        box: 'border-gray-300 bg-gray-50 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100',
-        badge: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100',
-        icon: 'text-gray-500 dark:text-gray-400',
+        box: 'border-stone-300 bg-stone-50 text-stone-900 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100',
+        badge: 'bg-stone-100 text-stone-800 dark:bg-stone-700 dark:text-stone-100',
+        icon: 'text-stone-500 dark:text-stone-400',
     },
 };
 

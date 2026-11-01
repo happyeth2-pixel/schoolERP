@@ -30,7 +30,7 @@ export default function PayrollTaxBracketDialog({ open, bracket, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="payroll-bracket-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('payroll.edit_bracket_title') : t('payroll.add_bracket_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('payroll.edit_bracket_title') : t('payroll.add_bracket_title')}</h2>
                     <Field id="bracket_min" label={t('payroll.bracket_min_label')} error={errors.min_amount}>
                         <Input inputMode="decimal" value={data.min_amount} onChange={(e) => setData('min_amount', e.target.value)} />
                     </Field>

@@ -1,8 +1,8 @@
-import { Alert, Button, Card, ChoiceGroup, CheckRow, Field, FlashMessages, Input, Page, SectionHeader, Select, useConfirm } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, ChoiceGroup, CheckRow, Field, FlashMessages, Input, Page, SectionHeader, Select, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useUnsavedGuard } from '@/useUnsavedGuard';
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import reviewStatus from '@/lang/review-status.json';
@@ -71,16 +71,16 @@ function PaymentAccountsManager({ accounts, bankPresets, branches, canManageScho
             ) : (
                 <ul className="mb-5 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2" data-testid="account-list">
                     {accounts.map((a) => (
-                        <li key={a.id} className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-gray-200 p-3 dark:border-gray-700">
+                        <li key={a.id} className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-stone-200 p-3 dark:border-stone-700">
                             {a.logo_url ? (
                                 <img src={a.logo_url} alt="" className="h-12 w-12 shrink-0 rounded-md bg-white object-contain p-1 shadow-sm" />
                             ) : (
-                                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-lg font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{a.display_name[0]}</span>
+                                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-100 text-lg font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{a.display_name[0]}</span>
                             )}
                             <div className="min-w-0 flex-1 basis-40">
-                                <p className="truncate text-base font-semibold text-gray-900 dark:text-gray-100">{a.display_name}</p>
-                                <p className="truncate text-sm text-gray-700 dark:text-gray-300">{a.account_number}{a.account_name ? ` · ${a.account_name}` : ''}</p>
-                                <p className="truncate text-sm text-indigo-700 dark:text-indigo-300">{a.branch_name ? t('settings.pay_branch_only', { branch: a.branch_name }) : t('settings.pay_all_branches')}</p>
+                                <p className="truncate text-base font-semibold text-stone-900 dark:text-stone-100">{a.display_name}</p>
+                                <p className="truncate text-sm text-stone-700 dark:text-stone-300">{a.account_number}{a.account_name ? ` · ${a.account_name}` : ''}</p>
+                                <p className="truncate text-sm text-brand-700 dark:text-brand-300">{a.branch_name ? t('settings.pay_branch_only', { branch: a.branch_name }) : t('settings.pay_all_branches')}</p>
                             </div>
                             {a.editable && <Button size="md" variant="quiet" icon={TrashIcon} onClick={() => remove(a)} aria-label={t('settings.pay_remove_button', { name: a.display_name })}>{t('settings.pay_remove')}</Button>}
                         </li>
@@ -88,36 +88,36 @@ function PaymentAccountsManager({ accounts, bankPresets, branches, canManageScho
                 </ul>
             )}
 
-            <form onSubmit={submit} className="space-y-6 rounded-xl border-2 border-dashed border-gray-300 p-4 dark:border-gray-600" data-testid="add-account">
+            <form onSubmit={submit} className="space-y-6 rounded-xl border-2 border-dashed border-stone-300 p-4 dark:border-stone-600" data-testid="add-account">
                 <div>
-                    <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('settings.pay_step1')}</p>
+                    <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('settings.pay_step1')}</p>
                     <div role="radiogroup" aria-label={t('settings.pay_step1')} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         {bankPresets.map((b) => (
                             <button type="button" key={b.key} role="radio" aria-checked={selectedKey === b.key} onClick={() => choosePreset(b.key)}
-                                className={`flex min-h-[56px] items-center gap-2 rounded-xl border-2 p-2 text-left text-base font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selectedKey === b.key ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-300 hover:border-indigo-400 dark:border-gray-600'}`}>
+                                className={`flex min-h-[56px] items-center gap-2 rounded-xl border-2 p-2 text-left text-base font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${selectedKey === b.key ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/30' : 'border-stone-300 hover:border-brand-400 dark:border-stone-600'}`}>
                                 <img src={b.logo_url} alt="" className="h-8 w-8 shrink-0 object-contain" />
-                                <span className="text-gray-900 dark:text-gray-100">{b.label}</span>
+                                <span className="text-stone-900 dark:text-stone-100">{b.label}</span>
                             </button>
                         ))}
                         <button type="button" role="radio" aria-checked={selectedKey === 'other'} onClick={() => choosePreset('other')}
-                            className={`flex min-h-[56px] items-center justify-center rounded-xl border-2 p-2 text-base font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selectedKey === 'other' ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-300 hover:border-indigo-400 dark:border-gray-600'} text-gray-900 dark:text-gray-100`}>
+                            className={`flex min-h-[56px] items-center justify-center rounded-xl border-2 p-2 text-base font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${selectedKey === 'other' ? 'border-brand-600 bg-brand-50 dark:bg-brand-900/30' : 'border-stone-300 hover:border-brand-400 dark:border-stone-600'} text-stone-900 dark:text-stone-100`}>
                             {t('settings.pay_other')}
                         </button>
                     </div>
                 </div>
 
                 {selectedKey && (
-                    <div className="space-y-6 border-t-2 border-gray-100 pt-5 dark:border-gray-700">
+                    <div className="space-y-6 border-t-2 border-stone-100 pt-5 dark:border-stone-700">
                         <div>
-                            <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('settings.pay_step2')}</p>
+                            <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('settings.pay_step2')}</p>
                             <Select id="account_branch" aria-label={t('settings.pay_step2')} value={data.branch_id} onChange={(e) => setData('branch_id', e.target.value)} disabled={!canManageSchoolWide}>
                                 {canManageSchoolWide && <option value="">{t('settings.pay_all_branches')}</option>}
                                 {branches.map((b) => <option key={b.id} value={b.id}>{t('settings.pay_branch_only', { branch: b.name })}</option>)}
                             </Select>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t('settings.pay_branch_hint')}</p>
+                            <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{t('settings.pay_branch_hint')}</p>
                         </div>
                         <div className="space-y-4">
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('settings.pay_step3')}</p>
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('settings.pay_step3')}</p>
                             {isCustom && (
                                 <Field id="display_name" label={t('settings.pay_bank_name')} error={errors.display_name}>
                                     <Input value={data.display_name} onChange={(e) => setData('display_name', e.target.value)} autoComplete="off" />
@@ -133,7 +133,7 @@ function PaymentAccountsManager({ accounts, bankPresets, branches, canManageScho
                             )}
                             {isCustom && (
                                 <Field id="logo" label={t('settings.pay_logo')} optional error={errors.logo}>
-                                    <input type="file" accept=".jpg,.jpeg,.png" className="block w-full text-base text-gray-700 dark:text-gray-300" onChange={(e) => setData('logo', e.target.files[0])} />
+                                    <input type="file" accept=".jpg,.jpeg,.png" className="block w-full text-base text-stone-700 dark:text-stone-300" onChange={(e) => setData('logo', e.target.files[0])} />
                                 </Field>
                             )}
                         </div>
@@ -148,6 +148,7 @@ function PaymentAccountsManager({ accounts, bankPresets, branches, canManageScho
 
 export default function School({ school, paymentAccounts, bankPresets, missingMarkPolicies, branches, canManageSchoolWideAccounts }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [ask, confirmDialog] = useConfirm();
     const form = useForm({
         name: school.name ?? '',
@@ -161,6 +162,7 @@ export default function School({ school, paymentAccounts, bankPresets, missingMa
         missing_mark_policy: school.missing_mark_policy ?? 'exclude',
         discount_limit_percent: school.discount_limit_percent ?? 10,
         waiver_limit_amount: school.waiver_limit_amount ?? 1000,
+        payment_due_days: school.payment_due_days ?? 14,
         purchase_approval_threshold: school.purchase_approval_threshold ?? '',
         allow_overlapping_terms: !!school.allow_overlapping_terms,
         enabled_languages: school.enabled_languages ?? ['en', 'am'],
@@ -191,15 +193,15 @@ export default function School({ school, paymentAccounts, bankPresets, missingMa
     const parts = [['details', t('settings.p_details')], ['calendar', t('settings.p_calendar')], ['reports', t('settings.p_reports')], ['money', t('settings.p_money')], ['languages', t('settings.p_languages')], ['payments', t('settings.p_payments')]];
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('settings.page_title')}</h2>}>
-            <Page title={t('settings.page_title')} description={t('settings.page_desc')} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('settings.page_title')}</h2>}>
+            <Page title={t('settings.page_title')} description={t('settings.page_desc')} width="default" back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}>
                 <FlashMessages />
 
                 <nav aria-label={t('settings.on_this_page')} data-testid="settings-nav">
-                    <p className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.on_this_page')}</p>
+                    <p className="mb-2 text-base font-semibold text-stone-900 dark:text-stone-100">{t('settings.on_this_page')}</p>
                     <ul className="flex flex-wrap gap-2">
                         {parts.map(([id, label]) => (
-                            <li key={id}><a href={`#settings-${id}`} className="inline-flex min-h-[44px] items-center rounded-xl border-2 border-gray-300 bg-white px-4 text-base font-medium text-indigo-700 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-indigo-300">{label}</a></li>
+                            <li key={id}><a href={`#settings-${id}`} className="inline-flex min-h-[44px] items-center rounded-xl border-2 border-stone-300 bg-white px-4 text-base font-medium text-brand-700 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-brand-300">{label}</a></li>
                         ))}
                     </ul>
                 </nav>
@@ -259,6 +261,9 @@ export default function School({ school, paymentAccounts, bankPresets, missingMa
                             <Field id="purchase_approval_threshold" label={t('settings.purchase_threshold')} optional hint={t('settings.purchase_threshold_hint')} error={errors.purchase_approval_threshold}>
                                 <Input inputMode="decimal" value={data.purchase_approval_threshold} onChange={(e) => set('purchase_approval_threshold')(e.target.value)} autoComplete="off" />
                             </Field>
+                            <Field id="payment_due_days" label={t('settings.payment_due_days')} hint={t('settings.payment_due_days_hint')} error={errors.payment_due_days}>
+                                <Input inputMode="numeric" value={data.payment_due_days} onChange={(e) => set('payment_due_days')(e.target.value)} autoComplete="off" />
+                            </Field>
                         </div>
                         <div className="mt-5">
                             <CheckRow id="allow_overlapping_terms" checked={data.allow_overlapping_terms} onChange={(on) => set('allow_overlapping_terms')(on)} label={t('settings.overlap_label')} hint={t('settings.overlap_hint')} />
@@ -282,9 +287,9 @@ export default function School({ school, paymentAccounts, bankPresets, missingMa
                         {errors.enabled_languages && <p role="alert" className="mt-2 text-sm font-medium text-red-700 dark:text-red-400">{errors.enabled_languages}</p>}
                     </Card>
 
-                    <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-gray-200 bg-white/95 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95" data-testid="save-bar">
+                    <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-stone-200 bg-white/95 py-3 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95" data-testid="save-bar">
                         <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-                            <p className={`text-base font-medium ${isDirty ? 'text-amber-900 dark:text-amber-200' : 'text-gray-600 dark:text-gray-400'}`} data-testid="dirty-note">{isDirty ? t('settings.unsaved') : t('settings.all_saved')}</p>
+                            <p className={`text-base font-medium ${isDirty ? 'text-amber-900 dark:text-amber-200' : 'text-stone-600 dark:text-stone-400'}`} data-testid="dirty-note">{isDirty ? t('settings.unsaved') : t('settings.all_saved')}</p>
                             <Button type="submit" busy={processing} disabled={!isDirty}>{t('settings.save_button')}</Button>
                         </div>
                     </div>

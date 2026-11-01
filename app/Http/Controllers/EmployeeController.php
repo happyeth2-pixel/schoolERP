@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\User;
 use App\Rules\SafeUploadRule;
 use App\Support\SafeUpload;
+use App\Support\SchoolCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -115,6 +116,16 @@ class EmployeeController extends Controller
         return $prefix.str_pad((string) $n, 6, '0', STR_PAD_LEFT);
     }
 
+    /** Same shape as StudentController::ageToDateOfBirth() -- registration asks for an age in whole years,
+     * not an exact birthdate, converted to an approximate date_of_birth (today minus N years) before
+     * validation so every existing date_of_birth-based rule and Employee::age() keep working unchanged. */
+    private function ageToDateOfBirth(Request $request): void
+    {
+        if ($request->filled('age')) {
+            $request->merge(['date_of_birth' => SchoolCalendar::today()->subYears((int) $request->input('age'))->toDateString()]);
+        }
+    }
+
     private function rules(User $user, ?Employee $employee = null): array
     {
         return [
@@ -125,6 +136,7 @@ class EmployeeController extends Controller
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
             'gender' => ['nullable', Rule::in(['male', 'female'])],
+            'age' => ['nullable', 'integer', 'min:0', 'max:80'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'hire_date' => ['required', 'date'],
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where('school_id', $user->school_id)],
@@ -144,6 +156,7 @@ class EmployeeController extends Controller
         $user = $request->user();
         abort_unless($user->can('employee-manage'), 403);
 
+        $this->ageToDateOfBirth($request);
         $validated = $request->validate($this->rules($user));
 
         if (! $user->isOrgWide()) {
@@ -214,7 +227,7 @@ class EmployeeController extends Controller
                 'emergency_contact_name' => $employee->emergency_contact_name,
                 'emergency_contact_phone' => $employee->emergency_contact_phone,
                 'gender' => $employee->gender,
-                'date_of_birth' => $employee->date_of_birth?->toDateString(),
+                'age' => $employee->age(),
                 'hire_date' => $employee->hire_date->toDateString(),
                 'department' => $employee->department?->name,
                 'position' => $employee->position?->title,
@@ -307,7 +320,7 @@ class EmployeeController extends Controller
                 'emergency_contact_name' => $employee->emergency_contact_name,
                 'emergency_contact_phone' => $employee->emergency_contact_phone,
                 'gender' => $employee->gender,
-                'date_of_birth' => $employee->date_of_birth?->toDateString(),
+                'age' => $employee->age(),
                 'hire_date' => $employee->hire_date->toDateString(),
                 'department_id' => $employee->department_id,
                 'position_id' => $employee->position_id,
@@ -328,6 +341,7 @@ class EmployeeController extends Controller
         abort_unless($employee->school_id === $user->school_id, 403);
         abort_unless($user->isOrgWide() || $employee->branch_id === $user->branch_id, 403);
 
+        $this->ageToDateOfBirth($request);
         $validated = $request->validate($this->rules($user, $employee));
 
         if (! $user->isOrgWide()) {

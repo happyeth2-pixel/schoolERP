@@ -163,4 +163,33 @@ class DisciplineIncidentTest extends TestCase
         $this->actingAs($teacher)->get('/discipline')->assertForbidden();
         $this->actingAs($teacher)->post("/students/{$this->studentA->id}/discipline", $this->payload())->assertForbidden();
     }
+
+    // ------------------------------------------------------------------ "report an incident" search (a quick way
+    // in from the triage dashboard, without first opening the student's own profile)
+
+    public function test_the_search_finds_a_student_by_first_or_father_name_in_scope(): void
+    {
+        $officer = $this->makeUser('branch_admin', $this->branchA->id, ['discipline-manage']);
+
+        $byFirst = $this->actingAs($officer)->getJson('/discipline/student-search?q='.substr($this->studentA->first_name, 0, 3))->assertOk()->json();
+        $this->assertTrue(collect($byFirst)->pluck('id')->contains($this->studentA->id));
+
+        $outOfBranch = $this->actingAs($officer)->getJson('/discipline/student-search?q='.substr($this->studentB->first_name, 0, 3))->assertOk()->json();
+        $this->assertFalse(collect($outOfBranch)->pluck('id')->contains($this->studentB->id));
+    }
+
+    public function test_the_search_needs_discipline_manage_not_just_view(): void
+    {
+        $viewer = $this->makeUser('branch_admin', $this->branchA->id, ['discipline-view']);
+        $this->actingAs($viewer)->getJson('/discipline/student-search?q=te')->assertForbidden();
+    }
+
+    public function test_the_search_index_page_only_offers_it_to_someone_who_can_manage(): void
+    {
+        $manager = $this->makeUser('branch_admin', $this->branchA->id, ['discipline-manage']);
+        $viewer = $this->makeUser('branch_admin', $this->branchA->id, ['discipline-view']);
+
+        $this->assertTrue($this->props($this->actingAs($manager)->get('/discipline')->assertOk())['canManage']);
+        $this->assertFalse($this->props($this->actingAs($viewer)->get('/discipline')->assertOk())['canManage']);
+    }
 }

@@ -1,3 +1,4 @@
+import DateInput from '@/Components/DateInput';
 import Modal from '@/Components/Modal';
 import { Button, Field, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
@@ -36,7 +37,7 @@ export default function AssignmentDialog({ open, teachingAssignments, assignment
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="assignment-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('homework.edit_title') : t('homework.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('homework.edit_title') : t('homework.add_title')}</h2>
                     {!editing && (
                         <Field id="asg_class" label={t('homework.class_subject_label')} error={errors.section_id ?? errors.subject_id}>
                             <Select id="asg_class" value={data.teaching_assignment_id} onChange={(e) => setData('teaching_assignment_id', e.target.value)}>
@@ -45,10 +46,10 @@ export default function AssignmentDialog({ open, teachingAssignments, assignment
                         </Field>
                     )}
                     <Field id="asg_title" label={t('homework.title_label')} error={errors.title}>
-                        <input id="asg_title" type="text" value={data.title} maxLength={200} onChange={(e) => setData('title', e.target.value)} className="block w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+                        <input id="asg_title" type="text" value={data.title} maxLength={200} onChange={(e) => setData('title', e.target.value)} className="block w-full rounded-xl border-2 border-stone-300 px-4 py-3 text-base dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100" />
                     </Field>
                     <Field id="asg_due_date" label={t('homework.due_date_label')} error={errors.due_date}>
-                        <input id="asg_due_date" type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} className="block w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" />
+                        <DateInput id="asg_due_date" large value={data.due_date} onChange={(v) => setData('due_date', v)} />
                     </Field>
                     <Field id="asg_description" label={t('homework.description_label')} optional error={errors.description}>
                         <TextArea value={data.description} onChange={(e) => setData('description', e.target.value)} rows={4} maxLength={5000} />

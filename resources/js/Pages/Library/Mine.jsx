@@ -1,17 +1,19 @@
 import DateText from '@/Components/DateText';
-import { Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
+import { BackLink, Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BookOpenIcon } from '@heroicons/react/24/outline';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 // Any staff account's OWN library history -- no permission needed, the same self-service shape as My
 // Leave/My Performance/My Payslips/My Timetable. Students have no login, so this is staff-only.
 export default function Mine({ loans }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('library.my_title')}</h2>}>
-            <Page title={t('library.my_title')} description={t('library.my_desc')} width="default">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('library.my_title')}</h2>}>
+            <Page title={t('library.my_title')} description={t('library.my_desc')} width="default" back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}>
                 {loans.length === 0 ? (
                     <Card><EmptyState icon={BookOpenIcon} title={t('library.my_none_title')}>{t('library.my_none_body')}</EmptyState></Card>
                 ) : (
@@ -20,12 +22,12 @@ export default function Mine({ loans }) {
                             <Card key={l.id} data-testid="my-loan-row">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{l.book_title}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{l.book_title}</p>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">
                                             {l.returned_at ? t('library.my_returned_label') : t('library.my_due_label')} <DateText value={l.returned_at ?? l.due_date} />
                                         </p>
                                         {l.fine_amount && (
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            <p className="text-sm text-stone-700 dark:text-stone-300">
                                                 {l.fine_resolved ? t('library.my_fine_resolved', { amount: l.fine_amount }) : t('library.my_fine_owed', { amount: l.fine_amount })}
                                             </p>
                                         )}

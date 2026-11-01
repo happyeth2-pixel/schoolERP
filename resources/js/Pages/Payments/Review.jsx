@@ -22,8 +22,8 @@ const money2 = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigit
 function Row({ label, children }) {
     return (
         <div className="py-3">
-            <dt className="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">{label}</dt>
-            <dd className="mt-1 text-lg text-gray-900 dark:text-gray-100">{children}</dd>
+            <dt className="text-sm font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">{label}</dt>
+            <dd className="mt-1 text-lg text-stone-900 dark:text-stone-100">{children}</dd>
         </div>
     );
 }
@@ -42,22 +42,22 @@ function RejectPanel({ payment, onCancel }) {
         <form onSubmit={submit} className="space-y-4 rounded-2xl border-2 border-red-300 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20" data-testid="reject-panel">
             <h3 className="text-xl font-semibold text-red-950 dark:text-red-100">{t('verify.reject_title')}</h3>
             <div>
-                <p className="mb-2 text-base font-medium text-gray-900 dark:text-gray-100">{t('verify.reject_pick')}</p>
+                <p className="mb-2 text-base font-medium text-stone-900 dark:text-stone-100">{t('verify.reject_pick')}</p>
                 <div className="flex flex-wrap gap-2">
                     {reasons.map((r) => (
-                        <button key={r} type="button" onClick={() => setData('rejection_reason', r)} className={`min-h-[48px] rounded-xl border-2 px-3 py-2 text-left text-base font-medium ${data.rejection_reason === r ? 'border-red-700 bg-red-700 text-white' : 'border-gray-400 bg-white text-gray-900 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100'}`}>{r}</button>
+                        <button key={r} type="button" onClick={() => setData('rejection_reason', r)} className={`min-h-[48px] rounded-xl border-2 px-3 py-2 text-left text-base font-medium ${data.rejection_reason === r ? 'border-red-700 bg-red-700 text-white' : 'border-stone-400 bg-white text-stone-900 dark:border-stone-500 dark:bg-stone-800 dark:text-stone-100'}`}>{r}</button>
                     ))}
                 </div>
             </div>
             <Field id="rejection_reason" label={t('verify.reject_reason_label')} hint={t('verify.reject_reason_hint')} error={errors.rejection_reason}>
                 <TextArea rows={3} maxLength={255} value={data.rejection_reason} onChange={(e) => setData('rejection_reason', e.target.value)} />
             </Field>
-            <p className="text-sm text-gray-700 dark:text-gray-300">{data.rejection_reason.length} / 255</p>
+            <p className="text-sm text-stone-700 dark:text-stone-300">{data.rejection_reason.length} / 255</p>
             <div className="flex flex-col gap-3 sm:flex-row">
                 <Button type="submit" variant="danger" busy={processing} disabled={data.rejection_reason.trim() === ''} icon={XCircleIcon}>{t('verify.reject_button')}</Button>
                 <Button variant="secondary" onClick={onCancel} disabled={processing}>{t('verify.reject_cancel')}</Button>
             </div>
-            {data.rejection_reason.trim() === '' && <p className="text-sm font-medium text-gray-700 dark:text-gray-300" role="status">{t('verify.reject_why_off')}</p>}
+            {data.rejection_reason.trim() === '' && <p className="text-sm font-medium text-stone-700 dark:text-stone-300" role="status">{t('verify.reject_why_off')}</p>}
         </form>
     );
 }
@@ -84,7 +84,7 @@ function RefundPanel({ payment, refund }) {
 
     return (
         <form onSubmit={submit} className="space-y-5" data-testid="refund-panel">
-            <p className="text-base text-gray-700 dark:text-gray-300">{t('verify.refund_intro')}</p>
+            <p className="text-base text-stone-700 dark:text-stone-300">{t('verify.refund_intro')}</p>
             <ChoiceGroup label={t('verify.refund_kind')} value={data.kind} onChange={(v) => setData('kind', v)} options={kinds} />
             <Field id="refund_amount" label={t('verify.refund_amount', { max: money(refund.refundable) })} error={tooMuch ? t('verify.refund_too_much', { max: money(refund.refundable) }) : errors.amount}>
                 <Input type="number" inputMode="decimal" step="0.01" value={data.amount} onChange={(e) => setData('amount', e.target.value)} />
@@ -121,7 +121,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
             title: t('verify.accept_title'),
             body: (
                 <>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{student.name} · {money(payment.amount)} ETB · {method}</p>
+                    <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{student.name} · {money(payment.amount)} ETB · {method}</p>
                     <ul className="list-inside list-disc space-y-2">
                         <li>{t('verify.accept_line_record', { amount: money(payment.amount), invoice: invoice.number })}</li>
                         <li>{left === 0 ? t('verify.accept_line_paid') : t('verify.accept_line_left', { left: money(left) })}</li>
@@ -146,7 +146,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
     );
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
             <Page title={title} description={pending ? t('verify.review_desc', { count: waiting }) : undefined} width="wide" back={<BackLink href={route('payments.pending')}>{t('verify.back_to_list')}</BackLink>}>
                 <FlashMessages errorKeys={['payment', 'amount', 'reason']} skip={pending ? [] : ['success']} />
 
@@ -154,7 +154,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                     <SuccessPanel
                         title={t('rec.recorded_title')}
                         details={
-                            <dl className="divide-y divide-emerald-200 rounded-xl bg-white/70 px-4 dark:divide-emerald-800 dark:bg-gray-900/40" data-testid="recorded-details">
+                            <dl className="divide-y divide-emerald-200 rounded-xl bg-white/70 px-4 dark:divide-emerald-800 dark:bg-stone-900/40" data-testid="recorded-details">
                                 <Row label={t('rec.rec_student')}>{student.name}{student.class ? ` · ${student.class}` : ''}</Row>
                                 <Row label={t('rec.rec_amount')}><span className="text-3xl font-bold" data-testid="recorded-amount">{money2(payment.amount)} ETB</span></Row>
                                 <Row label={t('rec.rec_left')}><span className="text-3xl font-bold" data-testid="recorded-left">{money2(invoice.balance)} ETB</span>{invoice.balance === 0 && <span className="ml-2 text-base font-semibold text-emerald-800 dark:text-emerald-300">{t('rec.r_paid_off')}</span>}</Row>
@@ -178,7 +178,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                     <SuccessPanel
                         title={t('verify.received_title')}
                         details={
-                            <dl className="divide-y divide-emerald-200 rounded-xl bg-white/70 px-4 dark:divide-emerald-800 dark:bg-gray-900/40" data-testid="received-details">
+                            <dl className="divide-y divide-emerald-200 rounded-xl bg-white/70 px-4 dark:divide-emerald-800 dark:bg-stone-900/40" data-testid="received-details">
                                 <Row label={t('verify.receipt_number')}><span className="text-2xl font-bold" data-testid="receipt-number">{payment.receipt_number}</span></Row>
                                 <Row label={t('verify.f_how')}>{method}{payment.reference_number ? ` · ${t('verify.reference')}: ${payment.reference_number}` : ''}</Row>
                                 <Row label={t('verify.f_for')}>{invoice.number}{invoice.period_label ? ` · ${invoice.period_label}` : ''}</Row>
@@ -214,31 +214,31 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                     <Card className="lg:col-start-1 lg:row-start-1" data-testid="summary">
                         <div className="mb-2 flex flex-wrap items-center gap-3">
                             <StatusBadge status={payment.status} />
-                            {pending && <span className="text-base text-gray-700 dark:text-gray-300">{t('verify.sent_ago', { when: payment.submitted_ago })}</span>}
+                            {pending && <span className="text-base text-stone-700 dark:text-stone-300">{t('verify.sent_ago', { when: payment.submitted_ago })}</span>}
                         </div>
-                        <p className="text-5xl font-bold text-gray-900 dark:text-gray-100" data-testid="amount">{money(payment.amount)} <span className="text-2xl font-semibold text-gray-600 dark:text-gray-400">ETB</span></p>
-                        <dl className="mt-3 divide-y divide-gray-200 dark:divide-gray-700">
+                        <p className="text-5xl font-bold text-stone-900 dark:text-stone-100" data-testid="amount">{money(payment.amount)} <span className="text-2xl font-semibold text-stone-600 dark:text-stone-400">ETB</span></p>
+                        <dl className="mt-3 divide-y divide-stone-200 dark:divide-stone-700">
                             <Row label={t('verify.f_who')}>
                                 {payment.channel === 'counter' && <span className="block text-base font-semibold" data-testid="counter-who">{t('rec.paid_at_school', { payer: payment.paid_by_name, who: payment.submitted_by })}</span>}
                                 <span className={`font-semibold ${payment.channel === 'counter' ? 'hidden' : ''}`}>{payment.submitted_by}{payment.submitted_by_relationship ? ` (${payment.submitted_by_relationship})` : ''}</span>
-                                <span className="block text-base text-gray-700 dark:text-gray-300">{t('verify.paying_for')} <strong>{student.name}</strong>{student.class ? ` · ${student.class}` : ''} · {student.student_id_number}</span>
+                                <span className="block text-base text-stone-700 dark:text-stone-300">{t('verify.paying_for')} <strong>{student.name}</strong>{student.class ? ` · ${student.class}` : ''} · {student.student_id_number}</span>
                             </Row>
                             <Row label={t('verify.f_for')}>
                                 <span className="font-semibold">{invoice.number}{invoice.period_label ? ` · ${invoice.period_label}` : ''}</span>
-                                <ul className="mt-1 space-y-0.5 text-base text-gray-700 dark:text-gray-300">
+                                <ul className="mt-1 space-y-0.5 text-base text-stone-700 dark:text-stone-300">
                                     {invoice.items.map((i, k) => <li key={k} className="flex justify-between gap-3"><span>{i.description}</span><span>{money(i.amount)}</span></li>)}
                                     {invoice.discount > 0 && <li className="flex justify-between gap-3"><span>{t('verify.discount')}</span><span>−{money(invoice.discount)}</span></li>}
                                 </ul>
                                 <span className="mt-2 grid grid-cols-3 gap-2 text-base">
-                                    <span><span className="block text-sm text-gray-600 dark:text-gray-400">{t('verify.inv_total')}</span><strong>{money(invoice.total)}</strong></span>
-                                    <span><span className="block text-sm text-gray-600 dark:text-gray-400">{t('verify.inv_paid')}</span><strong>{money(invoice.collected)}</strong></span>
-                                    <span><span className="block text-sm text-gray-600 dark:text-gray-400">{t('verify.inv_owed')}</span><strong data-testid="owed-now">{money(invoice.balance)}</strong></span>
+                                    <span><span className="block text-sm text-stone-600 dark:text-stone-400">{t('verify.inv_total')}</span><strong>{money(invoice.total)}</strong></span>
+                                    <span><span className="block text-sm text-stone-600 dark:text-stone-400">{t('verify.inv_paid')}</span><strong>{money(invoice.collected)}</strong></span>
+                                    <span><span className="block text-sm text-stone-600 dark:text-stone-400">{t('verify.inv_owed')}</span><strong data-testid="owed-now">{money(invoice.balance)}</strong></span>
                                 </span>
                             </Row>
                             <Row label={t('verify.f_how')}>
                                 <span className="inline-flex items-center gap-2 font-semibold"><MethodIcon className="h-6 w-6" aria-hidden="true" />{method}</span>
-                                <span className="block text-base text-gray-700 dark:text-gray-300">{payment.reference_number ? <>{t('verify.reference')}: <strong>{payment.reference_number}</strong></> : t('verify.no_reference')}</span>
-                                <span className="block text-sm text-gray-600 dark:text-gray-400">{payment.submitted_at}</span>
+                                <span className="block text-base text-stone-700 dark:text-stone-300">{payment.reference_number ? <>{t('verify.reference')}: <strong>{payment.reference_number}</strong></> : t('verify.no_reference')}</span>
+                                <span className="block text-sm text-stone-600 dark:text-stone-400">{payment.submitted_at}</span>
                             </Row>
                         </dl>
                         {pending && (
@@ -249,7 +249,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                     </Card>
 
                     <Card className="lg:col-start-2 lg:row-span-2 lg:row-start-1" data-testid="proof">
-                        <h2 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">{t('verify.proof_title')}</h2>
+                        <h2 className="mb-3 text-xl font-semibold text-stone-900 dark:text-stone-100">{t('verify.proof_title')}</h2>
                         <ProofViewer url={payment.proof_url} kind={payment.proof_kind} />
                     </Card>
 
@@ -265,7 +265,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                                 <ul className="mt-2 space-y-2" data-testid="duplicates">
                                     {duplicates.map((d) => (
                                         <li key={d.id}>
-                                            <Link href={d.review_url} className="font-semibold text-indigo-800 underline dark:text-indigo-300">{d.student} · {d.invoice_number} · {money(d.amount)} ETB</Link>
+                                            <Link href={d.review_url} className="font-semibold text-brand-800 underline dark:text-brand-300">{d.student} · {d.invoice_number} · {money(d.amount)} ETB</Link>
                                             <span className="block text-sm">{t(`verify.dup_${d.why}`)} · <StatusBadge status={d.status} /> · {d.when}</span>
                                         </li>
                                     ))}
@@ -274,12 +274,12 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                         )}
 
                         {pending && !rejecting && (
-                            <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-gray-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none" data-testid="actions">
+                            <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-stone-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-stone-700 dark:bg-stone-900/95 lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none" data-testid="actions">
                                 <div className="flex flex-col gap-3">
                                     <Button variant="success" fullWidth className="!min-h-[64px] text-xl" icon={CheckCircleIcon} busy={busy} disabled={Boolean(blocked)} onClick={accept}>{t('verify.accept_button')}</Button>
                                     <Button variant="danger" fullWidth className="!min-h-[64px] text-xl" icon={XCircleIcon} onClick={() => setRejecting(true)}>{t('verify.reject_open')}</Button>
                                 </div>
-                                {blocked && <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300" role="status">{t('verify.accept_why_off')}</p>}
+                                {blocked && <p className="mt-2 text-sm font-medium text-stone-700 dark:text-stone-300" role="status">{t('verify.accept_why_off')}</p>}
                             </div>
                         )}
                         {pending && rejecting && <RejectPanel payment={payment} onCancel={() => setRejecting(false)} />}
@@ -290,12 +290,12 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
 
                 {refunds.length > 0 && (
                     <Card data-testid="refund-list">
-                        <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">{t('verify.refunds_title')}</h2>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <h2 className="mb-2 text-xl font-semibold text-stone-900 dark:text-stone-100">{t('verify.refunds_title')}</h2>
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700">
                             {refunds.map((r) => (
-                                <li key={r.id} className="py-3 text-base text-gray-900 dark:text-gray-100">
+                                <li key={r.id} className="py-3 text-base text-stone-900 dark:text-stone-100">
                                     <strong>{t(r.kind === 'refund' ? 'verify.kind_refund' : 'verify.kind_reversal')} {money(r.amount)} ETB</strong> — {r.reason}
-                                    <span className="block text-sm text-gray-600 dark:text-gray-400">{r.by} · {r.at}{r.reference ? ` · ${t('verify.reference')}: ${r.reference}` : ''}</span>
+                                    <span className="block text-sm text-stone-600 dark:text-stone-400">{r.by} · {r.at}{r.reference ? ` · ${t('verify.reference')}: ${r.reference}` : ''}</span>
                                 </li>
                             ))}
                         </ul>

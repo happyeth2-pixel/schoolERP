@@ -44,17 +44,48 @@ class InvoiceController extends Controller
      * Deliberately carries no eager-loading of its own: the two callers below need very different things from it
      * (a handful of scalar totals vs. the full invoice with every display relation).
      */
-    private function invoiceScope(Request $request, $user): Builder
+    /** The same "which branches can this user see" rule every invoice query below applies. */
+    private function scopeToBranches(Builder $query, $user): Builder
     {
-        $query = Invoice::whereHas('student', function ($q) use ($user) {
+        return $query->whereHas('student', function ($q) use ($user) {
             $q->whereIn('branch_id', $user->school->branches()->pluck('id'));
             if (! $user->isOrgWide()) {
                 $q->where('branch_id', $user->branch_id);
             }
-        })->whereHas('academicYear', fn ($q) => $q->where('is_current', true));
+        });
+    }
+
+    private function invoiceScope(Request $request, $user, ?int $academicYearId = null): Builder
+    {
+        $query = $this->scopeToBranches(Invoice::query(), $user)
+            ->where('academic_year_id', $academicYearId ?? $this->resolveAcademicYearId($request, $user));
 
         if ($gradeId = $request->query('grade_id')) {
             $query->whereHas('student.currentEnrollment.section', fn ($q) => $q->where('grade_id', $gradeId));
+        }
+
+        if ($frequency = $request->query('frequency')) {
+            $query->where('frequency', $frequency);
+        }
+
+        // Encoded as "<frequency>|<period_start>" (one term's start and one month's start can fall on the
+        // same calendar date, so the date alone would not pick out a single period) -- see the `periods`
+        // list this same screen is given to build the dropdown from.
+        if ($period = $request->query('period')) {
+            [$periodFrequency, $periodStart] = array_pad(explode('|', $period, 2), 2, null);
+            if ($periodFrequency && $periodStart) {
+                $query->where('frequency', $periodFrequency)->whereDate('period_start', $periodStart);
+            }
+        }
+
+        // When the bill was actually sent (created), not the billing period it's for -- a registrar
+        // chasing down "what did I send this morning" or "what went out last week" wants this, separately
+        // from which month/term/year the bill itself covers.
+        if ($request->filled('sent_from')) {
+            $query->where('invoices.created_at', '>=', SchoolCalendar::businessDayStartUtc($request->query('sent_from')));
+        }
+        if ($request->filled('sent_to')) {
+            $query->where('invoices.created_at', '<', SchoolCalendar::businessDayStartUtc($request->query('sent_to'))->addDay());
         }
 
         if ($term = trim((string) $request->query('q', ''))) {
@@ -72,6 +103,16 @@ class InvoiceController extends Controller
         return $query;
     }
 
+    /** The year this screen is scoped to: whichever one was picked, or the school's current year. */
+    private function resolveAcademicYearId(Request $request, $user): ?int
+    {
+        if ($yearId = $request->query('academic_year_id')) {
+            return (int) $yearId;
+        }
+
+        return AcademicYear::where('school_id', $user->school_id)->where('is_current', true)->value('id');
+    }
+
     /**
      * One lightweight row per invoice in scope -- just the scalars Finance::centsFromTotals() needs (gross,
      * discount, verified-received, refunded, is_waived) -- never the invoice's items/payments/refunds
@@ -81,9 +122,9 @@ class InvoiceController extends Controller
      * way; doing it as five numbers per row instead of a fully hydrated model is the actual fix for the memory
      * this screen used to need.
      */
-    private function invoiceTotalsQuery(Request $request, $user): Builder
+    private function invoiceTotalsQuery(Request $request, $user, ?int $academicYearId = null): Builder
     {
-        return $this->invoiceScope($request, $user)
+        return $this->invoiceScope($request, $user, $academicYearId)
             ->select(['invoices.id', 'invoices.discount_amount', 'invoices.is_waived'])
             ->addSelect([
                 'gross' => InvoiceItem::selectRaw('COALESCE(SUM(amount), 0)')->whereColumn('invoice_id', 'invoices.id'),
@@ -101,19 +142,23 @@ class InvoiceController extends Controller
         $user = $request->user();
 
         $status = $request->query('status');
+        $academicYearId = $this->resolveAcademicYearId($request, $user);
 
-        $totalsRows = $this->invoiceTotalsQuery($request, $user)->get();
+        $totalsRows = $this->invoiceTotalsQuery($request, $user, $academicYearId)->get();
         $matching = $status ? $totalsRows->filter(fn ($row) => Finance::statusFromTotals($row) === $status) : $totalsRows;
 
         // the summary bar reflects every invoice the filters match, not just the page on screen
         $totals = Finance::summarizeFromTotals($matching);
 
-        $paginator = $this->invoiceScope($request, $user)
+        $paginator = $this->invoiceScope($request, $user, $academicYearId)
             ->when($status, fn ($q) => $q->whereIn('invoices.id', $matching->pluck('id')))
             // 'items' and 'payments.refunds' are what totalAmount()/paidAmount()/balance()/statusLabel() below
             // read via Finance::cents() -- eager-loaded here so the page is a handful of batched queries, never
             // two more lazy-loaded queries for every single invoice on the page
-            ->with(['student.currentEnrollment.section.grade', 'items', 'payments.refunds'])
+            ->with(['student.currentEnrollment.section.grade', 'student.school', 'items', 'payments.refunds'])
+            // Newest-sent first by default -- the actual moment the bill was created, not the id (which only
+            // happens to track it because invoices are never renumbered or backdated).
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($this->perPage($request))
             ->withQueryString();
@@ -126,10 +171,15 @@ class InvoiceController extends Controller
             'grade' => $i->student->currentEnrollment?->section?->grade?->name,
             'grade_id' => $i->student->currentEnrollment?->section?->grade?->id,
             'period' => $i->period_label ?? 'Full Year',
+            'frequency' => $i->frequency,
             'total' => $i->totalAmount(),
             'paid' => $i->paidAmount(),
             'balance' => $i->balance(),
             'status' => $i->statusLabel(),
+            'is_overdue' => $i->isOverdue(),
+            'sent_at' => SchoolCalendar::dateTime($i->created_at, $user),
+            'paid_at' => optional($i->payments->where('status', 'verified')->sortByDesc('verified_at')->first())
+                ->verified_at?->toDateString(),
         ])->values();
 
         return Inertia::render('Invoices/Index', [
@@ -141,7 +191,22 @@ class InvoiceController extends Controller
             'branches' => $user->isOrgWide()
                 ? $user->school->branches()->orderBy('name')->get(['id', 'name'])
                 : $user->school->branches()->where('id', $user->branch_id)->get(['id', 'name']),
-            'filters' => $request->only('grade_id', 'status', 'q'),
+            'academicYears' => $user->school->academicYears()->orderByDesc('start_date')->get(['id', 'name', 'is_current']),
+            'selectedAcademicYearId' => $academicYearId,
+            // Every distinct billing period this year's invoices actually use, for the "which term/month"
+            // dropdown -- never a guessed list of calendar months, since not every grade bills monthly.
+            'periods' => $this->scopeToBranches(Invoice::where('academic_year_id', $academicYearId), $user)
+                ->select('frequency', 'period_start', 'period_label')
+                ->distinct()
+                ->orderBy('period_start')
+                ->get()
+                ->map(fn ($row) => [
+                    'value' => $row->frequency.'|'.$row->period_start->toDateString(),
+                    'frequency' => $row->frequency,
+                    'label' => $row->period_label ?? 'Full Year',
+                ])
+                ->values(),
+            'filters' => $request->only('grade_id', 'status', 'q', 'frequency', 'period', 'academic_year_id', 'sent_from', 'sent_to'),
         ]);
     }
 
@@ -170,20 +235,25 @@ class InvoiceController extends Controller
         $rows = [
             [$user->school->name],
             ['Invoices — '.SchoolCalendar::date(SchoolCalendar::today(), $user)],
-            ['Invoice #', 'Student', 'Student ID', 'Grade', 'Period', 'Billed (ETB)', 'Collected (ETB)', 'Balance (ETB)', 'Status'],
+            ['Invoice #', 'Student', 'Student ID', 'Grade', 'Type', 'Period', 'Billed (ETB)', 'Collected (ETB)', 'Balance (ETB)', 'Status', 'Sent On', 'Paid On'],
         ];
 
         foreach ($invoices as $i) {
+            $lastPayment = $i->payments->where('status', 'verified')->sortByDesc('verified_at')->first();
+
             $rows[] = [
                 $i->invoice_number,
                 $i->student->fullName(),
                 $i->student->student_id_number,
                 $i->student->currentEnrollment?->section?->grade?->name ?? '',
+                str_replace('_', ' ', $i->frequency),
                 $i->period_label ?? 'Full Year',
                 $i->totalAmount(),
                 $i->paidAmount(),
                 $i->balance(),
                 str_replace('_', ' ', $i->statusLabel()),
+                SchoolCalendar::dateTime($i->created_at, $user),
+                $lastPayment?->verified_at?->toDateString() ?? '',
             ];
         }
 
@@ -191,10 +261,10 @@ class InvoiceController extends Controller
         // minus refunds, balance = still owed (0 for waived invoices).
         $t = Finance::summarize($invoices);
         $rows[] = [];
-        $rows[] = ['TOTAL', '', '', '', $t['invoice_count'].' invoices', $t['net'], $t['collected'], $t['outstanding'], ''];
-        $rows[] = ['of which: discounts', '', '', '', '', $t['discount'], '', '', ''];
-        $rows[] = ['of which: waived', '', '', '', '', $t['waived'], '', '', ''];
-        $rows[] = ['of which: refunded', '', '', '', '', '', $t['refunded'], '', ''];
+        $rows[] = ['TOTAL', '', '', '', '', $t['invoice_count'].' invoices', $t['net'], $t['collected'], $t['outstanding'], '', '', ''];
+        $rows[] = ['of which: discounts', '', '', '', '', '', $t['discount'], '', '', '', '', ''];
+        $rows[] = ['of which: waived', '', '', '', '', '', $t['waived'], '', '', '', '', ''];
+        $rows[] = ['of which: refunded', '', '', '', '', '', '', $t['refunded'], '', '', '', ''];
 
         return Excel::download(new SimpleArrayExport($rows, 'Invoices'), 'invoices.xlsx');
     }
@@ -347,6 +417,11 @@ class InvoiceController extends Controller
     {
         ['year' => $year, 'branch' => $branch, 'fees' => $fees, 'terms' => $terms, 'enrollments' => $enrollments, 'months' => $months, 'selected' => $selected] = $ctx;
 
+        // Every invoice this run creates is tagged with this one id, so the result screen can offer to
+        // undo the WHOLE run in one tap (InvoiceController::cancelBatch) -- a dry run previews only, so it
+        // never needs one.
+        $batchId = $dryRun ? null : (string) \Illuminate\Support\Str::uuid();
+
         $today = SchoolCalendar::today();
         $periods = [];
         $skipped = ['already_billed' => [], 'left_school' => [], 'nothing_to_bill' => []];
@@ -364,12 +439,12 @@ class InvoiceController extends Controller
 
             $tally = ['created' => 0, 'exists' => 0, 'withdrawn' => 0];
 
-            $bill = function (string $key, ?Term $term, ?string $label, string $frequency, $start, Collection $periodFees, Collection $periodServices) use ($user, $student, $year, $dryRun, $today, $selected, &$periods, &$tally, &$invoices, &$amount, &$notified, &$future) {
+            $bill = function (string $key, ?Term $term, ?string $label, string $frequency, $start, Collection $periodFees, Collection $periodServices) use ($user, $student, $year, $dryRun, $today, $selected, $batchId, &$periods, &$tally, &$invoices, &$amount, &$notified, &$future) {
                 if ($selected !== null && ! in_array($key, $selected, true)) {
                     return;
                 }
 
-                $outcome = $this->billPeriod($user, $student, $year, $term, $label, $frequency, $start, $periodFees, $periodServices, $student->withdrawn_on, $dryRun);
+                $outcome = $this->billPeriod($user, $student, $year, $term, $label, $frequency, $start, $periodFees, $periodServices, $student->withdrawn_on, $dryRun, $batchId);
                 if ($outcome === 'nothing') {
                     return;
                 }
@@ -422,6 +497,7 @@ class InvoiceController extends Controller
             'future_invoices' => $future,
             'periods' => array_values($periods),
             'skipped' => array_map(fn ($names) => ['count' => count($names), 'names' => array_slice($names, 0, 50)], $skipped),
+            'batch_id' => $invoices > 0 ? $batchId : null,
         ];
     }
 
@@ -472,7 +548,7 @@ class InvoiceController extends Controller
      * service applies). With $dryRun nothing is written and 'created'
      * means "would be created".
      */
-    private function billPeriod($user, Student $student, AcademicYear $year, ?Term $term, ?string $label, string $frequency, $periodStart, Collection $fees, Collection $services, $withdrawnOn = null, bool $dryRun = false): string
+    private function billPeriod($user, Student $student, AcademicYear $year, ?Term $term, ?string $label, string $frequency, $periodStart, Collection $fees, Collection $services, $withdrawnOn = null, bool $dryRun = false, ?string $batchId = null): string
     {
         // A withdrawn student is only billed for periods that began on or before their effective date.
         if ($withdrawnOn && Carbon::parse($periodStart)->gt(Carbon::parse($withdrawnOn))) {
@@ -500,7 +576,7 @@ class InvoiceController extends Controller
         // the second insert and we treat it as "someone else just billed
         // this period" -- skipping it, never crashing the rest of the run.
         try {
-            $invoice = DB::transaction(function () use ($user, $student, $year, $term, $label, $frequency, $periodStart, $fees, $services) {
+            $invoice = DB::transaction(function () use ($user, $student, $year, $term, $label, $frequency, $periodStart, $fees, $services, $batchId) {
                 School::whereKey($user->school_id)->lockForUpdate()->first();
 
                 $exists = Invoice::where('student_id', $student->id)
@@ -521,6 +597,7 @@ class InvoiceController extends Controller
                     'frequency' => $frequency,
                     'period_start' => $periodStart,
                     'invoice_number' => $this->nextInvoiceNumber($user->school_id),
+                    'generation_batch_id' => $batchId,
                 ]);
 
                 foreach ($fees as $fee) {
@@ -629,6 +706,8 @@ class InvoiceController extends Controller
                 'paid' => $fig['collected'],
                 'balance' => $fig['outstanding'],
                 'status' => $fig['status'],
+                'due_date' => $invoice->is_waived ? null : $invoice->dueDate()->toDateString(),
+                'is_overdue' => $invoice->isOverdue(),
                 'payments' => $invoice->payments->map(fn ($p) => [
                     'id' => $p->id,
                     'amount' => $p->amount,
@@ -765,6 +844,125 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', 'Invoice waived.');
+    }
+
+    /**
+     * Undoes a "Create bills" run in one tap -- right from the result screen, before a registrar's mistake
+     * (wrong grade, wrong amount, too early) reaches anyone. Any invoice in the batch that already has a
+     * payment on it (even an unverified one a parent sent in good faith) is left alone and reported back,
+     * never silently removed from under them -- see deleteSafely() for the actual rule and why a real
+     * delete, not a waiver, is what makes the period billable again.
+     */
+    public function cancelBatch(Request $request, string $batchId): RedirectResponse
+    {
+        $user = $request->user();
+        $user->can('manage-invoices') || abort(403);
+
+        $invoices = $this->scopeToBranches(Invoice::where('generation_batch_id', $batchId), $user)
+            ->with(['payments', 'student.currentEnrollment.section'])
+            ->get();
+
+        abort_if($invoices->isEmpty(), 404);
+        $gradeId = $invoices->first()->student->currentEnrollment?->section?->grade_id;
+
+        [$deleted, $blocked] = $this->deleteSafely($invoices, $user, 'invoices.batch_cancelled', ['batch_id' => $batchId]);
+
+        $message = "{$deleted} bill(s) cancelled.";
+        if ($blocked > 0) {
+            $message .= " {$blocked} left alone because a payment already exists on them.";
+        }
+
+        // Lands on the invoices list (not back on the "Create bills" wizard): whatever is left (the ones
+        // a payment protected) is right there -- and a flashed 'invoice_run' only ever survives ONE
+        // redirect hop, which the result screen's own earlier render already used up.
+        return redirect()->route('invoices.index', array_filter(['grade_id' => $gradeId]))
+            ->with($blocked > 0 ? 'warning' : 'success', $message);
+    }
+
+    /**
+     * Deletes a single bill a registrar, principal or owner created by mistake (wrong month, wrong
+     * amount) -- right from the bill's own page, any time after creation, not just immediately after
+     * the batch that made it. See deleteSafely() for the rule.
+     */
+    public function destroy(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $user = $request->user();
+        $user->can('manage-invoices') || abort(403);
+        $this->assertManageScope($user, $invoice);
+
+        $invoice->load(['payments', 'student']);
+
+        // No reason to type -- one tap, same as the batch "Undo" button: nothing has been collected or
+        // forgiven, so there's nothing for an approval/explanation step to protect against.
+        [$deleted, $blocked] = $this->deleteSafely(collect([$invoice]), $user, 'invoice.deleted');
+
+        if ($blocked > 0) {
+            return back()->withErrors(['invoice' => 'This bill already has a payment on it, so it cannot be deleted. If money was already paid and needs to go back to the family, refund that payment (ask an owner or principal if you do not see that option). If only the remaining balance should be forgiven, waive it instead.']);
+        }
+
+        return redirect()->route('invoices.index')->with('success', "Invoice {$invoice->invoice_number} deleted.");
+    }
+
+    /**
+     * The same delete as destroy(), for several bills picked by hand on the list instead of one at a
+     * time from each bill's own page -- e.g. a whole page of wrongly-dated bills. Silently ignores any
+     * id that doesn't exist or falls outside this user's branches, rather than failing the whole batch
+     * over one bad id.
+     */
+    public function destroyMany(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $user->can('manage-invoices') || abort(403);
+
+        $validated = $request->validate(['ids' => ['required', 'array', 'min:1'], 'ids.*' => ['integer']]);
+
+        $invoices = $this->scopeToBranches(Invoice::whereIn('id', $validated['ids']), $user)
+            ->with(['payments', 'student'])
+            ->get();
+
+        [$deleted, $blocked] = $this->deleteSafely($invoices, $user, 'invoices.bulk_deleted');
+
+        $message = "{$deleted} bill(s) deleted.";
+        if ($blocked > 0) {
+            $message .= " {$blocked} left alone because a payment already exists on them.";
+        }
+
+        return redirect()->route('invoices.index')->with($blocked > 0 ? 'warning' : 'success', $message);
+    }
+
+    /**
+     * The one place invoices are ever really removed from the database, not just marked waived --
+     * because waiving leaves the (student, year, frequency, period) row in place, which permanently
+     * blocks Create Bills from ever generating a correct replacement for that exact period. Safe only
+     * because of the rule enforced here: an invoice with ANY payment on it (verified, pending, or even
+     * rejected -- a parent tried, in good faith) is never touched, full stop; staff use the existing
+     * Waive action for those instead. Deliberately goes through the query builder, not $invoice->delete(),
+     * so NeverHardDeleted's guard never fires -- this IS the narrow, intentional exception to it.
+     *
+     * @return array{0: int, 1: int} [how many were deleted, how many were left alone]
+     */
+    private function deleteSafely(Collection $invoices, $user, string $auditAction, array $auditExtra = []): array
+    {
+        [$blocked, $deletable] = $invoices->partition(fn (Invoice $i) => $i->payments->isNotEmpty());
+
+        if ($deletable->isNotEmpty()) {
+            $ids = $deletable->pluck('id');
+
+            AuditLog::record($user, $auditAction, $deletable->first(), null, $auditExtra + [
+                'invoices' => $deletable->map(fn (Invoice $i) => [
+                    'id' => $i->id,
+                    'number' => $i->invoice_number,
+                    'student' => $i->student->fullName(),
+                    'period' => $i->period_label ?? 'Full Year',
+                    'amount' => $i->totalAmount(),
+                ])->all(),
+            ]);
+
+            DB::table('journal_entries')->where('source_type', Invoice::class)->whereIn('source_id', $ids)->delete();
+            DB::table('invoices')->whereIn('id', $ids)->delete();
+        }
+
+        return [$deletable->count(), $blocked->count()];
     }
 
     /**

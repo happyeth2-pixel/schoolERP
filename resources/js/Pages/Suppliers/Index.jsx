@@ -1,13 +1,14 @@
 import SearchInput from '@/Components/SearchInput';
-import { Button, Card, EmptyState, FlashMessages, Page } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BuildingOffice2Icon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ suppliers, search, canManage }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [q, setQ] = useState(search);
 
     const runSearch = (value) => {
@@ -16,10 +17,11 @@ export default function Index({ suppliers, search, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('supplier.list_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('supplier.list_title')}</h2>}>
             <Page
                 title={t('supplier.list_title')}
                 description={t('supplier.list_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button as={Link} href={route('suppliers.create')} icon={PlusIcon}>{t('supplier.add_button')}</Button>}
             >
                 <FlashMessages />
@@ -30,9 +32,9 @@ export default function Index({ suppliers, search, canManage }) {
                 ) : (
                     <ul className="grid gap-4 lg:grid-cols-2" data-testid="supplier-list">
                         {suppliers.data.map((s) => (
-                            <li key={s.id} data-testid="supplier-row" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-                                <Link href={route('suppliers.show', s.id)} className="text-lg font-semibold text-gray-900 hover:underline dark:text-gray-100">{s.name}</Link>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{s.code}{s.contact_person ? ` · ${s.contact_person}` : ''}{s.phone ? ` · ${s.phone}` : ''}</p>
+                            <li key={s.id} data-testid="supplier-row" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
+                                <Link href={route('suppliers.show', s.id)} className="text-lg font-semibold text-stone-900 hover:underline dark:text-stone-100">{s.name}</Link>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{s.code}{s.contact_person ? ` · ${s.contact_person}` : ''}{s.phone ? ` · ${s.phone}` : ''}</p>
                             </li>
                         ))}
                     </ul>

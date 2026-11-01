@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 // Small pieces the parent's pages share, so a parent who has learned one screen has learned them all.
 
-const AVATARS = ['bg-indigo-600', 'bg-sky-700', 'bg-emerald-700', 'bg-amber-700', 'bg-rose-700'];
+const AVATARS = ['bg-brand-600', 'bg-sky-700', 'bg-emerald-700', 'bg-amber-700', 'bg-rose-700'];
 
 export function Avatar({ name, index = 0, size = 'h-12 w-12 text-xl' }) {
     return (
@@ -30,8 +30,8 @@ export function ChildSwitcher({ children, value, onChange }) {
             <div className="flex items-center gap-3" data-testid="child-single">
                 <Avatar name={c.name} />
                 <div className="min-w-0">
-                    <p className="truncate text-xl font-bold text-gray-900 dark:text-gray-100">{c.name}</p>
-                    {c.class && <p className="text-base text-gray-700 dark:text-gray-300">{c.class}</p>}
+                    <p className="truncate text-xl font-bold text-stone-900 dark:text-stone-100">{c.name}</p>
+                    {c.class && <p className="text-base font-bold text-brand-700 dark:text-brand-400">{c.class}</p>}
                 </div>
             </div>
         );
@@ -39,7 +39,7 @@ export function ChildSwitcher({ children, value, onChange }) {
 
     return (
         <div data-testid="child-switcher">
-            <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('parent.switch_label')}</p>
+            <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('parent.switch_label')}</p>
             <div role="radiogroup" aria-label={t('parent.switch_label')} className="grid gap-3 sm:grid-cols-2">
                 {children.map((c, i) => {
                     const selected = c.id === value;
@@ -50,12 +50,12 @@ export function ChildSwitcher({ children, value, onChange }) {
                             role="radio"
                             aria-checked={selected}
                             onClick={() => onChange(c.id)}
-                            className={`flex min-h-[72px] items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}
+                            className={`flex min-h-[72px] items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}
                         >
                             <Avatar name={c.name} index={i} size="h-12 w-12 text-xl ring-2 ring-white/70" />
                             <span className="min-w-0 flex-1">
                                 <span className="block truncate text-lg font-bold">{c.first_name ?? c.name}</span>
-                                {c.class && <span className={`block text-sm ${selected ? 'text-indigo-100' : 'text-gray-600 dark:text-gray-400'}`}>{c.class}</span>}
+                                {c.class && <span className={`block text-sm font-bold ${selected ? 'text-white' : 'text-brand-700 dark:text-brand-400'}`}>{c.class}</span>}
                             </span>
                             {selected && <CheckIcon className="h-6 w-6 shrink-0" aria-hidden="true" />}
                         </button>
@@ -73,11 +73,11 @@ export function TodayStatus({ status }) {
 
     if (!s) {
         return (
-            <div className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-gray-300 px-5 py-4 dark:border-gray-600" data-testid="today-status" data-status="none">
-                <ClockIcon className="h-9 w-9 text-gray-600 dark:text-gray-300" aria-hidden="true" />
+            <div className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-stone-300 px-5 py-4 dark:border-stone-600" data-testid="today-status" data-status="none">
+                <ClockIcon className="h-9 w-9 text-stone-600 dark:text-stone-300" aria-hidden="true" />
                 <div>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('parent.today_none')}</p>
-                    <p className="text-base text-gray-700 dark:text-gray-300">{t('parent.today_none_hint')}</p>
+                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('parent.today_none')}</p>
+                    <p className="text-base text-stone-700 dark:text-stone-300">{t('parent.today_none_hint')}</p>
                 </div>
             </div>
         );
@@ -97,7 +97,7 @@ export function DayChip({ date, status, label }) {
     const s = STATUSES.find((x) => x.value === status);
 
     return (
-        <li className={`flex min-w-[84px] flex-col items-center rounded-xl px-2 py-2 text-center text-sm font-semibold ${s?.chip ?? 'bg-gray-100 text-gray-900'}`} data-testid="day-chip" data-status={status}>
+        <li className={`flex min-w-[84px] flex-col items-center rounded-xl px-2 py-2 text-center text-sm font-semibold ${s?.chip ?? 'bg-stone-100 text-stone-900'}`} data-testid="day-chip" data-status={status}>
             <span className="text-xs font-medium opacity-90">{label}</span>
             {s && <s.icon className="my-0.5 h-5 w-5" aria-hidden="true" />}
             <span>{s ? t(statusLabelKey(status)) : status}</span>

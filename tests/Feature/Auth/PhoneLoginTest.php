@@ -41,9 +41,7 @@ class PhoneLoginTest extends TestCase
 
     private function staff(array $over = []): array
     {
-        $data = array_merge(['name' => 'New Teacher', 'phone' => '0922334455', 'title' => 'Teacher', 'role' => 'teacher', 'branch_id' => $this->branchA->id], $over);
-
-        return $data + ['phone_confirmation' => $data['phone']];
+        return array_merge(['name' => 'New Teacher', 'phone' => '0922334455', 'title' => 'Teacher', 'role' => 'teacher', 'branch_id' => $this->branchA->id], $over);
     }
 
     private function temporaryPasswordOf(string $phone = '0922334455'): string

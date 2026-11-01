@@ -255,7 +255,7 @@ class TransportAndAspServicesTest extends TestCase
     {
         return $this->actingAs($by)->post('/students', array_merge([
             'first_name' => 'Bethlehem', 'father_name' => 'Girma', 'gender' => 'female', 'enrollment_date' => '2026-09-20',
-            'section_id' => $this->sectionA->id, 'guardian_mode' => 'none',
+            'section_id' => $this->sectionA->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344',
         ], $extra));
     }
 

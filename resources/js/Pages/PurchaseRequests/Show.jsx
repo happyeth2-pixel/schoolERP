@@ -24,7 +24,7 @@ function RejectDialog({ open, request, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="reject-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('pr.reject_title', { number: request.number })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('pr.reject_title', { number: request.number })}</h2>
                     <Field id="reject_reason" label={t('pr.reject_reason')} error={errors.reason}>
                         <TextArea id="reject_reason" value={data.reason} onChange={(e) => setData('reason', e.target.value)} />
                     </Field>
@@ -71,20 +71,20 @@ export default function Show({ request, canSubmit, canApprove, canManageQuotatio
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{request.number}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{request.number}</h2>}>
             <Page title={request.number} back={<BackLink href={route('purchase-requests.index')}>{t('pr.back_to_list')}</BackLink>}>
                 <FlashMessages />
 
                 <Card>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{request.purpose}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{request.department ? `${request.department} · ` : ''}{t('pr.by_x_on_y', { name: request.requester, date: request.created_at })}</p>
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{request.purpose}</p>
+                            <p className="text-sm text-stone-600 dark:text-stone-400">{request.department ? `${request.department} · ` : ''}{t('pr.by_x_on_y', { name: request.requester, date: request.created_at })}</p>
                         </div>
                         <StatusBadge tone={STATUS_TONE[request.status]} label={t(`pr.status_${request.status}`)} />
                     </div>
                     {request.estimated_total > 0 && (
-                        <p className="mt-3 text-xl font-bold text-gray-900 dark:text-gray-100">{t('pr.estimated_total_x', { amount: money(request.estimated_total) })}</p>
+                        <p className="mt-3 text-xl font-bold text-stone-900 dark:text-stone-100">{t('pr.estimated_total_x', { amount: money(request.estimated_total) })}</p>
                     )}
                     {request.needs_large_approval && request.status === 'submitted' && (
                         <Alert tone="info" title={t('pr.needs_large_approval_title')} className="mt-3" />
@@ -92,19 +92,19 @@ export default function Show({ request, canSubmit, canApprove, canManageQuotatio
                     {request.status === 'rejected' && request.rejection_reason && (
                         <Alert tone="danger" title={t('pr.rejected_reason_title')} className="mt-4">{request.rejection_reason}</Alert>
                     )}
-                    {request.notes && <p className="mt-3 text-base text-gray-700 dark:text-gray-300">{request.notes}</p>}
+                    {request.notes && <p className="mt-3 text-base text-stone-700 dark:text-stone-300">{request.notes}</p>}
                 </Card>
 
                 <Card>
                     <SectionHeader as="h3" title={t('pr.items_title')} />
-                    <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="pr-items">
+                    <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="pr-items">
                         {request.items.map((i) => (
                             <li key={i.id} className="py-3" data-testid="pr-item-row">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{i.description}</span>
-                                    <span className="text-base text-gray-800 dark:text-gray-200">{t('pr.quantity_n', { count: i.quantity })}{i.estimated_total !== null && ` · ${money(i.estimated_total)} ETB`}</span>
+                                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{i.description}</span>
+                                    <span className="text-base text-stone-800 dark:text-stone-200">{t('pr.quantity_n', { count: i.quantity })}{i.estimated_total !== null && ` · ${money(i.estimated_total)} ETB`}</span>
                                 </div>
-                                {i.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{i.notes}</p>}
+                                {i.notes && <p className="text-sm text-stone-600 dark:text-stone-400">{i.notes}</p>}
                             </li>
                         ))}
                     </ul>
@@ -122,21 +122,21 @@ export default function Show({ request, canSubmit, canApprove, canManageQuotatio
                                 {t('quotation.empty_body')}
                             </EmptyState>
                         ) : (
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="quotation-list">
+                            <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="quotation-list">
                                 {quotations.map((q) => (
                                     <li key={q.id} className="space-y-2 py-4" data-testid="quotation-row">
                                         <div className="flex flex-wrap items-start justify-between gap-2">
                                             <div>
-                                                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{q.supplier_name}</p>
-                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{q.supplier_name}</p>
+                                                <p className="text-sm text-stone-600 dark:text-stone-400">
                                                     {q.reference ? `${q.reference} · ` : ''}{t('quotation.dated_x', { date: q.quotation_date })}
                                                 </p>
                                             </div>
                                             {q.selected && <StatusBadge tone="success" label={t('quotation.selected_label')} />}
                                         </div>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{money(q.total)} ETB</p>
-                                        {q.delivery_info && <p className="text-sm text-gray-700 dark:text-gray-300">{q.delivery_info}</p>}
-                                        {q.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{q.notes}</p>}
+                                        <p className="text-lg font-bold text-stone-900 dark:text-stone-100">{money(q.total)} ETB</p>
+                                        {q.delivery_info && <p className="text-sm text-stone-700 dark:text-stone-300">{q.delivery_info}</p>}
+                                        {q.notes && <p className="text-sm text-stone-600 dark:text-stone-400">{q.notes}</p>}
                                         {canManageQuotations && (
                                             <div className="flex flex-wrap gap-3 pt-1">
                                                 {!q.selected && (
@@ -170,12 +170,12 @@ export default function Show({ request, canSubmit, canApprove, canManageQuotatio
                                 {t('purchase_order.empty_body')}
                             </EmptyState>
                         ) : (
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="po-summary-list">
+                            <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="po-summary-list">
                                 {purchaseOrders.map((po) => (
                                     <li key={po.id} className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="po-summary-row">
                                         <div>
-                                            <Link href={route('purchase-orders.show', po.id)} className="text-base font-semibold text-gray-900 hover:underline dark:text-gray-100">{po.number}</Link>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{po.supplier_name} · {money(po.total)} ETB</p>
+                                            <Link href={route('purchase-orders.show', po.id)} className="text-base font-semibold text-stone-900 hover:underline dark:text-stone-100">{po.number}</Link>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400">{po.supplier_name} · {money(po.total)} ETB</p>
                                         </div>
                                         <StatusBadge
                                             tone={po.status === 'cancelled' ? 'danger' : po.status === 'received' ? 'success' : po.status === 'sent' || po.status === 'partially_received' ? 'warning' : 'neutral'}

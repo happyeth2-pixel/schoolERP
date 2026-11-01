@@ -1,17 +1,29 @@
 import { IssueDialog, ReceiveDialog, TransferDialog } from '@/Components/StockMovementDialogs';
 import SearchInput from '@/Components/SearchInput';
-import { Button, Card, EmptyState, FlashMessages, Page, StatusBadge } from '@/Components/ui';
+import Card3D from '@/Components/Card3D';
+import DonutChart from '@/Components/charts/DonutChart';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ArchiveBoxIcon, ArrowsRightLeftIcon, ClipboardDocumentListIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // The consumables catalog: search, low-stock/out-of-stock at a glance, and the four stock actions right
 // where a storekeeper needs them -- no separate "go find the item, then go find the movement screen" hop.
 
-export default function Index({ items, search, canManage, canReceive, canIssue, canTransfer, stores }) {
+function stockSegments(summary, t) {
+    const ok = Math.max(0, summary.total - summary.low_stock - summary.out_of_stock);
+    return [
+        { label: t('dashboard.inventory_ok_stock'), value: ok, color: '#10b981' },
+        { label: t('dashboard.inventory_low_stock'), value: summary.low_stock, color: '#f59e0b' },
+        { label: t('dashboard.inventory_out_of_stock'), value: summary.out_of_stock, color: '#ef4444' },
+    ];
+}
+
+export default function Index({ items, summary, search, canManage, canReceive, canIssue, canTransfer, stores }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [q, setQ] = useState(search);
     const [dialog, setDialog] = useState(null); // { action, item }
 
@@ -24,10 +36,11 @@ export default function Index({ items, search, canManage, canReceive, canIssue, 
     const close = () => setDialog(null);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('inv.items_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('inv.items_title')}</h2>}>
             <Page
                 title={t('inv.items_title')}
                 description={t('inv.items_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={<>
                     <Button as={Link} href={route('inventory-stores.index')} variant="secondary" icon={ArchiveBoxIcon}>{t('inv.manage_stores')}</Button>
                     <Button as={Link} href={route('stock-movements.index')} variant="secondary" icon={ClipboardDocumentListIcon}>{t('inv.movement_history')}</Button>
@@ -35,6 +48,12 @@ export default function Index({ items, search, canManage, canReceive, canIssue, 
                 </>}
             >
                 <FlashMessages />
+                {summary.total > 0 && (
+                    <Card3D glow="blue" className="p-5">
+                        <h3 className="mb-3 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.inventory_breakdown')}</h3>
+                        <DonutChart segments={stockSegments(summary, t)} centerValue={summary.total} centerLabel={t('dashboard.inventory_total_items')} />
+                    </Card3D>
+                )}
                 <SearchInput value={q} onChange={runSearch} placeholder={t('inv.search_placeholder')} />
 
                 {items.data.length === 0 ? (
@@ -42,11 +61,11 @@ export default function Index({ items, search, canManage, canReceive, canIssue, 
                 ) : (
                     <ul className="grid gap-4 lg:grid-cols-2" data-testid="item-list">
                         {items.data.map((item) => (
-                            <li key={item.id} data-testid="item-row" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                            <li key={item.id} data-testid="item-row" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                        <Link href={route('inventory-items.show', item.id)} className="text-lg font-semibold text-gray-900 hover:underline dark:text-gray-100">{item.name}</Link>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{[item.category_name, item.sku].filter(Boolean).join(' · ') || '—'}</p>
+                                        <Link href={route('inventory-items.show', item.id)} className="text-lg font-semibold text-stone-900 hover:underline dark:text-stone-100">{item.name}</Link>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">{[item.category_name, item.sku].filter(Boolean).join(' · ') || '—'}</p>
                                     </div>
                                     {item.out_of_stock ? (
                                         <StatusBadge tone="danger" label={t('inv.out_of_stock')} />
@@ -56,7 +75,7 @@ export default function Index({ items, search, canManage, canReceive, canIssue, 
                                         <StatusBadge tone="success" label={t('inv.in_stock')} />
                                     )}
                                 </div>
-                                <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="on-hand">{item.on_hand} <span className="text-base font-normal text-gray-600 dark:text-gray-400">{item.unit}</span></p>
+                                <p className="mt-2 text-2xl font-bold text-stone-900 dark:text-stone-100" data-testid="on-hand">{item.on_hand} <span className="text-base font-normal text-stone-600 dark:text-stone-400">{item.unit}</span></p>
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {canReceive && <Button size="md" variant="secondary" onClick={() => open('receive', item)}>{t('inv.receive_button')}</Button>}
                                     {canIssue && <Button size="md" variant="secondary" onClick={() => open('issue', item)}>{t('inv.issue_button')}</Button>}

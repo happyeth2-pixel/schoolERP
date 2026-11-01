@@ -6,10 +6,12 @@ use App\Models\AttendanceRecord;
 use App\Models\Invoice;
 use App\Models\Student;
 use App\Services\Finance;
+use App\Services\PaymentStatements;
 use App\Support\PhoneNumber;
 use App\Support\SchoolCalendar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -53,6 +55,7 @@ class StudentDeskController extends Controller
                 'id' => $student->id,
                 'name' => $student->fullName(),
                 'student_id_number' => $student->student_id_number,
+                'photo_url' => $student->photo_path ? Storage::disk('public')->url($student->photo_path) : null,
                 'class' => $student->currentEnrollment?->section ? "{$student->currentEnrollment->section->grade->name} {$student->currentEnrollment->section->name}" : null,
                 'status' => $student->status,
                 'guardians' => $student->guardians->map(fn ($g) => [
@@ -80,7 +83,7 @@ class StudentDeskController extends Controller
         $invoices = Invoice::where('student_id', $student->id)
             ->with(['items', 'payments.refunds'])
             ->orderByDesc('period_start')->orderByDesc('id')
-            ->limit(30)->get();
+            ->get();
 
         $rows = $invoices->map(function (Invoice $i) use ($user) {
             $fig = $i->figures();
@@ -118,9 +121,25 @@ class StudentDeskController extends Controller
 
         return [
             'owed' => $summary['outstanding'],
+            'paid_total' => $summary['collected'],
             'invoices' => $rows,
             'recent_payments' => $recent,
+            'statement_url' => route('students.fees.statement', $student->id),
         ];
+    }
+
+    /** The same printable history as the parent's own "Fees & Payments" page -- every period, every
+     * verified payment, the lifetime total paid -- for when it's staff printing it at the school desk. */
+    public function statement(Request $request, Student $student)
+    {
+        $user = $request->user();
+
+        abort_if($user->hasRole('parent') || $user->hasRole('student'), 403);
+        abort_unless($student->school_id === $user->school_id, 403);
+        abort_unless($user->isOrgWide() || $user->branch_id === $student->branch_id, 403);
+        abort_unless($user->can('manage-invoices') || $user->can('view-financial-reports'), 403);
+
+        return PaymentStatements::pdf($student)->download("statement-{$student->student_id_number}.pdf");
     }
 
     /** Same formula as the parent's own attendance page: present + late out of every recorded day. */

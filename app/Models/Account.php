@@ -81,8 +81,12 @@ class Account extends Model
      * account's own normal side (a debit-normal account's balance is debit-minus-credit, and vice versa). */
     public function balance(?string $asOfDate = null): float
     {
+        // whereDate(), not where('entry_date', '<=', ...): `entry_date` is DATE-cast but Eloquent
+        // serializes it with a "00:00:00" time component, so a plain string `<=` comparison against a
+        // bare "Y-m-d" fails on the exact boundary day on SQLite (a naive text compare, unlike MySQL's
+        // type-aware one) -- whereDate() truncates both sides to the calendar date on every driver.
         $query = $this->lines()->whereHas('journalEntry', fn ($q) => $q->where('status', 'posted')
-            ->when($asOfDate, fn ($q2) => $q2->where('entry_date', '<=', $asOfDate)));
+            ->when($asOfDate, fn ($q2) => $q2->whereDate('entry_date', '<=', $asOfDate)));
 
         $debit = (float) (clone $query)->sum('debit');
         $credit = (float) (clone $query)->sum('credit');
@@ -95,7 +99,7 @@ class Account extends Model
     public function movementBetween(string $from, string $to): float
     {
         $query = $this->lines()->whereHas('journalEntry', fn ($q) => $q->where('status', 'posted')
-            ->whereBetween('entry_date', [$from, $to]));
+            ->whereDate('entry_date', '>=', $from)->whereDate('entry_date', '<=', $to));
 
         $debit = (float) (clone $query)->sum('debit');
         $credit = (float) (clone $query)->sum('credit');

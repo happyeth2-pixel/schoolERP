@@ -60,6 +60,7 @@ class SchoolSettingsController extends Controller
             'missing_mark_policy' => ['required', 'in:exclude,zero'],
             'discount_limit_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'waiver_limit_amount' => ['required', 'numeric', 'min:0', 'max:9999999'],
+            'payment_due_days' => ['required', 'integer', 'min:0', 'max:365'],
             'purchase_approval_threshold' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'allow_overlapping_terms' => ['required', 'boolean'],
             'enabled_languages' => ['required', 'array', 'min:1'],

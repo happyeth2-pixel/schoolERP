@@ -47,7 +47,7 @@ export default function Index({ stores, branches, canManage, isOrgWide }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('inv.stores_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('inv.stores_title')}</h2>}>
             <Page
                 title={t('inv.stores_title')}
                 description={t('inv.stores_desc')}
@@ -63,10 +63,10 @@ export default function Index({ stores, branches, canManage, isOrgWide }) {
                 ) : (
                     <ul className="grid gap-4 sm:grid-cols-2" data-testid="store-list">
                         {stores.map((s) => (
-                            <li key={s.id} data-testid="store-row" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{s.name}</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{s.branch_name ?? t('inv.all_branches')}{s.code ? ` · ${s.code}` : ''}</p>
-                                <p className="mt-2 text-base text-gray-700 dark:text-gray-300">{t('inv.store_item_count', { count: s.item_count })}</p>
+                            <li key={s.id} data-testid="store-row" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
+                                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{s.name}</p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{s.branch_name ?? t('inv.all_branches')}{s.code ? ` · ${s.code}` : ''}</p>
+                                <p className="mt-2 text-base text-stone-700 dark:text-stone-300">{t('inv.store_item_count', { count: s.item_count })}</p>
                                 {canManage && <Button variant="danger" size="md" className="mt-3" onClick={() => remove(s)}>{t('inv.remove_store_button')}</Button>}
                             </li>
                         ))}

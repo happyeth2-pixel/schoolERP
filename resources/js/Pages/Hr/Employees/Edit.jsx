@@ -1,4 +1,5 @@
 import { BackLink, Button, Card, Field, FlashMessages, Input, Page, SectionHeader, Select, TextArea } from '@/Components/ui';
+import DateInput from '@/Components/DateInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,7 @@ export default function Edit({ employee, departments, positions, branches, linka
     const { t } = useTranslation();
     const form = useForm({
         full_name: employee.full_name, phone: employee.phone, email: employee.email ?? '',
-        gender: employee.gender ?? '', date_of_birth: employee.date_of_birth ?? '', photo: null,
+        gender: employee.gender ?? '', age: employee.age ?? '', photo: null,
         hire_date: employee.hire_date, department_id: employee.department_id ? String(employee.department_id) : '',
         position_id: employee.position_id ? String(employee.position_id) : '', branch_id: employee.branch_id ? String(employee.branch_id) : '',
         employment_status: employee.employment_status, employment_type: employee.employment_type,
@@ -25,7 +26,7 @@ export default function Edit({ employee, departments, positions, branches, linka
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('employee.edit_title', { name: employee.full_name })}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('employee.edit_title', { name: employee.full_name })}</h2>}>
             <Page title={t('employee.edit_title', { name: employee.full_name })} back={<BackLink href={route('employees.show', employee.id)}>{t('employee.back_to_profile')}</BackLink>}>
                 <FlashMessages />
                 <form onSubmit={submit} className="space-y-6">
@@ -48,8 +49,8 @@ export default function Edit({ employee, departments, positions, branches, linka
                                     <option value="female">{t('employee.gender_female')}</option>
                                 </Select>
                             </Field>
-                            <Field id="emp_dob" label={t('employee.date_of_birth')} error={errors.date_of_birth}>
-                                <Input type="date" value={data.date_of_birth} onChange={(e) => set('date_of_birth')(e.target.value)} />
+                            <Field id="emp_age" label={t('employee.age')} hint={t('enroll.age_hint')} error={errors.age}>
+                                <Input type="number" inputMode="numeric" min="0" max="80" value={data.age} onChange={(e) => set('age')(e.target.value)} />
                             </Field>
                             <Field id="emp_photo" label={t('employee.photo')} hint={t('employee.photo_hint')} error={errors.photo}>
                                 <input id="emp_photo" type="file" accept="image/png,image/jpeg" onChange={(e) => set('photo')(e.target.files[0] ?? null)} className="block w-full text-base" />
@@ -61,7 +62,7 @@ export default function Edit({ employee, departments, positions, branches, linka
                         <SectionHeader as="h3" title={t('employee.section_employment')} />
                         <div className="space-y-5">
                             <Field id="emp_hire_date" label={t('employee.hire_date')} error={errors.hire_date}>
-                                <Input type="date" value={data.hire_date} onChange={(e) => set('hire_date')(e.target.value)} />
+                                <DateInput large value={data.hire_date} onChange={set('hire_date')} />
                             </Field>
                             {branches.length > 1 && (
                                 <Field id="emp_branch" label={t('employee.branch')} error={errors.branch_id}>

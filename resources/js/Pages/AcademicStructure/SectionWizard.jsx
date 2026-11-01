@@ -64,7 +64,7 @@ export default function SectionWizard({ grades, branches, academicYears, existin
     const stepOf = (k) => steps.findIndex((s) => s.key === k);
 
     const title = t('sect.title_add');
-    const layoutHeader = <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>;
+    const layoutHeader = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>;
     const back = <BackLink href={route('academic-structure.index')}>{t('sect.back')}</BackLink>;
 
     if (saved && !dismissed) {
@@ -106,13 +106,13 @@ export default function SectionWizard({ grades, branches, academicYears, existin
                         {key === 'where' && (
                             <div className="space-y-6">
                                 <div>
-                                    <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('sect.grade')}</p>
+                                    <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('sect.grade')}</p>
                                     <div role="radiogroup" aria-label={t('sect.grade')} className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="grade-grid">
                                         {grades.map((g) => {
                                             const selected = String(g.id) === data.grade_id;
                                             return (
                                                 <button key={g.id} type="button" role="radio" aria-checked={selected} onClick={() => set('grade_id')(String(g.id))}
-                                                    className={`flex min-h-[64px] items-center justify-center rounded-xl border-2 px-3 py-2 text-center text-lg font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}>
+                                                    className={`flex min-h-[64px] items-center justify-center rounded-xl border-2 px-3 py-2 text-center text-lg font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}>
                                                     {g.name}
                                                 </button>
                                             );
@@ -130,9 +130,9 @@ export default function SectionWizard({ grades, branches, academicYears, existin
                                     options={academicYears.map((y) => ({ value: String(y.id), label: y.name, hint: y.is_current ? t('sect.year_current') : undefined }))}
                                 />
                                 {grade && branch && year && (
-                                    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900/40" data-testid="existing">
-                                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('sect.existing_title', { grade: grade.name, year: year.name })}</p>
-                                        <p className="mt-1 text-base text-gray-700 dark:text-gray-300">
+                                    <div className="rounded-xl bg-stone-50 p-4 dark:bg-stone-900/40" data-testid="existing">
+                                        <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('sect.existing_title', { grade: grade.name, year: year.name })}</p>
+                                        <p className="mt-1 text-base text-stone-700 dark:text-stone-300">
                                             {here.length === 0 ? t('sect.existing_none') : here.map((s) => s.name).sort().join(', ')}
                                         </p>
                                     </div>
@@ -147,9 +147,9 @@ export default function SectionWizard({ grades, branches, academicYears, existin
                                 </Field>
                                 {suggestions.length > 0 && (
                                     <div className="-mt-3">
-                                        <p className="mb-1 text-sm text-gray-600 dark:text-gray-400">{t('sect.name_suggest')}</p>
+                                        <p className="mb-1 text-sm text-stone-600 dark:text-stone-400">{t('sect.name_suggest')}</p>
                                         <div className="flex flex-wrap gap-2">
-                                            {suggestions.map((s) => <button key={s} type="button" onClick={() => set('name')(s)} className="min-h-[44px] min-w-[56px] rounded-xl border-2 border-gray-300 bg-white px-3 text-base font-bold text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">{s}</button>)}
+                                            {suggestions.map((s) => <button key={s} type="button" onClick={() => set('name')(s)} className="min-h-[44px] min-w-[56px] rounded-xl border-2 border-stone-300 bg-white px-3 text-base font-bold text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100">{s}</button>)}
                                         </div>
                                     </div>
                                 )}
@@ -161,12 +161,12 @@ export default function SectionWizard({ grades, branches, academicYears, existin
 
                         {key === 'review' && (
                             <div className="space-y-4">
-                                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="headline">
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{grade?.name} {nameTrim}</p>
-                                    <p className="mt-1 text-lg text-gray-800 dark:text-gray-200">{[branches.length > 1 ? branch?.name : null, year?.name].filter(Boolean).join(' · ')}</p>
+                                <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 dark:border-brand-700 dark:bg-brand-900/20" data-testid="headline">
+                                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{grade?.name} {nameTrim}</p>
+                                    <p className="mt-1 text-lg text-stone-800 dark:text-stone-200">{[branches.length > 1 ? branch?.name : null, year?.name].filter(Boolean).join(' · ')}</p>
                                 </div>
                                 <ReviewList rows={rows} onEdit={wizard.goTo} />
-                                <p className="text-base text-gray-700 dark:text-gray-300">{t('sect.review_note')}</p>
+                                <p className="text-base text-stone-700 dark:text-stone-300">{t('sect.review_note')}</p>
                             </div>
                         )}
                     </WizardShell>

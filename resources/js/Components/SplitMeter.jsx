@@ -10,11 +10,11 @@ export default function SplitMeter({ label, paid, total, emptyLabel = 'No invoic
     const balancePct = hasValue ? Math.max(0, 100 - paidPct) : 0;
 
     return (
-        <div className={bare ? '' : 'rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'}>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+        <div className={bare ? '' : 'rounded-lg border border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800'}>
+            <p className="text-sm text-stone-500 dark:text-stone-400">{label}</p>
             {hasValue ? (
                 <>
-                    <div className="mt-3 flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                    <div className="mt-3 flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-700">
                         {paidPct > 0 && (
                             <div
                                 className="h-full rounded-full bg-green-600 transition-all duration-700 ease-out"
@@ -24,13 +24,13 @@ export default function SplitMeter({ label, paid, total, emptyLabel = 'No invoic
                         )}
                         {balancePct > 0 && (
                             <div
-                                className="h-full rounded-full bg-gray-300 transition-all duration-700 ease-out dark:bg-gray-600"
+                                className="h-full rounded-full bg-stone-300 transition-all duration-700 ease-out dark:bg-stone-600"
                                 style={{ width: `${balancePct}%` }}
                                 title={`${Number(balance).toLocaleString()} ETB remaining`}
                             />
                         )}
                     </div>
-                    <div className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
+                    <div className="mt-1.5 flex items-center justify-between text-xs text-stone-400">
                         <span className="flex items-center gap-1">
                             <span className="inline-block h-2 w-2 rounded-full bg-green-600" />
                             {Number(paid).toLocaleString()} ETB paid
@@ -39,7 +39,7 @@ export default function SplitMeter({ label, paid, total, emptyLabel = 'No invoic
                     </div>
                 </>
             ) : (
-                <p className="mt-3 text-xs text-gray-400">{emptyLabel}</p>
+                <p className="mt-3 text-xs text-stone-400">{emptyLabel}</p>
             )}
         </div>
     );

@@ -14,7 +14,7 @@ class InvoiceItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_id', 'item_type', 'fee_structure_id', 'optional_service_id',
+        'invoice_id', 'item_type', 'fee_structure_id', 'optional_service_id', 'book_item_id',
         'description', 'quantity', 'unit_amount', 'amount',
     ];
 
@@ -31,5 +31,10 @@ class InvoiceItem extends Model
     public function optionalService(): BelongsTo
     {
         return $this->belongsTo(OptionalService::class);
+    }
+
+    public function bookItem(): BelongsTo
+    {
+        return $this->belongsTo(BookItem::class);
     }
 }

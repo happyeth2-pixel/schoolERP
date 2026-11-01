@@ -39,6 +39,27 @@ class Employee extends Model
         ];
     }
 
+    /** Age in whole years, live from date_of_birth -- the same "one stored value, age always computed from
+     * it" shape as Student::age(). Registration asks for an age, not an exact birthdate (most people know
+     * their age, not everyone keeps track of the exact date), so date_of_birth here is itself only ever an
+     * approximation (today minus N years at whatever moment it was set); nothing in this app depends on its
+     * exact day/month, only on the whole-year age this method returns. */
+    public function age(): ?int
+    {
+        if (! $this->date_of_birth) {
+            return null;
+        }
+
+        // Compare as plain calendar dates (no time of day, no timezone) -- the exact same guard
+        // Student::ageOn() uses and for the exact same reason: SchoolCalendar::today() carries the
+        // business timezone's time-of-day, and comparing that directly against a UTC-midnight
+        // date_of_birth can silently land on the wrong side of midnight and be off by a year.
+        $today = \Illuminate\Support\Carbon::parse(\App\Support\SchoolCalendar::today()->format('Y-m-d'), 'UTC');
+        $born = \Illuminate\Support\Carbon::parse($this->date_of_birth->format('Y-m-d'), 'UTC');
+
+        return $born->diffInYears($today);
+    }
+
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);

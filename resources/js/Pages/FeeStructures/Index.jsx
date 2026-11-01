@@ -1,7 +1,7 @@
-import { Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CurrencyDollarIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,7 @@ const money = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits
 
 export default function Index({ feeStructures, branches, grades, academicYears }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [ask, confirmDialog] = useConfirm();
     const current = academicYears.find((y) => y.is_current) ?? academicYears[0];
     const [yearId, setYearId] = useState(current ? String(current.id) : '');
@@ -35,20 +36,21 @@ export default function Index({ feeStructures, branches, grades, academicYears }
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('fee.title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('fee.title')}</h2>}>
             <Page
                 title={t('fee.title')}
                 description={t('fee.index_desc')}
                 width="default"
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={<Button as={Link} href={route('fee-structures.create')} icon={PlusIcon}>{t('fee.add_button')}</Button>}
             >
                 <FlashMessages />
 
                 <Card>
-                    <p className="mb-2 text-base font-medium text-gray-900 dark:text-gray-100">{t('fee.year_filter')}</p>
+                    <p className="mb-2 text-base font-medium text-stone-900 dark:text-stone-100">{t('fee.year_filter')}</p>
                     <div role="radiogroup" aria-label={t('fee.year_filter')} className="flex flex-wrap gap-2">
                         {[...academicYears.map((y) => [String(y.id), y.name]), ['', t('fee.all_years')]].map(([value, label]) => (
-                            <button key={value} type="button" role="radio" aria-checked={yearId === value} onClick={() => setYearId(value)} className={`min-h-[48px] rounded-xl border-2 px-4 text-base font-semibold ${yearId === value ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}>{label}</button>
+                            <button key={value} type="button" role="radio" aria-checked={yearId === value} onClick={() => setYearId(value)} className={`min-h-[48px] rounded-xl border-2 px-4 text-base font-semibold ${yearId === value ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}>{label}</button>
                         ))}
                     </div>
                 </Card>
@@ -59,13 +61,13 @@ export default function Index({ feeStructures, branches, grades, academicYears }
 
                 {withFees.map(({ grade, fees }) => (
                     <Card key={grade.id} as="section" aria-label={grade.name} data-testid="grade-card">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{grade.name}</h2>
-                        <ul className="mt-2 divide-y divide-gray-200 dark:divide-gray-700">
+                        <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{grade.name}</h2>
+                        <ul className="mt-2 divide-y divide-stone-200 dark:divide-stone-700">
                             {fees.map((f) => (
                                 <li key={f.id} data-testid="fee-row" className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="min-w-0">
-                                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{f.name}</p>
-                                        <p className="text-base text-gray-700 dark:text-gray-300">
+                                        <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{f.name}</p>
+                                        <p className="text-base text-stone-700 dark:text-stone-300">
                                             <span className="font-semibold">{money(f.amount)} ETB</span> · {t(`fee.freq_${f.frequency}`)}
                                             {yearId === '' ? ` · ${f.academic_year.name}` : ''}{multiBranch ? ` · ${f.branch.name}` : ''}
                                         </p>
@@ -81,7 +83,7 @@ export default function Index({ feeStructures, branches, grades, academicYears }
                 ))}
 
                 {withFees.length > 0 && without.length > 0 && (
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="without">{t('fee.grades_without', { grades: without.join(', ') })}</p>
+                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="without">{t('fee.grades_without', { grades: without.join(', ') })}</p>
                 )}
             </Page>
             {confirmDialog}

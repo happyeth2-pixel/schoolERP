@@ -23,7 +23,7 @@ function CancelDialog({ open, order, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="cancel-po-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('purchase_order.cancel_title', { number: order.number })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('purchase_order.cancel_title', { number: order.number })}</h2>
                     <Field id="cancel_po_reason" label={t('purchase_order.cancel_reason')} error={errors.reason}>
                         <TextArea id="cancel_po_reason" value={data.reason} onChange={(e) => setData('reason', e.target.value)} />
                     </Field>
@@ -56,37 +56,37 @@ export default function Show({ order, canManage, canManageGoodsReceipts, goodsRe
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{order.number}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{order.number}</h2>}>
             <Page title={order.number} back={<BackLink href={route('purchase-orders.index')}>{t('purchase_order.back_to_list')}</BackLink>}>
                 <FlashMessages />
                 <Card>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{order.supplier}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('purchase_order.from_request_x', { number: order.purchase_request.number })}</p>
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{order.supplier}</p>
+                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('purchase_order.from_request_x', { number: order.purchase_request.number })}</p>
                         </div>
                         <StatusBadge tone={STATUS_TONE[order.status]} label={t(`purchase_order.status_${order.status}`)} />
                     </div>
-                    <p className="mt-3 text-xl font-bold text-gray-900 dark:text-gray-100">{money(order.total)} ETB</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{t('purchase_order.dated_x', { date: order.order_date })}</p>
-                    {order.expected_delivery_date && <p className="text-sm text-gray-700 dark:text-gray-300">{t('purchase_order.expected_delivery_x', { date: order.expected_delivery_date })}</p>}
-                    {order.delivery_info && <p className="text-sm text-gray-700 dark:text-gray-300">{order.delivery_info}</p>}
+                    <p className="mt-3 text-xl font-bold text-stone-900 dark:text-stone-100">{money(order.total)} ETB</p>
+                    <p className="text-sm text-stone-700 dark:text-stone-300">{t('purchase_order.dated_x', { date: order.order_date })}</p>
+                    {order.expected_delivery_date && <p className="text-sm text-stone-700 dark:text-stone-300">{t('purchase_order.expected_delivery_x', { date: order.expected_delivery_date })}</p>}
+                    {order.delivery_info && <p className="text-sm text-stone-700 dark:text-stone-300">{order.delivery_info}</p>}
                     {order.status === 'cancelled' && order.cancellation_reason && (
                         <Alert tone="danger" title={t('purchase_order.cancelled_reason_title')} className="mt-4">{order.cancellation_reason}</Alert>
                     )}
-                    {order.notes && <p className="mt-3 text-base text-gray-700 dark:text-gray-300">{order.notes}</p>}
+                    {order.notes && <p className="mt-3 text-base text-stone-700 dark:text-stone-300">{order.notes}</p>}
                 </Card>
 
                 <Card>
                     <SectionHeader as="h3" title={t('purchase_order.lines_title')} />
-                    <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="po-items">
+                    <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="po-items">
                         {order.items.map((i) => (
                             <li key={i.id} className="py-3" data-testid="po-item-row">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{i.description}</span>
-                                    <span className="text-base text-gray-800 dark:text-gray-200">{t('pr.quantity_n', { count: i.quantity })} · {money(i.total)} ETB</span>
+                                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{i.description}</span>
+                                    <span className="text-base text-stone-800 dark:text-stone-200">{t('pr.quantity_n', { count: i.quantity })} · {money(i.total)} ETB</span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-sm text-stone-600 dark:text-stone-400">
                                     {t('purchase_order.received_of_ordered', { received: i.received_quantity, ordered: i.quantity })}
                                 </p>
                             </li>
@@ -106,14 +106,14 @@ export default function Show({ order, canManage, canManageGoodsReceipts, goodsRe
                                 {t('goods_receipt.empty_body')}
                             </EmptyState>
                         ) : (
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="gr-list">
+                            <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="gr-list">
                                 {goodsReceipts.map((gr) => (
                                     <li key={gr.id} className="py-3" data-testid="gr-row">
-                                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{gr.number}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{gr.number}</p>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">
                                             {t('goods_receipt.into_store_on_date', { store: gr.store_name, date: gr.received_date })} · {t('goods_receipt.by_x', { name: gr.recorded_by })}
                                         </p>
-                                        {gr.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{gr.notes}</p>}
+                                        {gr.notes && <p className="text-sm text-stone-600 dark:text-stone-400">{gr.notes}</p>}
                                     </li>
                                 ))}
                             </ul>

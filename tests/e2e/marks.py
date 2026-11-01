@@ -94,7 +94,7 @@ with sync_playwright() as p:
     ctx, page = login(browser, "teacher@demo.test")
 
     # ================================================================ 1. the list
-    page.goto(f"{BASE}/dashboard"); page.wait_for_selector("[data-testid=home-tasks]")
+    page.goto(f"{BASE}/dashboard"); page.wait_for_selector("[data-testid=home-tasks], [data-testid=teacher-home]")
     page.get_by_role("link", name=re.compile("Enter marks", re.I)).first.click()
     page.wait_for_selector("[data-testid=marks-card]")
     card = page.locator(f"[data-testid=marks-card][aria-label='{LABEL} Mathematics']")

@@ -51,58 +51,58 @@ export default function Show({ entry, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{entry.entry_number}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{entry.entry_number}</h2>}>
             <Page title={entry.entry_number} back={<BackLink href={route('journal-entries.index')}>{t('journal_entry.back_to_list')}</BackLink>}>
                 <FlashMessages errorKeys={['status', 'lines', 'accounting_period_id']} />
                 <Card>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{entry.journal}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('journal_entry.dated_x', { date: entry.entry_date })} &middot; {entry.period.name}</p>
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{entry.journal}</p>
+                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('journal_entry.dated_x', { date: entry.entry_date })} &middot; {entry.period.name}</p>
                         </div>
                         <StatusBadge tone={STATUS_TONE[entry.status]} label={t(`journal_entry.status_${entry.status}`)} />
                     </div>
-                    {entry.description && <p className="mt-3 text-base text-gray-700 dark:text-gray-300">{entry.description}</p>}
-                    {entry.reference && <p className="text-sm text-gray-600 dark:text-gray-400">{t('journal_entry.reference_x', { reference: entry.reference })}</p>}
-                    <p className="mt-3 text-xl font-bold text-gray-900 dark:text-gray-100">{money(entry.total_debit)} ETB</p>
+                    {entry.description && <p className="mt-3 text-base text-stone-700 dark:text-stone-300">{entry.description}</p>}
+                    {entry.reference && <p className="text-sm text-stone-600 dark:text-stone-400">{t('journal_entry.reference_x', { reference: entry.reference })}</p>}
+                    <p className="mt-3 text-xl font-bold text-stone-900 dark:text-stone-100">{money(entry.total_debit)} ETB</p>
                     {entry.reverses && (
                         <Alert tone="info" title={t('journal_entry.reverses_x', { number: entry.reverses.entry_number })} className="mt-4">
-                            <Link href={route('journal-entries.show', entry.reverses.id)} className="text-indigo-600 hover:underline dark:text-indigo-400">{entry.reverses.entry_number}</Link>
+                            <Link href={route('journal-entries.show', entry.reverses.id)} className="text-brand-600 hover:underline dark:text-brand-400">{entry.reverses.entry_number}</Link>
                         </Alert>
                     )}
                     {entry.reversed_by && (
                         <Alert tone="danger" title={t('journal_entry.reversed_by_x', { number: entry.reversed_by.entry_number })} className="mt-4">
-                            <Link href={route('journal-entries.show', entry.reversed_by.id)} className="text-indigo-600 hover:underline dark:text-indigo-400">{entry.reversed_by.entry_number}</Link>
+                            <Link href={route('journal-entries.show', entry.reversed_by.id)} className="text-brand-600 hover:underline dark:text-brand-400">{entry.reversed_by.entry_number}</Link>
                         </Alert>
                     )}
-                    <p className="mt-3 text-xs text-gray-500">{t('journal_entry.created_by_x', { name: entry.created_by })}{entry.posted_by && ` · ${t('journal_entry.posted_by_x', { name: entry.posted_by })}`}</p>
+                    <p className="mt-3 text-xs text-stone-500">{t('journal_entry.created_by_x', { name: entry.created_by })}{entry.posted_by && ` · ${t('journal_entry.posted_by_x', { name: entry.posted_by })}`}</p>
                 </Card>
 
                 <Card>
                     <SectionHeader as="h3" title={t('journal_entry.lines_title')} />
                     <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" data-testid="je-lines">
+                    <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700" data-testid="je-lines">
                         <thead>
                             <tr>
-                                <th className="px-2 py-2 text-left text-xs font-medium uppercase text-gray-500">{t('journal_entry.account')}</th>
-                                <th className="px-2 py-2 text-right text-xs font-medium uppercase text-gray-500">{t('journal_entry.debit')}</th>
-                                <th className="px-2 py-2 text-right text-xs font-medium uppercase text-gray-500">{t('journal_entry.credit')}</th>
+                                <th className="px-2 py-2 text-left text-xs font-medium uppercase text-stone-500">{t('journal_entry.account')}</th>
+                                <th className="px-2 py-2 text-right text-xs font-medium uppercase text-stone-500">{t('journal_entry.debit')}</th>
+                                <th className="px-2 py-2 text-right text-xs font-medium uppercase text-stone-500">{t('journal_entry.credit')}</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="divide-y divide-stone-200 dark:divide-stone-700">
                             {entry.lines.map((l) => (
                                 <tr key={l.id} data-testid="je-line-row">
-                                    <td className="px-2 py-2 text-sm text-gray-900 dark:text-gray-100">{l.account}{l.description && <span className="block text-xs text-gray-500">{l.description}</span>}</td>
-                                    <td className="px-2 py-2 text-right text-sm text-gray-700 dark:text-gray-300">{Number(l.debit) > 0 ? money(l.debit) : ''}</td>
-                                    <td className="px-2 py-2 text-right text-sm text-gray-700 dark:text-gray-300">{Number(l.credit) > 0 ? money(l.credit) : ''}</td>
+                                    <td className="px-2 py-2 text-sm text-stone-900 dark:text-stone-100">{l.account}{l.description && <span className="block text-xs text-stone-500">{l.description}</span>}</td>
+                                    <td className="px-2 py-2 text-right text-sm text-stone-700 dark:text-stone-300">{Number(l.debit) > 0 ? money(l.debit) : ''}</td>
+                                    <td className="px-2 py-2 text-right text-sm text-stone-700 dark:text-stone-300">{Number(l.credit) > 0 ? money(l.credit) : ''}</td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
-                            <tr className="border-t-2 border-gray-300 font-bold dark:border-gray-600">
-                                <td className="px-2 py-2 text-sm text-gray-900 dark:text-gray-100">{t('journal_entry.total')}</td>
-                                <td className="px-2 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{money(entry.total_debit)}</td>
-                                <td className="px-2 py-2 text-right text-sm text-gray-900 dark:text-gray-100">{money(entry.total_credit)}</td>
+                            <tr className="border-t-2 border-stone-300 font-bold dark:border-stone-600">
+                                <td className="px-2 py-2 text-sm text-stone-900 dark:text-stone-100">{t('journal_entry.total')}</td>
+                                <td className="px-2 py-2 text-right text-sm text-stone-900 dark:text-stone-100">{money(entry.total_debit)}</td>
+                                <td className="px-2 py-2 text-right text-sm text-stone-900 dark:text-stone-100">{money(entry.total_credit)}</td>
                             </tr>
                         </tfoot>
                     </table>

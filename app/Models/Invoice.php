@@ -20,7 +20,8 @@ class Invoice extends Model
 
     protected $fillable = [
         'student_id', 'academic_year_id', 'term_id', 'period_label', 'frequency', 'period_start',
-        'invoice_number', 'discount_amount', 'discount_reason', 'discount_by', 'is_waived', 'waiver_reason', 'waived_by', 'waived_at',
+        'invoice_number', 'generation_batch_id', 'discount_amount', 'discount_reason', 'discount_by', 'is_waived', 'waiver_reason', 'waived_by', 'waived_at',
+        'overdue_notified_at',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class Invoice extends Model
             'is_waived' => 'boolean',
             'waived_at' => 'datetime',
             'period_start' => 'date',
+            'overdue_notified_at' => 'datetime',
         ];
     }
 
@@ -80,16 +82,22 @@ class Invoice extends Model
      * stored on the line itself, so editing or deleting the fee later
      * can never change what this invoice says was charged.
      */
-    public function addLineFrom(FeeStructure|OptionalService $source, int $quantity = 1, ?float $unitOverride = null): InvoiceItem
+    public function addLineFrom(FeeStructure|OptionalService|BookItem $source, int $quantity = 1, ?float $unitOverride = null): InvoiceItem
     {
-        // $unitOverride is a student's own price for a service (student_optional_service.custom_amount)
-        $unit = round((float) ($unitOverride ?? $source->amount), 2);
+        // $unitOverride is a student's own price for a service (student_optional_service.custom_amount);
+        // a book never overrides its price, but the parameter is accepted uniformly.
+        $unit = round((float) ($unitOverride ?? ($source instanceof BookItem ? $source->price : $source->amount)), 2);
 
         return $this->items()->create([
-            'item_type' => $source instanceof FeeStructure ? 'fee' : 'service',
+            'item_type' => match (true) {
+                $source instanceof FeeStructure => 'fee',
+                $source instanceof OptionalService => 'service',
+                $source instanceof BookItem => 'book',
+            },
             'fee_structure_id' => $source instanceof FeeStructure ? $source->id : null,
             'optional_service_id' => $source instanceof OptionalService ? $source->id : null,
-            'description' => $source->name,
+            'book_item_id' => $source instanceof BookItem ? $source->id : null,
+            'description' => $source instanceof BookItem ? $source->title : $source->name,
             'quantity' => $quantity,
             'unit_amount' => $unit,
             'amount' => round($unit * $quantity, 2),
@@ -138,6 +146,21 @@ class Invoice extends Model
     public function balance(): float
     {
         return $this->figures()['outstanding'];
+    }
+
+    /** period_start plus the school's own payment_due_days -- a LIVE comparison against that setting
+     * (see SchoolSettingsController), never a stored date that could drift out of sync with it. */
+    public function dueDate(): \Illuminate\Support\Carbon
+    {
+        $days = $this->student->school->payment_due_days ?? 14;
+
+        return $this->period_start->copy()->addDays($days);
+    }
+
+    /** Unpaid (or partially paid), not waived, and past its due date -- see CheckOverdueInvoices. */
+    public function isOverdue(): bool
+    {
+        return ! $this->is_waived && $this->balance() > 0 && $this->dueDate()->isPast();
     }
 
     public function statusLabel(): string

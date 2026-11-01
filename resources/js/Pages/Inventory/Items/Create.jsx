@@ -1,4 +1,4 @@
-import { Button, Field, FlashMessages, Input, Page, Select, TextArea } from '@/Components/ui';
+import { BackLink, Button, Field, FlashMessages, Input, Page, Select, TextArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -17,8 +17,8 @@ export default function Create({ categories }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('inv.add_item')}</h2>}>
-            <Page title={t('inv.add_item')} description={t('inv.add_item_desc')} width="narrow">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('inv.add_item')}</h2>}>
+            <Page title={t('inv.add_item')} description={t('inv.add_item_desc')} width="narrow" back={<BackLink href={route('inventory-items.index')}>{t('inv.back_to_items')}</BackLink>}>
                 <FlashMessages />
                 <form onSubmit={submit} className="space-y-6">
                     <Field id="item_name" label={t('inv.name')} error={errors.name}>

@@ -1,4 +1,5 @@
-import { Button, ChoiceGroup, Field, FlashMessages, Input, Page, Select, TextArea } from '@/Components/ui';
+import DateInput from '@/Components/DateInput';
+import { BackLink, Button, ChoiceGroup, Field, FlashMessages, Input, Page, Select, TextArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -28,8 +29,8 @@ export default function Create({ categories, stores, suppliers }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('asset.add_button')}</h2>}>
-            <Page title={t('asset.add_button')} description={t('asset.add_desc')} width="narrow">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('asset.add_button')}</h2>}>
+            <Page title={t('asset.add_button')} description={t('asset.add_desc')} width="narrow" back={<BackLink href={route('assets.index')}>{t('asset.back_to_list')}</BackLink>}>
                 <FlashMessages />
                 <form onSubmit={submit} className="space-y-6">
                     <Field id="asset_name" label={t('asset.name')} error={errors.name}>
@@ -54,7 +55,7 @@ export default function Create({ categories, stores, suppliers }) {
                         <Input value={data.barcode} onChange={(e) => setData('barcode', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>
                     <Field id="asset_purchase_date" label={t('asset.purchase_date')} optional error={errors.purchase_date}>
-                        <Input type="date" value={data.purchase_date} onChange={(e) => setData('purchase_date', e.target.value)} />
+                        <DateInput value={data.purchase_date} onChange={(v) => setData('purchase_date', v)} />
                     </Field>
                     <Field id="asset_cost" label={t('asset.acquisition_cost')} optional error={errors.acquisition_cost}>
                         <Input inputMode="decimal" value={data.acquisition_cost} onChange={(e) => setData('acquisition_cost', e.target.value)} autoComplete="off" />
@@ -83,7 +84,7 @@ export default function Create({ categories, stores, suppliers }) {
                         ]}
                     />
                     <Field id="asset_warranty" label={t('asset.warranty_expiry')} optional error={errors.warranty_expiry}>
-                        <Input type="date" value={data.warranty_expiry} onChange={(e) => setData('warranty_expiry', e.target.value)} />
+                        <DateInput value={data.warranty_expiry} onChange={(v) => setData('warranty_expiry', v)} />
                     </Field>
                     <Field id="asset_notes" label={t('asset.notes')} optional error={errors.notes}>
                         <TextArea id="asset_notes" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />

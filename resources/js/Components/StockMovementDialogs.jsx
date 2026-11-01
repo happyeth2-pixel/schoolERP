@@ -29,7 +29,7 @@ export function ReceiveDialog({ open, item, stores, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="receive-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('inv.receive_title', { name: item?.name })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('inv.receive_title', { name: item?.name })}</h2>
                     <Field id="receive_store" label={t('inv.store')} error={errors.store_id}>
                         <StoreSelect id="receive_store" stores={stores} value={data.store_id} onChange={(e) => setData('store_id', e.target.value)} />
                     </Field>
@@ -65,7 +65,7 @@ export function IssueDialog({ open, item, stores, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="issue-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('inv.issue_title', { name: item?.name })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('inv.issue_title', { name: item?.name })}</h2>
                     <Field id="issue_store" label={t('inv.store')} error={errors.store_id}>
                         <StoreSelect id="issue_store" stores={stores} value={data.store_id} onChange={(e) => setData('store_id', e.target.value)} />
                     </Field>
@@ -98,7 +98,7 @@ export function TransferDialog({ open, item, stores, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="transfer-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('inv.transfer_title', { name: item?.name })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('inv.transfer_title', { name: item?.name })}</h2>
                     <Field id="transfer_from" label={t('inv.from_store')} error={errors.from_store_id}>
                         <StoreSelect id="transfer_from" stores={stores} value={data.from_store_id} onChange={(e) => setData('from_store_id', e.target.value)} />
                     </Field>
@@ -137,11 +137,11 @@ export function AdjustDialog({ open, item, stores, balances, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="adjust-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('inv.adjust_title', { name: item?.name })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('inv.adjust_title', { name: item?.name })}</h2>
                     <Field id="adjust_store" label={t('inv.store')} error={errors.store_id}>
                         <StoreSelect id="adjust_store" stores={stores} value={data.store_id} onChange={(e) => setData('store_id', e.target.value)} />
                     </Field>
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="adjust-current">{t('inv.adjust_current', { count: current, unit: item?.unit })}</p>
+                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="adjust-current">{t('inv.adjust_current', { count: current, unit: item?.unit })}</p>
                     <Field id="adjust_physical" label={t('inv.adjust_physical')} hint={t('inv.adjust_physical_hint')} error={errors.physical_quantity}>
                         <Input inputMode="numeric" value={data.physical_quantity} onChange={(e) => { clearErrors('physical_quantity'); setData('physical_quantity', e.target.value); }} autoComplete="off" />
                     </Field>

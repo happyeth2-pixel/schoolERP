@@ -37,9 +37,7 @@ class ParentAccountTest extends TestCase
 
     private function payload(array $over = []): array
     {
-        $data = array_merge(['name' => 'Aster Girma', 'phone' => '0911 22 33 44'], $over);
-
-        return $data + ['phone_confirmation' => $data['phone']];
+        return array_merge(['name' => 'Aster Girma', 'phone' => '0911 22 33 44'], $over);
     }
 
     private function create(array $over = [], ?User $as = null)
@@ -104,12 +102,11 @@ class ParentAccountTest extends TestCase
         $this->assertNull(User::where('login_phone', '+251911223344')->first());
     }
 
-    public function test_the_phone_must_be_confirmed_and_every_everyday_form_normalises_the_same(): void
+    /** The phone number is typed once, not twice -- a "type it again" confirmation field used to be
+     * required here and was dropped as needless friction once a number is already typed correctly. */
+    public function test_the_phone_number_is_typed_only_once(): void
     {
-        $this->create(['phone_confirmation' => '0911223355'])->assertSessionHasErrors('phone_confirmation');
-        $this->assertNull(User::where('login_phone', '+251911223344')->first());
-
-        $this->create(['phone' => '+251 911 22 33 44', 'phone_confirmation' => '0911223344'])->assertSessionHasNoErrors();
+        $this->create(['phone' => '+251 911 22 33 44'])->assertSessionHasNoErrors();
         $this->assertNotNull($this->account());
     }
 
@@ -118,7 +115,7 @@ class ParentAccountTest extends TestCase
         $this->create()->assertSessionHasNoErrors();
 
         foreach (['0911223344', '+251911223344', '251911223344', '0911 22 33 44'] as $typed) {
-            $this->create(['phone' => $typed, 'phone_confirmation' => $typed, 'name' => 'Someone Else'])->assertSessionHasErrors('phone');
+            $this->create(['phone' => $typed, 'name' => 'Someone Else'])->assertSessionHasErrors('phone');
         }
         $this->assertSame(1, User::where('login_phone', '+251911223344')->count());
     }

@@ -33,7 +33,7 @@ export default function PerformanceReviewDialog({ open, employeeId, cycles, revi
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form className="space-y-6 p-6" data-testid="performance-review-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('performance.edit_review_title') : t('performance.add_review_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('performance.edit_review_title') : t('performance.add_review_title')}</h2>
 
                     {!editing && (
                         <Field id="pr_cycle" label={t('performance.cycle_label')} error={errors.cycle_id}>

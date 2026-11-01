@@ -1,6 +1,6 @@
 import CalendarEventDialog from '@/Components/CalendarEventDialog';
 import DateText from '@/Components/DateText';
-import { Button, Card, Disclosure, EmptyState, FlashMessages, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, Disclosure, EmptyState, FlashMessages, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarDaysIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { router } from '@inertiajs/react';
@@ -11,11 +11,11 @@ const TYPE_TONE = { holiday: 'success', exam: 'danger', meeting: 'info', activit
 
 function EventCard({ event, canManage, onEdit, onRemove, t }) {
     return (
-        <article data-testid="calendar-event" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <article data-testid="calendar-event" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{event.title}</h3>
-                    <p className="mt-1 text-base text-gray-600 dark:text-gray-400">
+                    <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{event.title}</h3>
+                    <p className="mt-1 text-base text-stone-600 dark:text-stone-400">
                         <DateText value={event.start_date} />
                         {event.end_date && event.end_date !== event.start_date && <> &ndash; <DateText value={event.end_date} /></>}
                         {` · ${event.branch_name ?? t('calendar.all_branches')}`}
@@ -33,7 +33,7 @@ function EventCard({ event, canManage, onEdit, onRemove, t }) {
                     )}
                 </div>
             </div>
-            {event.description && <p className="mt-3 whitespace-pre-line text-base text-gray-800 dark:text-gray-200">{event.description}</p>}
+            {event.description && <p className="mt-3 whitespace-pre-line text-base text-stone-800 dark:text-stone-200">{event.description}</p>}
         </article>
     );
 }
@@ -54,11 +54,12 @@ export default function Index({ upcoming, past, canManage, eventTypes, audiences
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('calendar.page_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('calendar.page_title')}</h2>}>
             <Page
                 title={t('calendar.page_title')}
                 description={t('calendar.page_desc')}
                 width="default"
+                back={<BackLink href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('calendar.add_button')}</Button>}
             >
                 <FlashMessages />

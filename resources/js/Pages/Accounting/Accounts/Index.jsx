@@ -1,8 +1,8 @@
 import AccountDialog from '@/Components/AccountDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BookOpenIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,10 +14,10 @@ function AccountRow({ account, depth, byParent, canManage, onEdit }) {
         <>
             <li className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="account-row" style={{ paddingLeft: `${depth * 1.5}rem` }}>
                 <div className="min-w-0">
-                    <span className={`text-base ${account.is_header ? 'font-bold text-gray-900 dark:text-gray-100' : 'font-medium text-gray-800 dark:text-gray-200'}`}>
+                    <span className={`text-base ${account.is_header ? 'font-bold text-stone-900 dark:text-stone-100' : 'font-medium text-stone-800 dark:text-stone-200'}`}>
                         {account.code} {account.name}
                     </span>
-                    {account.is_system && <span className="ml-2 text-xs text-gray-500">{t('account.system_label')}</span>}
+                    {account.is_system && <span className="ml-2 text-xs text-stone-500">{t('account.system_label')}</span>}
                     {!account.is_active && <StatusBadge tone="neutral" label={t('account.inactive_label')} className="ml-2" />}
                 </div>
                 {canManage && !account.is_header && (
@@ -36,6 +36,8 @@ function AccountRow({ account, depth, byParent, canManage, onEdit }) {
 
 export default function Index({ accounts, installed, canManage, types }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [dialogAccount, setDialogAccount] = useState(undefined); // undefined = closed, null = adding, object = editing
 
     const byParent = useMemo(() => {
@@ -50,17 +52,18 @@ export default function Index({ accounts, installed, canManage, types }) {
     const roots = byParent.root ?? [];
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('account.list_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('account.list_title')}</h2>}>
             <Page
                 title={t('account.list_title')}
                 description={t('account.list_desc')}
+                back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialogAccount(null)}>{t('account.add_button')}</Button>}
             >
                 <FlashMessages />
 
                 {!installed && canManage && (
                     <Card>
-                        <p className="text-base text-gray-800 dark:text-gray-200">{t('account.install_prompt')}</p>
+                        <p className="text-base text-stone-800 dark:text-stone-200">{t('account.install_prompt')}</p>
                         <Button className="mt-3" onClick={() => router.post(route('accounts.install-template'))}>{t('account.install_button')}</Button>
                     </Card>
                 )}
@@ -69,7 +72,7 @@ export default function Index({ accounts, installed, canManage, types }) {
                     <Card><EmptyState icon={BookOpenIcon} title={t('account.empty_title')}>{t('account.empty_body')}</EmptyState></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="account-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="account-list">
                             {roots.map((account) => (
                                 <AccountRow key={account.id} account={account} depth={0} byParent={byParent} canManage={canManage} onEdit={setDialogAccount} />
                             ))}

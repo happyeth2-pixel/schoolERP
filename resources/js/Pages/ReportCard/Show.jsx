@@ -1,4 +1,4 @@
-import { Button, PrintArea } from '@/Components/ui';
+import { BackLink, Button, PrintArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ArrowDownTrayIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { Head, usePage } from '@inertiajs/react';
@@ -11,12 +11,18 @@ export default function Show({ student, section, academic_year, subjects, overal
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('parent.rc_title')} — {student.name}</h2>}
+            header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('parent.rc_title')} — {student.name}</h2>}
         >
             <Head title={`${t('parent.rc_title')} — ${student.name}`} />
 
             <div className="py-8">
                 <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-4">
+                        <BackLink href={isParent ? route('family.report-cards') : route('students.edit', student.id)}>
+                            {isParent ? t('parent.rc_back_to_list') : t('parent.rc_back_to_profile')}
+                        </BackLink>
+                    </div>
+
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row" data-testid="report-actions">
                         <Button as="a" href={route('report-card.pdf', student.id)} fullWidth icon={ArrowDownTrayIcon}>{t('parent.rc_download')}</Button>
                         <Button variant="secondary" fullWidth icon={PrinterIcon} onClick={() => window.print()}>{t('parent.rc_print')}</Button>
@@ -29,24 +35,24 @@ export default function Show({ student, section, academic_year, subjects, overal
                     )}
 
                     <PrintArea className="w-full">
-                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
-                        <p className="text-sm text-gray-500">{academic_year}</p>
-                        <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{student.name}</p>
-                        <p className="text-sm text-gray-400">{student.student_id_number} · {section ?? 'Unassigned'}</p>
+                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-stone-800">
+                        <p className="text-sm text-stone-500">{academic_year}</p>
+                        <p className="text-lg font-medium text-stone-900 dark:text-stone-100">{student.name}</p>
+                        <p className="text-sm text-stone-400">{student.student_id_number} · {section ?? 'Unassigned'}</p>
 
                         <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
                             <thead>
                                 <tr>
-                                    <th className="py-2 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">{t('parent.rc_subject')}</th>
-                                    <th className="py-2 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">{t('parent.rc_average')}</th>
-                                    <th className="py-2 text-left text-sm font-semibold text-gray-600 dark:text-gray-400">{t('parent.rc_grade')}</th>
+                                    <th className="py-2 text-left text-sm font-semibold text-stone-600 dark:text-stone-400">{t('parent.rc_subject')}</th>
+                                    <th className="py-2 text-left text-sm font-semibold text-stone-600 dark:text-stone-400">{t('parent.rc_average')}</th>
+                                    <th className="py-2 text-left text-sm font-semibold text-stone-600 dark:text-stone-400">{t('parent.rc_grade')}</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            <tbody className="divide-y divide-stone-100 dark:divide-stone-700">
                                 {subjects.map((s) => (
                                     <tr key={s.subject}>
-                                        <td className="py-2 text-sm text-gray-900 dark:text-gray-100">
+                                        <td className="py-2 text-sm text-stone-900 dark:text-stone-100">
                                             {s.subject}
                                             {s.assessments_missing > 0 && (
                                                 <span className="block text-xs text-amber-600 dark:text-amber-400">
@@ -56,37 +62,37 @@ export default function Show({ student, section, academic_year, subjects, overal
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="py-2 text-sm text-gray-500">{s.average ?? '—'}</td>
-                                        <td className="py-2 text-sm font-medium text-gray-900 dark:text-gray-100">{s.letter ?? '—'}</td>
+                                        <td className="py-2 text-sm text-stone-500">{s.average ?? '—'}</td>
+                                        <td className="py-2 text-sm font-medium text-stone-900 dark:text-stone-100">{s.letter ?? '—'}</td>
                                     </tr>
                                 ))}
                                 {subjects.length === 0 && (
-                                    <tr><td colSpan={3} className="py-4 text-center text-base text-gray-700 dark:text-gray-300">{t('parent.rc_none')}</td></tr>
+                                    <tr><td colSpan={3} className="py-4 text-center text-base text-stone-700 dark:text-stone-300">{t('parent.rc_none')}</td></tr>
                                 )}
                             </tbody>
                         </table>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4 dark:border-gray-700">
+                        <div className="mt-4 grid grid-cols-3 gap-4 border-t border-stone-100 pt-4 dark:border-stone-700">
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('parent.rc_overall_avg')}</p>
-                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{overall_average ?? '—'}</p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{t('parent.rc_overall_avg')}</p>
+                                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{overall_average ?? '—'}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('parent.rc_overall_grade')}</p>
-                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{overall_letter ?? '—'}</p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{t('parent.rc_overall_grade')}</p>
+                                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{overall_letter ?? '—'}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('parent.rc_rank')}</p>
-                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{rank ? `${rank} / ${class_size}` : t('parent.rc_not_ranked')}</p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{t('parent.rc_rank')}</p>
+                                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{rank ? `${rank} / ${class_size}` : t('parent.rc_not_ranked')}</p>
                                 {rank && rank_basis && (
-                                    <p className="text-xs text-gray-400">among {class_size} ranked of {rank_basis.class_size} in class</p>
+                                    <p className="text-xs text-stone-400">among {class_size} ranked of {rank_basis.class_size} in class</p>
                                 )}
                             </div>
                         </div>
 
                         {!rank && rank_reasons?.length > 0 && (
-                            <div className="mt-3 rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/40 dark:text-gray-300">
+                            <div className="mt-3 rounded-md bg-stone-50 p-3 text-xs text-stone-600 dark:bg-stone-900/40 dark:text-stone-300">
                                 <p className="font-medium">Why there is no class rank:</p>
                                 <ul className="mt-1 list-disc pl-4">
                                     {rank_reasons.map((r) => <li key={r}>{r}</li>)}
@@ -95,8 +101,8 @@ export default function Show({ student, section, academic_year, subjects, overal
                         )}
 
                         {rank_basis && (
-                            <details className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                                <summary className="cursor-pointer font-medium text-indigo-600 dark:text-indigo-400">How is the class rank calculated?</summary>
+                            <details className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+                                <summary className="cursor-pointer font-medium text-brand-600 dark:text-brand-400">How is the class rank calculated?</summary>
                                 <dl className="mt-2 space-y-1.5">
                                     <div><dt className="inline font-medium">Class: </dt><dd className="inline">{rank_basis.class}</dd></div>
                                     <div><dt className="inline font-medium">Subjects required: </dt><dd className="inline">{rank_basis.required_subjects.length ? rank_basis.required_subjects.join(', ') : 'none published yet'}</dd></div>
@@ -107,7 +113,7 @@ export default function Show({ student, section, academic_year, subjects, overal
                             </details>
                         )}
                         {policy_note && (
-                            <p className="mt-4 text-xs text-gray-400">
+                            <p className="mt-4 text-xs text-stone-400">
                                 Only published results are included. Missing scores: {policy_note}
                             </p>
                         )}

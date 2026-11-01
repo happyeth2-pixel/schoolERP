@@ -19,7 +19,6 @@ DB = os.environ["E2E_DB"]
 SHOTS = tempfile.mkdtemp(prefix="receptionist_e2e_")
 results = []
 STAMP = str(int(time.time()))[-6:]
-EMAIL = f"aster.{STAMP}@family.test"
 PHONE = "0911 55 66 77"
 
 
@@ -136,14 +135,14 @@ with sync_playwright() as p:
 
     # ---------------------------------------------------------------- 6. parent details
     page.wait_for_selector("text=Step 6 of 7")
-    check("step 5: parent name, phone (optional), email; Next off until name + email", page.locator("form input:not([type=hidden])").count() == 3 and nxt(page).is_disabled())
-    page.fill("#guardian_name", "Aster Girma"); page.fill("#guardian_phone", PHONE); page.fill("#guardian_email", EMAIL)
+    check("step 5: parent name and phone (the account's sign-in, no email); Next off until both are given", page.locator("form input:not([type=hidden])").count() == 2 and nxt(page).is_disabled())
+    page.fill("#guardian_name", "Aster Girma"); page.fill("#guardian_phone", PHONE)
     nxt(page).click()
 
     # ---------------------------------------------------------------- 7. review
     page.wait_for_selector("text=Step 7 of 7")
     body = page.locator("form dl").inner_text()
-    check("review: shows child, gender, birth date, class, parent and contact", all(s in body for s in ["Meklit Girma Tesfaye", "Girl", "Grade 4 A", "Aster Girma (Mother)", PHONE, EMAIL]), body.replace("\n", " | ")[:200])
+    check("review: shows child, gender, birth date, class, parent and contact", all(s in body for s in ["Meklit Girma Tesfaye", "Girl", "Grade 4 A", "Aster Girma (Mother)", PHONE]), body.replace("\n", " | ")[:200])
     check("review: arriving here registered NOTHING", q("select count(*) from students")[0][0] == before_students)
     final = page.get_by_role("button", name="Register Meklit")
     check("review: the final button names the outcome and is >= 56px", final.count() == 1 and final.evaluate(H) >= 56)
@@ -230,7 +229,7 @@ with sync_playwright() as p:
     folded = page.locator("details:not([open]) summary").all_inner_texts()
     check("profile: less-used sections are folded, each with a worded summary line", any("Main information" in s for s in folded) and any("More details" in s for s in folded) and any("Move to another class" in s for s in folded) and any("Withdraw this student" in s for s in folded), str([f.split(chr(10))[0] for f in folded]))
     page.get_by_role("button", name=re.compile("Link a parent or guardian")).click()
-    page.get_by_label("The parent's email").fill("parent@demo.test")
+    page.get_by_label("Parent's phone number").fill("0911000005")
     page.locator("#ng_rel").select_option("father")
     page.get_by_role("button", name=re.compile("Link this parent to Meklit")).click()
     page.wait_for_selector("text=Kebede Worku")
@@ -306,7 +305,7 @@ with sync_playwright() as p:
             if step == 4:
                 lp.locator("button[role=radio]").first.click(); lp.locator("select").select_option("mother")
             if step == 5:
-                lp.fill("#guardian_name", "Test Parent"); lp.fill("#guardian_email", f"t{STAMP}{loc}@x.test")
+                lp.fill("#guardian_name", "Test Parent"); lp.fill("#guardian_phone", f"09{STAMP}{abs(hash(loc)) % 100:02d}")
             nx = btns.last
             if nx.is_enabled(): nx.click(); lp.wait_for_timeout(250)
             else: seen.append(f"stuck on step {step + 1}")

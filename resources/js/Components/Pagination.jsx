@@ -34,7 +34,7 @@ export default function Pagination({ meta, onPageChange }) {
 
     return (
         <nav className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label={t('common.page_of', { page: current, total: last })} data-testid="pagination">
-            <p className="text-base text-gray-700 dark:text-gray-300" data-testid="pagination-range">
+            <p className="text-base text-stone-700 dark:text-stone-300" data-testid="pagination-range">
                 {total === 1 ? t('common.showing_range_one') : t('common.showing_range', { from, to, total: total.toLocaleString() })}
             </p>
 
@@ -46,7 +46,7 @@ export default function Pagination({ meta, onPageChange }) {
                         disabled={current <= 1}
                         aria-label={t('common.previous')}
                         data-testid="pagination-prev"
-                        className="flex h-11 min-w-[44px] items-center justify-center gap-1 rounded-lg border-2 border-gray-300 px-3 text-base font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                        className="flex h-11 min-w-[44px] items-center justify-center gap-1 rounded-lg border-2 border-stone-300 px-3 text-base font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-600 dark:text-stone-200 dark:hover:bg-stone-700"
                     >
                         <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                         <span className="hidden sm:inline">{t('common.previous')}</span>
@@ -54,19 +54,19 @@ export default function Pagination({ meta, onPageChange }) {
 
                     <span className="flex items-center gap-1" data-testid="pagination-numbers">
                         {pageNumbers(current, last).map((p, i) => p === '…' ? (
-                            <span key={`ellipsis-${i}`} className="px-1 text-gray-500 dark:text-gray-400" aria-hidden="true">…</span>
+                            <span key={`ellipsis-${i}`} className="px-1 text-stone-500 dark:text-stone-400" aria-hidden="true">…</span>
                         ) : (
                             <button
                                 key={p}
                                 type="button"
                                 onClick={() => onPageChange(p)}
                                 aria-current={p === current ? 'page' : undefined}
-                                className={`hidden h-11 min-w-[44px] items-center justify-center rounded-lg px-3 text-base font-medium sm:flex ${p === current ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700'}`}
+                                className={`hidden h-11 min-w-[44px] items-center justify-center rounded-lg px-3 text-base font-medium sm:flex ${p === current ? 'bg-brand-600 text-white' : 'text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-700'}`}
                             >
                                 {p}
                             </button>
                         ))}
-                        <span className="text-base text-gray-700 sm:hidden dark:text-gray-300" data-testid="pagination-mobile-label">
+                        <span className="text-base text-stone-700 sm:hidden dark:text-stone-300" data-testid="pagination-mobile-label">
                             {t('common.page_of', { page: current, total: last })}
                         </span>
                     </span>
@@ -77,7 +77,7 @@ export default function Pagination({ meta, onPageChange }) {
                         disabled={current >= last}
                         aria-label={t('common.next')}
                         data-testid="pagination-next"
-                        className="flex h-11 min-w-[44px] items-center justify-center gap-1 rounded-lg border-2 border-gray-300 px-3 text-base font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                        className="flex h-11 min-w-[44px] items-center justify-center gap-1 rounded-lg border-2 border-stone-300 px-3 text-base font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-stone-600 dark:text-stone-200 dark:hover:bg-stone-700"
                     >
                         <span className="hidden sm:inline">{t('common.next')}</span>
                         <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />

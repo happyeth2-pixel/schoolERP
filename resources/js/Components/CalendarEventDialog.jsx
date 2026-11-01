@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +31,7 @@ export default function CalendarEventDialog({ open, event, eventTypes, audiences
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="calendar-event-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('calendar.edit_title') : t('calendar.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('calendar.edit_title') : t('calendar.add_title')}</h2>
                     <Field id="cal_title" label={t('calendar.title_label')} error={errors.title}>
                         <Input value={data.title} onChange={(e) => setData('title', e.target.value)} maxLength={150} autoComplete="off" />
                     </Field>
@@ -40,10 +41,10 @@ export default function CalendarEventDialog({ open, event, eventTypes, audiences
                         </Select>
                     </Field>
                     <Field id="cal_start" label={t('calendar.start_label')} error={errors.start_date}>
-                        <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                        <DateInput value={data.start_date} onChange={(v) => setData('start_date', v)} />
                     </Field>
                     <Field id="cal_end" label={t('calendar.end_label')} optional hint={t('calendar.end_hint')} error={errors.end_date}>
-                        <Input type="date" value={data.end_date} onChange={(e) => setData('end_date', e.target.value)} />
+                        <DateInput value={data.end_date} onChange={(v) => setData('end_date', v)} />
                     </Field>
                     <Field id="cal_audience" label={t('calendar.audience_label')} error={errors.audience}>
                         <Select id="cal_audience" value={data.audience} onChange={(e) => setData('audience', e.target.value)}>

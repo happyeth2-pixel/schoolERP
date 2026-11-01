@@ -6,6 +6,7 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import { BackLink } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -32,7 +33,7 @@ function YearForm({ year, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                 {isEdit ? t('academic_years.edit_year_title') : t('academic_years.add_year_title')}
             </h2>
             <div>
@@ -81,7 +82,7 @@ function TermForm({ academicYearId, term, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                 {isEdit ? t('academic_years.edit_term_title') : t('academic_years.add_term_title')}
             </h2>
             <div>
@@ -120,7 +121,7 @@ function MakeCurrentForm({ year, current, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('academic_years.make_current_title', { name: year.name })}</h2>
+            <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">{t('academic_years.make_current_title', { name: year.name })}</h2>
             <div className="space-y-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
                 <p><strong>{t('academic_years.make_current_changes_label')}</strong> {t('academic_years.make_current_changes_body', { name: year.name })}</p>
                 <p><strong>{t('academic_years.make_current_nochange_label')}</strong> {t('academic_years.make_current_nochange_body')}{current ? t('academic_years.make_current_keeps', { name: current.name, invoices: current.invoices_count, enrollments: current.active_enrollments }) : ''}.</p>
@@ -146,7 +147,8 @@ function MakeCurrentForm({ year, current, onDone }) {
 
 export default function Index({ academicYears, canSwitchYear }) {
     const { t } = useTranslation();
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [showCreate, setShowCreate] = useState(false);
     const [editingYear, setEditingYear] = useState(null);
     const [termFormFor, setTermFormFor] = useState(null);
@@ -155,12 +157,13 @@ export default function Index({ academicYears, canSwitchYear }) {
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('academic_years.header')}</h2>}
+            header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('academic_years.header')}</h2>}
         >
             <Head title={t('academic_years.page_title')} />
 
             <div className="py-8">
                 <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                    <BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>
                     {flash?.success && (
                         <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             {flash.success}
@@ -173,22 +176,22 @@ export default function Index({ academicYears, canSwitchYear }) {
 
                     <div className="space-y-4">
                         {academicYears.map((year) => (
-                            <div key={year.id} className="rounded-lg bg-white p-5 shadow-sm dark:bg-gray-800">
+                            <div key={year.id} className="rounded-lg bg-white p-5 shadow-sm dark:bg-stone-800">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                                        <p className="font-medium text-stone-900 dark:text-stone-100">
                                             {year.name}
                                             {year.is_current && (
-                                                <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                                                     {t('academic_years.current_badge')}
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="text-sm text-gray-500"><DateText value={year.start_date} /> → <DateText value={year.end_date} /> · {t('academic_years.terms_count', { count: year.terms_count })}</p>
+                                        <p className="text-sm text-stone-500"><DateText value={year.start_date} /> → <DateText value={year.end_date} /> · {t('academic_years.terms_count', { count: year.terms_count })}</p>
                                     </div>
                                     <div className="space-x-3 text-sm">
-                                        <button className="text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setEditingYear(year)}>{t('academic_years.edit_link')}</button>
-                                        <button className="text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setTermFormFor(year.id)}>{t('academic_years.add_term_link')}</button>
+                                        <button className="text-brand-600 hover:underline dark:text-brand-400" onClick={() => setEditingYear(year)}>{t('academic_years.edit_link')}</button>
+                                        <button className="text-brand-600 hover:underline dark:text-brand-400" onClick={() => setTermFormFor(year.id)}>{t('academic_years.add_term_link')}</button>
                                         {canSwitchYear && !year.is_current && (
                                             <button className="text-amber-700 hover:underline dark:text-amber-400" onClick={() => setSwitchingTo(year)}>{t('academic_years.make_current_link')}</button>
                                         )}
@@ -197,7 +200,7 @@ export default function Index({ academicYears, canSwitchYear }) {
                             </div>
                         ))}
                         {academicYears.length === 0 && (
-                            <p className="text-center text-sm text-gray-400">{t('academic_years.none_yet')}</p>
+                            <p className="text-center text-sm text-stone-400">{t('academic_years.none_yet')}</p>
                         )}
                     </div>
                 </div>

@@ -1,11 +1,13 @@
 """Browser test: the teacher's home knows their class, and attendance stays a homeroom duty.
 
-  * a class teacher's home: "Good morning, <name>", "Your class: Grade X - Section Y", the number of students, today's
-    attendance in words and one large "Take Attendance" button; with two classes, two cards
+  * a teacher's home: no sidebar, no greeting -- a plain roster of every class they teach (homeroom or
+    subject), then every action listed as a giant button, flat, nothing tucked behind a second page. One
+    "Take attendance" tile per homeroom (two homerooms, two tiles), its wording and data-status following
+    whether it's unmarked/partial/complete
   * a teacher with ONE class is taken straight to marking (no class list), and its screen says "Today", the class and
     "0 / N marked"; "Mark everyone present", corrections, Save, the confirmation ("Attendance saved", "N students recorded",
     Done), and the home then says it is done
-  * a subject teacher who is not the class teacher gets an explanation and no button, and the server refuses them
+  * a subject teacher who is not the class teacher gets an explanation and no attendance tile, and the server refuses them
   * another teacher's class is refused; a branch admin covers any class of the branch and is shown a list; a phone layout
 
 Uses the usability-session data; it briefly moves class-teacher assignments around and puts them back. Only run it
@@ -54,7 +56,7 @@ def login(browser, email, mobile=False):
     page.fill("#phone", email); page.fill("#password", "password")
     page.get_by_role("button", name=re.compile("log in", re.I)).click()
     page.wait_for_url(lambda u: "/login" not in u, timeout=20000)
-    page.goto(f"{BASE}/dashboard"); page.wait_for_selector("[data-testid=home-tasks]", timeout=20000)
+    page.goto(f"{BASE}/dashboard"); page.wait_for_selector("[data-testid=home-tasks], [data-testid=teacher-home]", timeout=20000)
     return ctx, page
 
 
@@ -102,12 +104,11 @@ with sync_playwright() as p:
 
     # ================================================================ 1. a class teacher with two classes
     ctx, page = login(browser, "teacher@demo.test")
-    check("home: greets the teacher by name", re.fullmatch(rf"Good (morning|afternoon|evening), {re.escape(ME[1])}", page.locator("[data-testid=greeting]").inner_text()) is not None, page.locator("[data-testid=greeting]").inner_text())
-    check("home: 'Your classes:' and one card per class, each 'Grade X — Section Y'", page.locator("[data-testid=your-class]").inner_text() == "Your classes:" and page.locator("[data-testid=homeroom-card]").count() == 2 and re.fullmatch(r"Grade \d+ — Section \w+", page.locator("[data-testid=homeroom-class]").first.inner_text()) is not None)
-    card = page.locator("[data-testid=homeroom-card]").filter(has_text=f"{G1} — Section {N1}")
-    check("home: the card says how many students, and 'Today's Attendance' with progress in words", f"{C1} students" in card.locator("[data-testid=homeroom-count]").inner_text() and "Today's Attendance" in card.inner_text() and f"0 / {C1} marked" in card.locator("[data-testid=progress-text]").inner_text(), card.inner_text().replace("\n", " | ")[:200])
-    check("home: one large 'Take Attendance' button per class", card.locator("[data-testid=take-attendance]").inner_text() == "Take Attendance" and card.locator("[data-testid=take-attendance]").evaluate(H) >= 56)
-    check("home: the class tiles are not repeated below (Enter marks, Notifications, Announcements) and Take attendance is under More", [t.strip() for t in page.locator("[data-testid=main-tiles] a span span").all_inner_texts()][:1] == ["Enter marks"] and page.locator("[data-testid=more-tasks]").text_content().count("Take attendance") >= 1)
+    check("home: no sidebar, no hamburger menu", page.locator("aside").count() == 0 and page.get_by_label(re.compile("menu", re.I)).count() == 0)
+    check("home: both homerooms listed in the roster, plainly", page.locator("[data-testid=roster-homeroom]").count() == 2 and f"{G1} {N1}" in page.locator("[data-testid=class-roster]").inner_text())
+    tiles = page.locator("[data-testid=take-attendance]")
+    check("home: one giant attendance tile per homeroom, each a real tap target, unmarked so far", tiles.count() == 2 and min(tiles.evaluate_all("els => els.map(e => e.offsetHeight)")) >= 100 and all(tiles.nth(i).get_attribute("data-status") == "none" for i in range(2)))
+    check("home: every other action is a flat giant button too (Enter Marks, Homework, Messages...)", page.get_by_role("link", name=re.compile("Enter Marks", re.I)).count() == 1 and page.get_by_role("link", name=re.compile("Homework", re.I)).count() == 1 and page.get_by_role("link", name=re.compile("Messages", re.I)).count() == 1)
     page.goto(f"{BASE}/attendance"); page.wait_for_selector("[data-testid=class-card]")
     check("two classes: /attendance still asks which class (only their own two)", page.locator("[data-testid=class-card]").count() == 2)
     check("another teacher's class is refused", status_of(ctx, f"/attendance/{OTHERS_SECTION}") == 403)
@@ -116,7 +117,7 @@ with sync_playwright() as p:
     # ================================================================ 2. ONE class: straight to marking
     q("update sections set class_teacher_id=? where id=?", OTHER_TEACHER, S2)      # now they are class teacher of just the first
     ctx, page = login(browser, "teacher@demo.test")
-    check("home: with one class it says 'Your class:' and shows one card", page.locator("[data-testid=your-class]").inner_text() == "Your class:" and page.locator("[data-testid=homeroom-card]").count() == 1)
+    check("home: with one class, one roster entry and one attendance tile", page.locator("[data-testid=roster-homeroom]").count() == 1 and page.locator("[data-testid=take-attendance]").count() == 1)
     page.locator("[data-testid=take-attendance]").click()
     page.wait_for_selector("[data-testid=student-row]")
     check("one class: the button goes straight to the attendance screen (no class list)", f"/attendance/{S1}" in page.url and page.locator("[data-testid=class-card]").count() == 0, page.url)
@@ -140,8 +141,8 @@ with sync_playwright() as p:
     saved = q("select status, count(*) from attendance_records where enrollment_id in (select id from enrollments where section_id=?) group by status", S1)
     check("saved: exactly what was marked (1 absent, 1 late, the rest present)", dict(saved) == {"absent": 1, "late": 1, "present": C1 - 2}, str(saved))
     page.get_by_role("link", name="Done").click(); page.wait_for_selector("[data-testid=teacher-home]")
-    card = page.locator("[data-testid=homeroom-card]")
-    check("Done: back on the home page, which now says attendance is complete and offers to check or change it", card.get_attribute("data-status") == "complete" and f"{C1} / {C1} marked" in card.inner_text() and card.locator("[data-testid=take-attendance]").inner_text() == "Check or change attendance")
+    tile = page.locator("[data-testid=take-attendance]")
+    check("Done: back on the home page, the tile now says attendance is complete and offers to check or change it", tile.get_attribute("data-status") == "complete" and "Check or change" in tile.inner_text(), tile.inner_text())
 
     # a correction after parents were told: the consequence is explained BEFORE saving
     page.locator("[data-testid=take-attendance]").click(); page.wait_for_selector("[data-testid=student-row]")
@@ -159,13 +160,13 @@ with sync_playwright() as p:
     q("update sections set class_teacher_id=? where id=?", OTHER_TEACHER, S1)      # now they only TEACH a subject in class 1
     q("insert or ignore into teaching_assignments (teacher_id, section_id, subject_id, created_at, updated_at) select ?, ?, subject_id, datetime('now'), datetime('now') from teaching_assignments limit 1", ME[0], S1)
     ctx, page = login(browser, "teacher@demo.test")
-    check("subject teacher: their home has no class and no Take Attendance button", page.locator("[data-testid=homeroom-card]").count() == 0 and page.locator("[data-testid=take-attendance]").count() == 0 and page.locator("[data-testid=no-homeroom]").count() == 1)
-    check("subject teacher: it says attendance belongs to the class teacher and to ask the branch admin if they are away", "class teacher" in page.locator("[data-testid=teacher-home]").inner_text().lower() and "branch admin" in page.locator("[data-testid=teacher-home]").inner_text().lower(), page.locator("[data-testid=teacher-home]").inner_text().replace("\n", " | ")[:260])
+    check("subject teacher: their home has no attendance tile for a class they don't lead", page.locator("[data-testid=take-attendance]").count() == 0 and page.locator("[data-testid=roster-subject]").count() >= 1)
+    check("subject teacher: a note says attendance belongs to that class's own teacher, and to ask the branch admin if they're away", "own teacher" in page.locator("[data-testid=taught-only-note]").inner_text().lower() and "branch admin" in page.locator("[data-testid=taught-only-note]").inner_text().lower(), page.locator("[data-testid=taught-only-note]").inner_text().replace("\n", " | ")[:260])
     check("subject teacher: the server refuses the class page, the save and the roster export", status_of(ctx, f"/attendance/{S1}") == 403 and status_of(ctx, f"/attendance/{S1}/export") == 403)
     before = q("select count(*) from attendance_records")[0][0]
     xsrf = None
     page.goto(f"{BASE}/attendance"); page.wait_for_selector("h1")
-    check("subject teacher: /attendance explains instead of listing or redirecting", "/attendance/" not in page.url.split("/attendance")[1] and ("class (homeroom) teacher" in body(page) or "class teacher" in body(page).lower()), page.url)
+    check("subject teacher: /attendance explains instead of listing or redirecting", "/attendance/" not in page.url.split("/attendance")[1] and "homeroom teacher" in body(page).lower() and "branch admin" in body(page).lower(), page.url)
     check("subject teacher: nothing was recorded", q("select count(*) from attendance_records")[0][0] == before)
     ctx.close()
     restore()
@@ -199,7 +200,7 @@ with sync_playwright() as p:
     q("update sections set class_teacher_id=? where id=?", OTHER_TEACHER, S2)
     clear_marks(S1)
     mctx, mp = login(browser, "teacher@demo.test", mobile=True)
-    check("phone: the teacher home (greeting, class, Take Attendance) fits the screen", overflow(mp) <= 0 and mp.locator("[data-testid=take-attendance]").evaluate(H) >= 56 and mp.locator("[data-testid=greeting]").is_visible() and mp.locator("[data-testid=take-attendance]").is_visible())
+    check("phone: no sidebar, and the teacher home (roster, attendance tile) fits the screen", overflow(mp) <= 0 and mp.locator("aside").count() == 0 and mp.locator("[data-testid=take-attendance]").evaluate(H) >= 56 and mp.locator("[data-testid=take-attendance]").is_visible())
     mp.locator("[data-testid=take-attendance]").click(); mp.wait_for_selector("[data-testid=student-row]")
     check("phone: the marking screen fits, the five status buttons are large and the Mark everyone present button is visible", overflow(mp) <= 0 and min(rows(mp).first.locator("button[role=radio]").evaluate_all("els => els.map(e => e.offsetHeight)")) >= 56 and mp.get_by_role("button", name="Mark everyone present").is_visible())
     mp.get_by_role("button", name="Mark everyone present").click()

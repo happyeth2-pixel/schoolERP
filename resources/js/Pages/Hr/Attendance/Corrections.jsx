@@ -11,7 +11,7 @@ export default function Corrections({ corrections }) {
     const reject = (c) => router.post(route('staff-attendance-corrections.reject', c.id), {}, { preserveScroll: true });
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('staff_attendance.corrections_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('staff_attendance.corrections_title')}</h2>}>
             <Page
                 title={t('staff_attendance.corrections_title')}
                 description={t('staff_attendance.corrections_desc')}
@@ -24,20 +24,20 @@ export default function Corrections({ corrections }) {
                 ) : (
                     <ul className="space-y-4" data-testid="correction-list">
                         {corrections.map((c) => (
-                            <li key={c.id} className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800" data-testid="correction-row">
-                                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{c.employee_name} — {c.date}</p>
-                                <p className="mt-1 text-base text-gray-800 dark:text-gray-200">
+                            <li key={c.id} className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800" data-testid="correction-row">
+                                <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{c.employee_name} — {c.date}</p>
+                                <p className="mt-1 text-base text-stone-800 dark:text-stone-200">
                                     {t(`staff_attendance.status_${c.current_status}`)} → {t(`staff_attendance.status_${c.new_status}`)}
                                 </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('staff_attendance.requested_by_x', { name: c.requested_by })}</p>
-                                <p className="mt-2 whitespace-pre-wrap text-base text-gray-800 dark:text-gray-200">{c.reason}</p>
+                                <p className="text-sm text-stone-600 dark:text-stone-400">{t('staff_attendance.requested_by_x', { name: c.requested_by })}</p>
+                                <p className="mt-2 whitespace-pre-wrap text-base text-stone-800 dark:text-stone-200">{c.reason}</p>
                                 {c.can_review ? (
                                     <div className="mt-4 flex gap-3">
                                         <Button onClick={() => approve(c)}>{t('staff_attendance.approve')}</Button>
                                         <Button variant="secondary" onClick={() => reject(c)}>{t('staff_attendance.reject')}</Button>
                                     </div>
                                 ) : (
-                                    <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400" data-testid="own-request-note">{t('staff_attendance.cannot_review_own')}</p>
+                                    <p className="mt-3 text-sm font-medium text-stone-600 dark:text-stone-400" data-testid="own-request-note">{t('staff_attendance.cannot_review_own')}</p>
                                 )}
                             </li>
                         ))}

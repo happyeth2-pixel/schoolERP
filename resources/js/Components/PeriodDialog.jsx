@@ -1,14 +1,15 @@
 import Modal from '@/Components/Modal';
-import { Button, Field, Input } from '@/Components/ui';
+import { Button, Field, Input, Select } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
-export default function PeriodDialog({ open, period, onClose }) {
+export default function PeriodDialog({ open, period, types = ['teaching', 'break', 'lunch'], onClose }) {
     const { t } = useTranslation();
     const editing = Boolean(period);
     const { data, setData, post, put, processing, errors, reset } = useForm({
         period_number: period?.period_number != null ? String(period.period_number) : '',
         name: period?.name ?? '',
+        type: period?.type ?? 'teaching',
         start_time: period?.start_time ?? '',
         end_time: period?.end_time ?? '',
     });
@@ -27,12 +28,17 @@ export default function PeriodDialog({ open, period, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="period-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('timetable.edit_period_title') : t('timetable.add_period_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('timetable.edit_period_title') : t('timetable.add_period_title')}</h2>
                     <Field id="period_number" label={t('timetable.period_number_label')} error={errors.period_number}>
                         <Input inputMode="numeric" value={data.period_number} onChange={(e) => setData('period_number', e.target.value)} />
                     </Field>
                     <Field id="period_name" label={t('timetable.period_name_label')} hint={t('timetable.period_name_hint')} error={errors.name}>
                         <Input value={data.name} onChange={(e) => setData('name', e.target.value)} maxLength={255} />
+                    </Field>
+                    <Field id="period_type" label={t('timetable.period_type_label')} hint={t('timetable.period_type_hint')} error={errors.type}>
+                        <Select value={data.type} onChange={(e) => setData('type', e.target.value)}>
+                            {types.map((ty) => <option key={ty} value={ty}>{t(`timetable.period_type_${ty}`)}</option>)}
+                        </Select>
                     </Field>
                     <Field id="period_start" label={t('timetable.period_start_label')} error={errors.start_time}>
                         <Input type="time" value={data.start_time} onChange={(e) => setData('start_time', e.target.value)} />

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Student;
+use App\Support\Localization\GenderedText;
 use App\Support\Localization\NotificationLocale;
 use App\Support\SchoolCalendar;
 use Illuminate\Bus\Queueable;
@@ -30,10 +31,11 @@ class StudentMarkedAbsent extends Notification
     public function toArray(object $notifiable): array
     {
         $locale = NotificationLocale::for($notifiable);
+        $key = GenderedText::key('notifications.student_marked_absent', $this->student->gender);
 
         return [
-            'title' => __('notifications.student_marked_absent.title', [], $locale),
-            'body' => __('notifications.student_marked_absent.body', [
+            'title' => __("{$key}.title", [], $locale),
+            'body' => __("{$key}.body", [
                 'student' => $this->student->first_name,
                 'date' => SchoolCalendar::date($this->date, $this->student->school),
             ], $locale),

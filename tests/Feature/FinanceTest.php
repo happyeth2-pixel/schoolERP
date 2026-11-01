@@ -153,7 +153,7 @@ class FinanceTest extends TestCase
         Excel::assertDownloaded('invoices.xlsx', function ($export) use ($truth) {
             $rows = collect($export->array());
             $total = $rows->firstWhere(0, 'TOTAL');
-            $this->assertEquals([$truth['net'], $truth['collected'], $truth['outstanding']], [$total[5], $total[6], $total[7]]);
+            $this->assertEquals([$truth['net'], $truth['collected'], $truth['outstanding']], [$total[6], $total[7], $total[8]]);
 
             return true;
         });

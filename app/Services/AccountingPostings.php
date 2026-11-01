@@ -56,11 +56,11 @@ class AccountingPostings
             return null;
         }
 
-        $invoice->loadMissing('items.feeStructure', 'items.optionalService');
+        $invoice->loadMissing('items.feeStructure', 'items.optionalService', 'items.bookItem');
 
         $byAccount = [];
         foreach ($invoice->items as $item) {
-            $source = $item->fee_structure_id ? $item->feeStructure : ($item->optional_service_id ? $item->optionalService : null);
+            $source = $item->fee_structure_id ? $item->feeStructure : ($item->optional_service_id ? $item->optionalService : $item->bookItem);
             $accountId = $source?->revenue_account_id ?? $school->default_revenue_account_id;
             if (! $accountId) {
                 continue;

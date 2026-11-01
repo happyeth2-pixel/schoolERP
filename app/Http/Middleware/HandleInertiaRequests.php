@@ -63,6 +63,18 @@ class HandleInertiaRequests extends Middleware
                 'unreadCount' => $user->unreadNotifications()->count(),
                 'recent' => $user->notifications()->latest()->limit(5)->get()->map(fn ($n) => NotificationPresenter::present($n)),
             ] : null,
+            // A parent's own children, with their class -- shown in the sidebar on every page (not just
+            // the dashboard), so "which grade is my child in" never requires going home first to check.
+            'parentChildren' => $user && $user->hasRole('parent')
+                ? $user->children()->with('currentEnrollment.section.grade')->orderBy('first_name')->get()
+                    ->map(fn ($c) => [
+                        'id' => $c->id,
+                        'name' => $c->first_name,
+                        'class' => $c->currentEnrollment?->section
+                            ? "{$c->currentEnrollment->section->grade->name} {$c->currentEnrollment->section->name}"
+                            : null,
+                    ])
+                : null,
             // One centralized "what day is it" for the whole app -- dashboards, attendance, finance and
             // anything else that shows "today" all read this, instead of each page (or the browser's own
             // clock, which was the bug: two dashboard greetings used `new Date().getHours()`, so a device

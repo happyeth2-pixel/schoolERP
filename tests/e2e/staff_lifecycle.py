@@ -76,6 +76,22 @@ with sync_playwright() as p:
     octx, op = new_page(browser)
     check("the owner signs in", sign_in(op, "owner@demo.test", "password"))
 
+    # ================================================================ 0. editing your OWN account doesn't crash
+    # Real bug found by hand: Field (Components/ui/Form.jsx) clones its single child with React.Children.only --
+    # the isOwnAccount branch of EditStaffForm gave it two (an <Input> plus a separate hint <p>), which only ever
+    # renders when someone opens the Change dialog on THEIR OWN row -- every other account's dialog takes a
+    # different branch, so this was invisible until an owner tried to edit themselves.
+    op.goto(f"{BASE}/staff"); op.wait_for_selector("[data-testid=staff-row]")
+    own_card = op.locator("[data-testid=staff-row]").filter(has_text="owner@demo.test")
+    own_card.get_by_role("button", name="Change").click()
+    op.wait_for_selector("[data-testid=edit-staff]")
+    dialog_text = op.locator("[data-testid=edit-staff]").inner_text()
+    check("own account: the Change dialog opens without crashing and explains the role is locked",
+          "cannot change your own system role" in dialog_text.lower(), dialog_text[:200])
+    check("own account: opening it raised no JavaScript error", not op.js_errors, str(op.js_errors[:2]))
+    op.get_by_role("button", name="Cancel").click()
+    op.wait_for_selector("[data-testid=edit-staff]", state="detached")
+
     # ================================================================ 1. create (typed temporary password, class teacher)
     op.goto(f"{BASE}/staff/create"); wait_text(op, "Step 1 of 3")
     op.fill("#staff_name", NAME); op.fill("#staff_phone", PHONE_TYPED); op.fill("#staff_title", "Science teacher")
@@ -92,7 +108,6 @@ with sync_playwright() as p:
     op.select_option("#staff_class", value=str(free[0]))
     nxt(op).click(); wait_text(op, "Step 3 of 3")
     check("account step: the summary names the class", free[1] in body(op))
-    op.fill("#staff_phone_confirmation", PHONE_TYPED)
     op.get_by_role("radio", name=re.compile("^I will type one")).click()
     op.fill("#staff_temp_password", TYPED_PW)
     op.get_by_role("button", name="Show password").click()

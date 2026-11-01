@@ -42,14 +42,14 @@ function DiscountForm({ invoice, limits, canApprove, onDone }) {
     return (
         <form onSubmit={submit} className="space-y-6 p-6" data-testid="discount-form">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('adj.d_title', { number: invoice.invoice_number })}</h2>
-                <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{t('adj.d_intro', { student: invoice.student.name, subtotal: money(gross) })}</p>
+                <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('adj.d_title', { number: invoice.invoice_number })}</h2>
+                <p className="mt-1 text-base text-stone-600 dark:text-stone-400">{t('adj.d_intro', { student: invoice.student.name, subtotal: money(gross) })}</p>
             </div>
             <Field id="discount_amount" label={t('adj.d_amount')} hint={t('adj.d_amount_hint')} error={errors.discount_amount ?? (data.discount_amount !== '' && !valid ? t('adj.err_number') : undefined)}>
                 <Input inputMode="decimal" value={data.discount_amount} onChange={(e) => { clearErrors('discount_amount'); setData('discount_amount', e.target.value); }} autoComplete="off" />
             </Field>
             {valid && (
-                <p className="rounded-xl border-2 border-indigo-300 bg-indigo-50 p-4 text-lg font-semibold text-gray-900 dark:border-indigo-700 dark:bg-indigo-900/20 dark:text-gray-100" data-testid="d-preview">
+                <p className="rounded-xl border-2 border-brand-300 bg-brand-50 p-4 text-lg font-semibold text-stone-900 dark:border-brand-700 dark:bg-brand-900/20 dark:text-stone-100" data-testid="d-preview">
                     {removing ? t('adj.d_preview_none', { total: money(gross) }) : t('adj.d_preview', { total: money(totalAfter), was: money(gross) })}
                 </p>
             )}
@@ -58,7 +58,7 @@ function DiscountForm({ invoice, limits, canApprove, onDone }) {
                     <Input value={data.discount_reason} onChange={(e) => { clearErrors('discount_reason'); setData('discount_reason', e.target.value); }} maxLength={255} autoComplete="off" />
                 </Field>
             )}
-            <p className="text-base text-gray-700 dark:text-gray-300" data-testid="d-limit">
+            <p className="text-base text-stone-700 dark:text-stone-300" data-testid="d-limit">
                 {canApprove ? t('adj.limit_any') : t('adj.d_limit', { percent: Number(limits.discount_percent), amount: money(limit) })}
             </p>
             {above && <Alert tone="warning" title={t('adj.d_above_title')}>{t('adj.d_above_body', { amount: money(limit) })}</Alert>}
@@ -95,14 +95,14 @@ function WaiveForm({ invoice, limits, canApprove, onDone }) {
     return (
         <form onSubmit={submit} className="space-y-6 p-6" data-testid="waive-form">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('adj.w_title', { number: invoice.invoice_number })}</h2>
-                <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('adj.w_owed', { amount: money(owed), student: invoice.student.name })}</p>
+                <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('adj.w_title', { number: invoice.invoice_number })}</h2>
+                <p className="mt-1 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('adj.w_owed', { amount: money(owed), student: invoice.student.name })}</p>
             </div>
             <Alert tone="info" title={t('adj.w_effect_title')}>{t('adj.w_effect_body', { amount: money(owed) })}</Alert>
             <Field id="waive_reason" label={t('adj.w_reason')} hint={t('adj.w_reason_hint')} error={errors.reason}>
                 <Input value={data.reason} onChange={(e) => { clearErrors('reason'); setData('reason', e.target.value); }} maxLength={255} autoComplete="off" />
             </Field>
-            <p className="text-base text-gray-700 dark:text-gray-300" data-testid="w-limit">{canApprove ? t('adj.limit_any') : t('adj.w_limit', { amount: money(limits.waiver_amount) })}</p>
+            <p className="text-base text-stone-700 dark:text-stone-300" data-testid="w-limit">{canApprove ? t('adj.limit_any') : t('adj.w_limit', { amount: money(limits.waiver_amount) })}</p>
             {above && <Alert tone="warning" title={t('adj.w_above_title')}>{t('adj.w_above_body', { amount: money(limits.waiver_amount) })}</Alert>}
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>

@@ -31,6 +31,24 @@ class InventoryItemController extends Controller
         $storeIds = $this->visibleStores($user)->pluck('id');
         $search = trim((string) $request->query('search', ''));
 
+        // Whole-catalog breakdown for the page's stock-status chart -- deliberately never filtered by
+        // $search, so the chart always reads as "the whole store," the same scope as the dashboard's own
+        // inventory figures (DashboardController::inventoryStats()), which this mirrors.
+        $allItems = InventoryItem::where('school_id', $user->school_id)
+            ->with(['balances' => fn ($q) => $q->whereIn('store_id', $storeIds)])
+            ->get();
+        $lowStockCount = 0;
+        $outOfStockCount = 0;
+        foreach ($allItems as $item) {
+            $onHand = $item->totalOnHand($item->balances);
+            if ($onHand <= 0) {
+                $outOfStockCount++;
+            } elseif ($item->isLowStock($onHand)) {
+                $lowStockCount++;
+            }
+        }
+        $summary = ['total' => $allItems->count(), 'low_stock' => $lowStockCount, 'out_of_stock' => $outOfStockCount];
+
         $items = InventoryItem::where('school_id', $user->school_id)
             ->with(['category:id,name', 'balances' => fn ($q) => $q->whereIn('store_id', $storeIds)])
             ->when($search !== '', fn ($q) => $q->where(fn ($q2) => $q2->where('name', 'like', "%{$search}%")
@@ -58,6 +76,7 @@ class InventoryItemController extends Controller
 
         return Inertia::render('Inventory/Items/Index', [
             'items' => $items,
+            'summary' => $summary,
             'search' => $search,
             'canManage' => $user->can('inventory-manage'),
             'canReceive' => $user->can('stock-receive'),

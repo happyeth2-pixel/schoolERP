@@ -1,13 +1,14 @@
 import BookDialog from '@/Components/BookDialog';
-import { Button, Card, EmptyState, FlashMessages, Input, Page } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Input, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BookOpenIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ books, search, canManage }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(null);
     const [q, setQ] = useState(search ?? '');
 
@@ -17,11 +18,12 @@ export default function Index({ books, search, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('library.catalog_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('library.catalog_title')}</h2>}>
             <Page
                 title={t('library.catalog_title')}
                 description={t('library.catalog_desc')}
                 width="default"
+                back={<BackLink big={auth.role === 'teacher'} href={route('library.index')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('library.add_book_button')}</Button>}
             >
                 <FlashMessages errorKeys={['delete']} />
@@ -38,10 +40,10 @@ export default function Index({ books, search, canManage }) {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2">
                         {books.map((b) => (
-                            <Link key={b.id} href={route('library-books.show', b.id)} data-testid="book-card" className="block rounded-2xl border-2 border-gray-200 bg-white p-5 hover:border-indigo-400 dark:border-gray-700 dark:bg-gray-800">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{b.title}</h3>
-                                {b.author && <p className="text-sm text-gray-600 dark:text-gray-400">{b.author}</p>}
-                                <p className="mt-2 text-base text-gray-700 dark:text-gray-300">{t('library.copies_available', { available: b.available_count, total: b.copies_count })}</p>
+                            <Link key={b.id} href={route('library-books.show', b.id)} data-testid="book-card" className="block rounded-2xl border-2 border-stone-200 bg-white p-5 hover:border-brand-400 dark:border-stone-700 dark:bg-stone-800">
+                                <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">{b.title}</h3>
+                                {b.author && <p className="text-sm text-stone-600 dark:text-stone-400">{b.author}</p>}
+                                <p className="mt-2 text-base text-stone-700 dark:text-stone-300">{t('library.copies_available', { available: b.available_count, total: b.copies_count })}</p>
                             </Link>
                         ))}
                     </div>

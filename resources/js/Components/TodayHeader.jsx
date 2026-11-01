@@ -22,7 +22,7 @@ export default function TodayHeader({ className = '' }) {
         : t('home.today_line', { weekday, date: today.formatted });
 
     return (
-        <p className={`text-sm font-medium text-gray-500 dark:text-gray-400 ${className}`}>
+        <p className={`text-sm font-medium text-stone-500 dark:text-stone-400 ${className}`}>
             <time dateTime={today.iso}>{line}</time>
         </p>
     );

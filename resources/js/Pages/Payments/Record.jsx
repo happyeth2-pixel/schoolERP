@@ -18,9 +18,9 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 function BreakdownRow({ label, value, testid, strong = false, big = false }) {
     return (
-        <div className={`flex items-baseline justify-between gap-4 px-4 py-3 ${big ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>
-            <dt className={`text-base ${big ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>{label}</dt>
-            <dd className={`${big ? 'text-2xl font-bold' : strong ? 'text-xl font-bold' : 'text-lg font-semibold'} text-gray-900 dark:text-gray-100`} data-testid={testid}>{value}</dd>
+        <div className={`flex items-baseline justify-between gap-4 px-4 py-3 ${big ? 'bg-brand-50 dark:bg-brand-900/20' : ''}`}>
+            <dt className={`text-base ${big ? 'font-bold text-stone-900 dark:text-stone-100' : 'text-stone-700 dark:text-stone-300'}`}>{label}</dt>
+            <dd className={`${big ? 'text-2xl font-bold' : strong ? 'text-xl font-bold' : 'text-lg font-semibold'} text-stone-900 dark:text-stone-100`} data-testid={testid}>{value}</dd>
         </div>
     );
 }
@@ -78,7 +78,7 @@ export default function Record({ invoice, student, guardians, waiting }) {
         setData('proof', file);
     };
 
-    const layoutHeader = <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('rec.title')}</h2>;
+    const layoutHeader = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('rec.title')}</h2>;
     const back = <BackLink href={route('invoices.show', invoice.id)}>{t('rec.back_to_bill')}</BackLink>;
     const methodLabel = (m) => t(`verify.method_${m}`);
 
@@ -86,10 +86,10 @@ export default function Record({ invoice, student, guardians, waiting }) {
         <AuthenticatedLayout header={layoutHeader}>
             <Page title={t('rec.title')} description={t('rec.desc')} width="default" back={back}>
                 <Card data-testid="bill-summary">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="bill-student">{student.name}</p>
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="bill-class">{student.class ?? t('find.no_class')} · {t('find.id_number', { id: student.student_id_number })}</p>
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="bill-invoice">{t('rec.invoice_word')} {invoice.number}{invoice.period_label ? ` · ${invoice.period_label}` : ''}</p>
-                    <dl className="mt-4 divide-y divide-gray-200 rounded-xl border-2 border-gray-200 bg-white dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800" data-testid="breakdown">
+                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100" data-testid="bill-student">{student.name}</p>
+                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="bill-class">{student.class ?? t('find.no_class')} · {t('find.id_number', { id: student.student_id_number })}</p>
+                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="bill-invoice">{t('rec.invoice_word')} {invoice.number}{invoice.period_label ? ` · ${invoice.period_label}` : ''}</p>
+                    <dl className="mt-4 divide-y divide-stone-200 rounded-xl border-2 border-stone-200 bg-white dark:divide-stone-700 dark:border-stone-700 dark:bg-stone-800" data-testid="breakdown">
                         <BreakdownRow label={t('rec.bd_total')} value={`${money(invoice.total)} ETB`} testid="bd-total" />
                         <BreakdownRow label={t('rec.bd_paid')} value={`${money(invoice.collected)} ETB`} testid="bd-paid" />
                         <BreakdownRow label={t('rec.bd_this')} value={amountOk && !over ? `${money(amountNum)} ETB` : '—'} testid="bd-this" strong={amountOk && !over} />
@@ -155,14 +155,14 @@ export default function Record({ invoice, student, guardians, waiting }) {
                                 </Field>
 
                                 <div>
-                                    <p className="text-base font-medium text-gray-900 dark:text-gray-100">{t('rec.slip')} <span className="font-normal text-gray-600 dark:text-gray-400">({t('common.optional', { defaultValue: 'Optional' })})</span></p>
-                                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{t('rec.slip_hint')}</p>
-                                    {preview && <img src={preview} alt={t('rec.slip')} className="mt-2 max-h-40 rounded-lg border-2 border-gray-200" />}
-                                    <label className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center rounded-xl border-2 border-gray-400 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100">
+                                    <p className="text-base font-medium text-stone-900 dark:text-stone-100">{t('rec.slip')} <span className="font-normal text-stone-600 dark:text-stone-400">({t('common.optional', { defaultValue: 'Optional' })})</span></p>
+                                    <p className="mt-0.5 text-sm text-stone-600 dark:text-stone-400">{t('rec.slip_hint')}</p>
+                                    {preview && <img src={preview} alt={t('rec.slip')} className="mt-2 max-h-40 rounded-lg border-2 border-stone-200" />}
+                                    <label className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center rounded-xl border-2 border-stone-400 bg-white px-4 py-2 text-sm font-semibold text-stone-900 hover:bg-stone-50 dark:border-stone-500 dark:bg-stone-800 dark:text-stone-100">
                                         {data.proof ? t('rec.slip_change') : t('rec.slip_choose')}
                                         <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="sr-only" data-testid="slip-input" onChange={(e) => chooseFile(e.target.files[0])} />
                                     </label>
-                                    {data.proof && <span className="ml-3 break-words text-sm text-gray-800 dark:text-gray-200">{data.proof.name}</span>}
+                                    {data.proof && <span className="ml-3 break-words text-sm text-stone-800 dark:text-stone-200">{data.proof.name}</span>}
                                     <FieldError message={fileError ?? errors.proof} />
                                 </div>
                             </div>
@@ -170,10 +170,10 @@ export default function Record({ invoice, student, guardians, waiting }) {
 
                         {key === 'review' && (
                             <div className="space-y-5">
-                                <div className="space-y-2 rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="headline">
-                                    <p className="text-xl text-gray-900 dark:text-gray-100" data-testid="confirm-student">{t('rec.review_student')}: <strong>{student.name}</strong></p>
-                                    <p className="text-xl text-gray-900 dark:text-gray-100" data-testid="confirm-payment">{t('rec.review_payment')}: <strong className="text-3xl">{money(amountNum)} ETB</strong></p>
-                                    <p className="text-xl text-gray-900 dark:text-gray-100" data-testid="confirm-left">{t('rec.review_left')}: <strong className="text-3xl">{money(left)} ETB</strong></p>
+                                <div className="space-y-2 rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 dark:border-brand-700 dark:bg-brand-900/20" data-testid="headline">
+                                    <p className="text-xl text-stone-900 dark:text-stone-100" data-testid="confirm-student">{t('rec.review_student')}: <strong>{student.name}</strong></p>
+                                    <p className="text-xl text-stone-900 dark:text-stone-100" data-testid="confirm-payment">{t('rec.review_payment')}: <strong className="text-3xl">{money(amountNum)} ETB</strong></p>
+                                    <p className="text-xl text-stone-900 dark:text-stone-100" data-testid="confirm-left">{t('rec.review_left')}: <strong className="text-3xl">{money(left)} ETB</strong></p>
                                 </div>
                                 <ReviewList
                                     onEdit={wizard.goTo}
@@ -192,7 +192,7 @@ export default function Record({ invoice, student, guardians, waiting }) {
                                         <CheckRow checked={data.confirm_duplicate} onChange={(v) => setData('confirm_duplicate', v)} label={t('rec.dup_confirm')} id="confirm_duplicate" />
                                     </div>
                                 )}
-                                <p className="text-base text-gray-700 dark:text-gray-300">{t('rec.review_note')}</p>
+                                <p className="text-base text-stone-700 dark:text-stone-300">{t('rec.review_note')}</p>
                                 {errors.amount && <Alert tone="danger" title={t('rec.error_title')}><span data-testid="record-error">{errors.amount}</span></Alert>}
                             </div>
                         )}

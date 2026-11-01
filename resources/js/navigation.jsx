@@ -10,6 +10,8 @@ import {
     CalendarDaysIcon,
     CalendarIcon,
     ChartBarIcon,
+    ChartPieIcon,
+    PhotoIcon,
     ChatBubbleLeftRightIcon,
     CheckBadgeIcon,
     ClipboardDocumentCheckIcon,
@@ -19,9 +21,12 @@ import {
     DocumentChartBarIcon,
     DocumentTextIcon,
     ExclamationTriangleIcon,
+    HeartIcon,
     HomeIcon,
     MegaphoneIcon,
     PencilIcon,
+    PencilSquareIcon,
+    SpeakerWaveIcon,
     PresentationChartBarIcon,
     QuestionMarkCircleIcon,
     ArchiveBoxIcon,
@@ -62,12 +67,14 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             label: s('overview', 'Overview'),
             items: [
                 { label: m('home', 'Home'), route: 'dashboard', enabled: true, icon: HomeIcon },
+                { label: n('family_invoices', 'Fees & Payments'), route: 'family.invoices', enabled: true, show: role === 'parent', icon: BanknotesIcon },
                 { label: n('notifications', 'Notifications'), route: 'notifications.index', enabled: true, icon: BellIcon },
                 { label: n('help', 'Help'), route: 'help.index', enabled: true, icon: QuestionMarkCircleIcon },
                 { label: n('my_leave', 'My Leave'), route: 'leave-requests.mine', enabled: has('leave-request') || has('leave-approve'), show: has('leave-request') || has('leave-approve'), icon: CalendarIcon },
                 { label: n('my_performance', 'My Performance'), route: 'performance-reviews.mine', enabled: true, show: !['parent', 'student'].includes(role), icon: StarIcon },
                 { label: n('my_payslips', 'My Payslips'), route: 'payslips.mine', enabled: true, show: !['parent', 'student'].includes(role), icon: BanknotesIcon },
                 { label: n('my_timetable', 'My Timetable'), route: 'timetable.mine', enabled: true, show: role === 'teacher', icon: CalendarDaysIcon },
+                { label: n('my_after_school', 'My After-School Programmes'), route: 'optional-services.mine', enabled: true, show: role === 'teacher', icon: AcademicCapIcon },
                 { label: n('my_library_loans', 'My Library Loans'), route: 'library.mine', enabled: true, show: !['parent', 'student'].includes(role), icon: BookOpenIcon },
             ].filter((i) => i.show !== false),
         },
@@ -87,6 +94,10 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             label: s('settings', 'Settings'),
             items: [
                 { label: m('school_details', 'School Details'), route: 'school-settings.edit', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: Cog6ToothIcon },
+                { label: n('contact_inquiries', 'Contact Messages'), route: 'contact-inquiries.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: ChatBubbleLeftRightIcon },
+                { label: n('website_gallery', 'Website Gallery'), route: 'gallery.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PhotoIcon },
+                { label: n('website_text', 'Website Text'), route: 'site-content.edit', params: { page: 'home' }, enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PencilSquareIcon },
+                { label: n('website_banner', 'Website Banner'), route: 'site-announcements.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: SpeakerWaveIcon },
                 { label: m('school_year', 'School Year & Terms'), route: 'academic-years.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: CalendarIcon },
                 { label: n('grading_scale', 'Grading Scale'), route: 'grade-bands.index', enabled: has('manage-grading-scale'), show: has('manage-grading-scale'), icon: ChartBarIcon },
             ].filter((i) => i.show !== false),
@@ -149,6 +160,16 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
         });
     }
 
+    if (has('medical-records-view') || has('medical-records-manage') || isAuditor) {
+        sections.push({
+            id: 'medical',
+            label: s('medical', 'Medical Records'),
+            items: [
+                { label: n('medical_records', 'Medical Records'), route: 'medical-records.index', enabled: true, icon: HeartIcon },
+            ],
+        });
+    }
+
     if (has('manage-assignments')) {
         sections.push({
             id: 'assignments',
@@ -180,6 +201,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
                 { label: m('check_payments', 'Check Payments'), route: 'payments.pending', enabled: has('verify-payments'), show: has('verify-payments'), icon: BanknotesIcon },
                 { label: m('school_fees', 'School Fees'), route: 'fee-structures.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: CurrencyDollarIcon },
                 { label: m('extra_services', 'Extra Services'), route: 'optional-services.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: TruckIcon },
+                { label: n('books', 'Books'), route: 'books.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: BookOpenIcon },
             ].filter((i) => i.show !== false),
         });
     }
@@ -192,6 +214,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
                 { label: n('announcements', 'Announcements'), route: 'announcements.index', enabled: true, icon: MegaphoneIcon },
                 { label: n('calendar', 'Calendar'), route: 'calendar.index', enabled: true, icon: CalendarDaysIcon },
                 { label: n('complaints', 'Complaints'), route: 'complaints.index', enabled: true, show: has('manage-complaints') || isAuditor, icon: ChatBubbleLeftRightIcon },
+                { label: n('messages', 'Messages'), route: 'messages.index', enabled: true, show: has('parent-messages') || isAuditor, icon: ChatBubbleLeftRightIcon },
             ].filter((i) => i.show !== false),
         });
     }
@@ -250,6 +273,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             id: 'accounting',
             label: s('accounting', 'Accounting'),
             items: [
+                { label: n('accounting_overview', 'Overview'), route: 'accounting.overview', enabled: seesAccounting, show: seesAccounting, icon: ChartPieIcon },
                 { label: n('chart_of_accounts', 'Chart of Accounts'), route: 'accounts.index', enabled: seesAccounting, show: seesAccounting, icon: CalculatorIcon },
                 { label: n('journal_entries', 'Journal Entries'), route: 'journal-entries.index', enabled: seesAccounting, show: seesAccounting, icon: ClipboardDocumentListIcon },
                 { label: n('journals', 'Journals'), route: 'journals.index', enabled: seesAccounting, show: seesAccounting, icon: DocumentTextIcon },
@@ -317,11 +341,13 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
                 { label: n('results', 'Results'), route: 'family.results', enabled: true, icon: AcademicCapIcon },
                 { label: n('report_card', 'Report Card'), route: 'family.report-cards', enabled: true, icon: DocumentChartBarIcon },
                 { label: n('attendance', 'Attendance'), route: 'family.attendance', enabled: true, icon: ClipboardDocumentCheckIcon },
+                { label: n('family_invoices', 'Fees & Payments'), route: 'family.invoices', enabled: true, icon: BanknotesIcon },
                 { label: n('homework', 'Homework'), route: 'family.homework', enabled: true, icon: BookOpenIcon },
                 { label: n('family_timetable', 'Timetable'), route: 'family.timetable', enabled: true, icon: CalendarDaysIcon },
                 { label: n('announcements', 'Announcements'), route: 'announcements.index', enabled: true, icon: MegaphoneIcon },
                 { label: n('calendar', 'Calendar'), route: 'calendar.index', enabled: true, icon: CalendarDaysIcon },
                 { label: n('complaints', 'Complaints'), route: 'complaints.index', enabled: true, icon: ChatBubbleLeftRightIcon },
+                { label: n('messages', 'Messages'), route: 'messages.index', enabled: true, icon: ChatBubbleLeftRightIcon },
             ],
         });
     }

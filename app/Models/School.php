@@ -28,6 +28,7 @@ class School extends Model
         'discount_limit_percent',
         'purchase_approval_threshold',
         'waiver_limit_amount',
+        'payment_due_days',
         'allow_overlapping_terms',
         'allow_negative_stock',
         'missing_mark_policy',

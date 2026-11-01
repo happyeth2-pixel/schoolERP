@@ -27,7 +27,7 @@ export default function DepartmentDialog({ open, branches, employees, department
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="department-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('department.edit_title') : t('department.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('department.edit_title') : t('department.add_title')}</h2>
                     <Field id="dept_name" label={t('department.name')} error={errors.name}>
                         <Input value={data.name} onChange={(e) => setData('name', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>

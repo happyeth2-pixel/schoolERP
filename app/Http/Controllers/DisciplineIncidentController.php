@@ -65,6 +65,37 @@ class DisciplineIncidentController extends Controller
         ]);
     }
 
+    /**
+     * A quick way to reach "report an incident" from the triage dashboard without first opening the
+     * student's own profile -- search-as-you-type, picked from a short list, the same shape
+     * LibraryLoanController::borrowerSearch() already established for "who is this for?" searches.
+     * Feeds only into reporting (never shown to a plain discipline-view holder), so gated on
+     * discipline-manage directly rather than the broader canView().
+     */
+    public function studentSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can('discipline-manage'), 403);
+
+        $term = $request->string('q')->toString();
+        abort_unless(strlen($term) >= 2, 422);
+
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+
+        $students = Student::whereIn('branch_id', $branchIds)
+            ->where(fn ($q) => $q->where('first_name', 'like', "%{$term}%")->orWhere('father_name', 'like', "%{$term}%"))
+            ->whereIn('status', Student::ENROLLED_STATUSES)
+            ->with('currentEnrollment.section.grade')
+            ->limit(10)->get()
+            ->map(fn (Student $s) => [
+                'id' => $s->id,
+                'name' => $s->fullName(),
+                'detail' => $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : null,
+            ]);
+
+        return response()->json($students);
+    }
+
     /** One student's own incident history. */
     public function forStudent(Request $request, Student $student): Response
     {

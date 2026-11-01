@@ -19,7 +19,12 @@ class OptionalService extends Model
 
     public const CATEGORIES = ['transport', 'asp', 'other'];
 
-    protected $fillable = ['branch_id', 'academic_year_id', 'name', 'category', 'amount', 'frequency', 'revenue_account_id'];
+    protected $fillable = ['branch_id', 'academic_year_id', 'name', 'category', 'amount', 'frequency', 'revenue_account_id', 'period_id', 'teacher_id', 'days_of_week'];
+
+    protected function casts(): array
+    {
+        return ['days_of_week' => 'array'];
+    }
 
     public function branch(): BelongsTo
     {
@@ -34,6 +39,18 @@ class OptionalService extends Model
     public function revenueAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'revenue_account_id');
+    }
+
+    public function period(): BelongsTo
+    {
+        return $this->belongsTo(Period::class);
+    }
+
+    /** Who runs this programme -- only meaningful for an after-school one (category 'asp'); null for
+     * everything else. See their roster: OptionalServiceController::myPrograms(). */
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'teacher_id');
     }
 
     public function students(): BelongsToMany

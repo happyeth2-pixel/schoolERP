@@ -1,4 +1,4 @@
-import { Alert, CheckRow, ChoiceCard, EmptyState, Field, FOCUS, Input, StatusBadge } from '@/Components/ui';
+import { Alert, ChoiceCard, EmptyState, Field, FOCUS, Input, StatusBadge } from '@/Components/ui';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,12 +8,13 @@ import { useTranslation } from 'react-i18next';
 //
 // Capacity rules are unchanged and still enforced by the server (SectionCapacity):
 //   - a FULL class cannot be picked by someone who may not override capacity (the card is disabled and says why);
-//   - someone who may override can pick it, and must then tick the box and give a reason (kept in the audit log).
+//   - someone who may override can pick it and it is placed immediately -- no checkbox, no required reason --
+//     logged to the audit trail and the branch principal/owner are notified automatically (SectionCapacity::grant()).
 // Many classes: pick the grade first (a row of large buttons), then see that grade's sections.
 
 const MANY = 8;
 
-export default function SectionPicker({ sections, value, onChange, canOverride, overrideChecked, overrideReason, onOverrideChecked, onOverrideReason, personName, errors = {}, label, initialGrade }) {
+export default function SectionPicker({ sections, value, onChange, canOverride, overrideReason, onOverrideReason, personName, errors = {}, label, initialGrade }) {
     const { t } = useTranslation();
 
     const grades = useMemo(() => {
@@ -40,7 +41,7 @@ export default function SectionPicker({ sections, value, onChange, canOverride, 
         <div className="space-y-4">
             {grouped && (
                 <div>
-                    <p className="mb-2 text-base font-medium text-gray-900 dark:text-gray-100">{t('enroll.which_grade')}</p>
+                    <p className="mb-2 text-base font-medium text-stone-900 dark:text-stone-100">{t('enroll.which_grade')}</p>
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('enroll.which_grade')}>
                         {grades.map((g) => (
                             <button
@@ -49,7 +50,7 @@ export default function SectionPicker({ sections, value, onChange, canOverride, 
                                 role="radio"
                                 aria-checked={grade === g}
                                 onClick={() => setGrade(g)}
-                                className={`min-h-[56px] min-w-[72px] rounded-xl border-2 px-4 text-base font-semibold ${FOCUS} ${grade === g ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}
+                                className={`min-h-[56px] min-w-[72px] rounded-xl border-2 px-4 text-base font-semibold ${FOCUS} ${grade === g ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}
                             >
                                 {g}
                             </button>
@@ -59,7 +60,7 @@ export default function SectionPicker({ sections, value, onChange, canOverride, 
             )}
 
             {grouped && !grade ? (
-                <p className="text-base text-gray-600 dark:text-gray-400">{t('enroll.pick_grade_first')}</p>
+                <p className="text-base text-stone-600 dark:text-stone-400">{t('enroll.pick_grade_first')}</p>
             ) : (
                 <div role="radiogroup" aria-label={label ?? t('enroll.pick_class')} className="space-y-3">
                     {visible.map((s) => {
@@ -83,15 +84,10 @@ export default function SectionPicker({ sections, value, onChange, canOverride, 
 
             {selected?.full && canOverride && (
                 <Alert tone="warning" title={t('enroll.full_title', { label: selected.label })}>
-                    <p className="mb-3">{t('enroll.full_body', { capacity: selected.capacity })}</p>
-                    <div className="space-y-3">
-                        <CheckRow checked={!!overrideChecked} onChange={onOverrideChecked} label={t('enroll.override_label', { name: personName })} />
-                        {overrideChecked && (
-                            <Field id="override_reason" label={t('enroll.override_reason')} hint={t('enroll.override_hint')} error={errors.override_reason}>
-                                <Input value={overrideReason ?? ''} onChange={(e) => onOverrideReason(e.target.value)} />
-                            </Field>
-                        )}
-                    </div>
+                    <p className="mb-3">{t('enroll.full_body', { name: personName, capacity: selected.capacity })}</p>
+                    <Field id="override_reason" label={t('enroll.override_reason')} hint={t('enroll.override_hint')} optional error={errors.override_reason}>
+                        <Input value={overrideReason ?? ''} onChange={(e) => onOverrideReason(e.target.value)} />
+                    </Field>
                 </Alert>
             )}
         </div>

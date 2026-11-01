@@ -117,7 +117,7 @@ class ReceptionistFlowTest extends TestCase
         return $this->actingAs($by)->post('/students', array_merge([
             'first_name' => 'Bethlehem', 'father_name' => 'Girma', 'gender' => 'female', 'enrollment_date' => '2026-09-20',
             'section_id' => $this->sectionA->id, 'guardian_mode' => 'new', 'guardian_name' => 'Aster Girma',
-            'guardian_email' => 'aster@t.test', 'guardian_phone' => '0911223344', 'guardian_relationship' => 'mother',
+            'guardian_phone' => '0911223344', 'guardian_relationship' => 'mother',
         ], $extra));
     }
 
@@ -147,7 +147,7 @@ class ReceptionistFlowTest extends TestCase
     {
         $this->enrol($this->registrar, ['first_name' => ''])->assertSessionHasErrors('first_name');
         $this->enrol($this->registrar, ['gender' => ''])->assertSessionHasErrors('gender');
-        $this->enrol($this->registrar, ['guardian_email' => ''])->assertSessionHasErrors('guardian_email');
+        $this->enrol($this->registrar, ['guardian_phone' => ''])->assertSessionHasErrors('guardian_phone');
         $this->assertSame(0, Student::where('first_name', 'Bethlehem')->count());
 
         $teacher = $this->makeUser('teacher', $this->branchA->id);

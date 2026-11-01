@@ -226,7 +226,7 @@ class AdminStructureWorkflowTest extends TestCase
 
     public function test_the_audit_log_keeps_every_field_and_the_filters_and_export_still_work(): void
     {
-        $this->actingAs($this->owner)->post('/staff', ['name' => 'New Person', 'email' => 'np@test.test', 'phone' => '0911000444', 'phone_confirmation' => '0911000444', 'title' => 'Registrar', 'role' => 'branch_admin', 'branch_id' => $this->branchA->id, 'permissions' => ['manage-students']]);
+        $this->actingAs($this->owner)->post('/staff', ['name' => 'New Person', 'email' => 'np@test.test', 'phone' => '0911000444', 'title' => 'Registrar', 'role' => 'branch_admin', 'branch_id' => $this->branchA->id, 'permissions' => ['manage-students']]);
 
         $page = $this->page($this->actingAs($this->owner)->get('/audit-log')->assertOk());
         $row = collect($page['logs']['data'])->firstWhere('action', 'staff.role_assigned');

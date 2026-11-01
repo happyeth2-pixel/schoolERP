@@ -12,7 +12,12 @@ COPY public ./public
 RUN npm run build
 
 # --- Stage 2: the actual app ---
-FROM php:8.2-cli-bookworm
+# Pinned to an exact patch version, not the floating php:8.2 tag: PHP's 2026-10-21 security release
+# (CVE-2026-109618, CVE-2026-109619 -- unauthenticated RCE, CVSS 9.2, every SAPI that serves HTTP
+# requests) is fixed only by upgrading PHP itself, not by any config change. 8.2.35 is the first
+# patched 8.2.x release. Bump this again whenever the next CVE lands -- a floating tag would silently
+# pick up a fix on rebuild, but would just as silently stay on a vulnerable version between rebuilds too.
+FROM php:8.2.35-cli-bookworm
 
 # postgresql-client (pg_dump/pg_restore), default-mysql-client (mysqldump, for
 # a non-Postgres deployment), gnupg and rclone are for `backup:run`/
@@ -72,4 +77,15 @@ EXPOSE 8080
 # need with dompdf (see LOCALIZATION.md) -- it lives under storage/, which does not survive a
 # fresh container the way the committed source .ttf files under resources/fonts/ do, so this has
 # to run on every start too, same reasoning as storage:link.
+#
+# `php artisan serve` is PHP's own built-in development server -- it has NO request queue, connection
+# limits or worker pool of its own by default, so it serves ONE request at a time, full stop (a slow
+# report for one person makes every other person's click wait behind it). PHP 8's PHP_CLI_SERVER_WORKERS
+# env var can pre-fork a small pool, but this session's own testing found it unreliable on this platform
+# (POST requests hung indefinitely with it set, even at a small worker count) -- it is deliberately NOT
+# enabled here rather than risk silently breaking every form submission in production over a stability
+# tradeoff that hasn't been verified safe. This stays a single-request-at-a-time server. See
+# RATE_LIMITING_AND_ABUSE_PROTECTION.md ("Server-level recommendations") for the real fix (php-fpm
+# behind nginx, or Octane/FrankenPHP) and why it's the one genuinely production-grade option, not a
+# tuning flag here.
 CMD php artisan storage:link && php artisan pdf:install-fonts && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}

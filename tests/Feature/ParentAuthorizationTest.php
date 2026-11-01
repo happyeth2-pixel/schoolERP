@@ -170,7 +170,7 @@ class ParentAuthorizationTest extends TestCase
             ['patch', "/students/{$this->childA->id}", ['first_name' => 'Hacked', 'father_name' => 'X', 'gender' => 'male', 'status' => 'active']],
             ['post', "/students/{$this->childA->id}/withdraw", ['effective_date' => '2026-09-10', 'reason' => 'nope']],
             ['post', "/students/{$this->childA->id}/transfer", ['to_section_id' => 1]],
-            ['post', "/students/{$this->childA->id}/guardians", ['guardian_mode' => 'new', 'guardian_email' => 'x@x.test', 'guardian_name' => 'X', 'guardian_relationship' => 'father']],
+            ['post', "/students/{$this->childA->id}/guardians", ['guardian_mode' => 'new', 'guardian_phone' => '0911998877', 'guardian_name' => 'X', 'guardian_relationship' => 'father']],
             ['post', "/complaints/{$this->complaintB->id}/status", ['status' => 'resolved']],
             ['get', '/parents/search?email=x', []],
             ['get', '/students', []],

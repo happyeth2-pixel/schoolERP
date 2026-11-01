@@ -211,6 +211,34 @@ class MarksWorkflowTest extends TestCase
         $this->assertEquals(80, Mark::where('enrollment_id', $this->eA->id)->first()->score);
     }
 
+    public function test_an_approver_can_view_the_actual_scores_before_approving_but_never_edit_them(): void
+    {
+        $b = $this->batch();
+        $this->saveAll($b, [80, 70, 60]);
+        $approver = $this->makeUser('branch_admin', $this->branchA->id, ['approve-results']);
+        $this->actingAs($this->teacher)->post("/mark-batches/{$b->id}/submit");
+
+        $page = $this->props($this->actingAs($approver)->get("/mark-batches/{$b->id}/view")->assertOk());
+
+        $this->assertTrue($page['readOnly']);
+        $this->assertSame('submitted', $page['batch']['status']);
+        $this->assertEquals(80, collect($page['roster'])->firstWhere('student_id_number', 'STU-A')['score']);
+
+        // No save/submit route exists for this view -- the only route an approver's page can reach is
+        // the one that renders it; posting directly to store() still correctly refuses a non-teacher.
+        $this->actingAs($approver)->post("/mark-batches/{$b->id}", ['records' => []])->assertStatus(403);
+    }
+
+    public function test_viewing_for_approval_still_requires_approve_or_publish_permission(): void
+    {
+        $b = $this->batch();
+        $this->saveAll($b, [80, 70, 60]);
+        $this->actingAs($this->teacher)->post("/mark-batches/{$b->id}/submit");
+        $bystander = $this->makeUser('teacher', $this->branchA->id, []);
+
+        $this->actingAs($bystander)->get("/mark-batches/{$b->id}/view")->assertForbidden();
+    }
+
     public function test_a_batch_sent_back_is_a_draft_again_with_its_marks_shown(): void
     {
         $b = $this->batch();

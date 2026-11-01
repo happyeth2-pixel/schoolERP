@@ -1,8 +1,8 @@
 import Modal from '@/Components/Modal';
-import { Button, Card, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PlusIcon } from '@heroicons/react/24/outline';
-import { Link, router, useForm } from '@inertiajs/react';
+import { IdentificationIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -24,7 +24,7 @@ function GradeForm({ grade, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-6 p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{isEdit ? t('struct.grade_edit_title', { name: grade.name }) : t('struct.grade_add_title')}</h2>
+            <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{isEdit ? t('struct.grade_edit_title', { name: grade.name }) : t('struct.grade_add_title')}</h2>
             <Field id="grade_name" label={t('struct.grade_name')} hint={t('struct.grade_name_hint')} error={errors.name}>
                 <Input value={data.name} onChange={(e) => { clearErrors('name'); setData('name', e.target.value); }} autoFocus autoComplete="off" maxLength={255} />
             </Field>
@@ -51,8 +51,8 @@ function SectionForm({ grade, section, onDone }) {
     return (
         <form onSubmit={submit} className="space-y-6 p-6" data-testid="section-edit">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('struct.section_edit_title', { grade: grade.name, name: section.name })}</h2>
-                <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{t('struct.section_edit_locked', { branch: section.branch, year: section.academic_year })}</p>
+                <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('struct.section_edit_title', { grade: grade.name, name: section.name })}</h2>
+                <p className="mt-1 text-base text-stone-600 dark:text-stone-400">{t('struct.section_edit_locked', { branch: section.branch, year: section.academic_year })}</p>
             </div>
             <Field id="edit_section_name" label={t('sect.name_label')} error={errors.name}>
                 <Input value={data.name} onChange={(e) => { clearErrors('name'); setData('name', e.target.value); }} autoComplete="off" maxLength={50} />
@@ -68,8 +68,10 @@ function SectionForm({ grade, section, onDone }) {
     );
 }
 
-export default function Index({ grades, canManage, canAssignTeachers }) {
+export default function Index({ grades, canManage, canAssignTeachers, canPrintIdCards }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [ask, confirmDialog] = useConfirm();
     const [gradeForm, setGradeForm] = useState(null);   // null | 'new' | a grade
     const [editing, setEditing] = useState(null);       // { grade, section }
@@ -93,11 +95,12 @@ export default function Index({ grades, canManage, canAssignTeachers }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('struct.page_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('struct.page_title')}</h2>}>
             <Page
                 title={t('struct.page_title')}
                 description={t('struct.page_desc')}
                 width="wide"
+                back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && (
                     <>
                         <Button variant="secondary" icon={PlusIcon} onClick={() => setGradeForm('new')}>{t('struct.add_grade')}</Button>
@@ -115,8 +118,8 @@ export default function Index({ grades, canManage, canAssignTeachers }) {
                             <Card key={grade.id} data-testid="grade-card">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{grade.name}</h2>
-                                        <p className="text-base text-gray-600 dark:text-gray-400">{t('struct.sections_n', { count: grade.sections.length })}</p>
+                                        <h2 className="text-xl font-bold text-stone-900 dark:text-stone-100">{grade.name}</h2>
+                                        <p className="text-base text-stone-600 dark:text-stone-400">{t('struct.sections_n', { count: grade.sections.length })}</p>
                                     </div>
                                     {canManage && (
                                         <div className="flex flex-wrap gap-2">
@@ -128,31 +131,36 @@ export default function Index({ grades, canManage, canAssignTeachers }) {
                                 </div>
 
                                 {grade.sections.length === 0 ? (
-                                    <p className="mt-4 rounded-xl bg-gray-50 p-4 text-base text-gray-700 dark:bg-gray-900/40 dark:text-gray-300">{t('struct.no_sections')}</p>
+                                    <p className="mt-4 rounded-xl bg-stone-50 p-4 text-base text-stone-700 dark:bg-stone-900/40 dark:text-stone-300">{t('struct.no_sections')}</p>
                                 ) : (
-                                    <ul className="mt-4 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <ul className="mt-4 divide-y divide-stone-200 dark:divide-stone-700">
                                         {grade.sections.map((s) => (
                                             <li key={s.id} data-testid="section-row" className="flex flex-wrap items-start justify-between gap-3 py-4">
                                                 <div className="min-w-0">
-                                                    <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                    <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-stone-900 dark:text-stone-100">
                                                         {grade.name} {s.name}
                                                         {s.is_current_year && <StatusBadge tone="success" label={t('struct.current_year')} />}
                                                     </p>
-                                                    <p className="text-base text-gray-600 dark:text-gray-400">{s.branch} · {s.academic_year}</p>
-                                                    <p className="mt-1 text-base text-gray-900 dark:text-gray-100" data-testid="section-fill">
+                                                    <p className="text-base text-stone-600 dark:text-stone-400">{s.branch} · {s.academic_year}</p>
+                                                    <p className="mt-1 text-base text-stone-900 dark:text-stone-100" data-testid="section-fill">
                                                         {s.capacity ? t('struct.fill', { students: s.students, capacity: s.capacity }) : t('struct.fill_unlimited', { count: s.students })}
                                                     </p>
-                                                    <p className="text-base text-gray-900 dark:text-gray-100" data-testid="section-teacher">
+                                                    <p className="text-base text-stone-900 dark:text-stone-100" data-testid="section-teacher">
                                                         {s.class_teacher ? t('struct.class_teacher', { name: s.class_teacher }) : <span className="text-amber-800 dark:text-amber-300">{t('struct.no_class_teacher')}</span>}
-                                                        {canAssignTeachers && <> · <Link href={route('teaching-assignments.index', { section: s.id })} className="font-medium text-indigo-700 underline dark:text-indigo-300">{s.class_teacher ? t('struct.manage_teachers') : t('struct.choose_teacher')}</Link></>}
+                                                        {canAssignTeachers && <> · <Link href={route('teaching-assignments.index', { section: s.id })} className="font-medium text-brand-700 underline dark:text-brand-300">{s.class_teacher ? t('struct.manage_teachers') : t('struct.choose_teacher')}</Link></>}
                                                     </p>
                                                 </div>
-                                                {canManage && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <Button size="md" variant="secondary" onClick={() => setEditing({ grade, section: s })}>{t('struct.change_section')}</Button>
-                                                        <Button size="md" variant="quiet" onClick={() => removeSection(grade, s)}>{t('struct.remove')}</Button>
-                                                    </div>
-                                                )}
+                                                <div className="flex flex-wrap gap-2">
+                                                    {canPrintIdCards && (
+                                                        <Button size="md" variant="secondary" as={Link} href={route('id-card.batch', s.id)} icon={IdentificationIcon}>{t('struct.print_id_cards')}</Button>
+                                                    )}
+                                                    {canManage && (
+                                                        <>
+                                                            <Button size="md" variant="secondary" onClick={() => setEditing({ grade, section: s })}>{t('struct.change_section')}</Button>
+                                                            <Button size="md" variant="quiet" onClick={() => removeSection(grade, s)}>{t('struct.remove')}</Button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>

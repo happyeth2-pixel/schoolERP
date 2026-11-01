@@ -1,3 +1,4 @@
+import DateInput from '@/Components/DateInput';
 import { BackLink, Button, Field, Input, Page, Select, TextArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -40,7 +41,7 @@ export default function Create({ suppliers, eligibleOrders, fromOrder, expenseAc
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('supplier_bill.new_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('supplier_bill.new_title')}</h2>}>
             <Page title={t('supplier_bill.new_title')} back={<BackLink href={route('supplier-bills.index')}>{t('supplier_bill.back_to_list')}</BackLink>}>
                 <form onSubmit={submit} className="space-y-6">
                     {!fromOrder && (
@@ -52,7 +53,7 @@ export default function Create({ suppliers, eligibleOrders, fromOrder, expenseAc
                         </Field>
                     )}
                     {fromOrder && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('supplier_bill.billing_against_x', { number: fromOrder.number })}</p>
+                        <p className="text-sm text-stone-600 dark:text-stone-400">{t('supplier_bill.billing_against_x', { number: fromOrder.number })}</p>
                     )}
 
                     <Field id="bill_supplier" label={t('supplier_bill.supplier')} error={errors.supplier_id}>
@@ -65,24 +66,24 @@ export default function Create({ suppliers, eligibleOrders, fromOrder, expenseAc
                         <Input value={data.supplier_reference} onChange={(e) => setData('supplier_reference', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>
                     <Field id="bill_date" label={t('supplier_bill.bill_date')} error={errors.bill_date}>
-                        <Input type="date" value={data.bill_date} onChange={(e) => setData('bill_date', e.target.value)} />
+                        <DateInput value={data.bill_date} onChange={(v) => setData('bill_date', v)} />
                     </Field>
                     <Field id="bill_due_date" label={t('supplier_bill.due_date')} optional error={errors.due_date}>
-                        <Input type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                        <DateInput value={data.due_date} onChange={(v) => setData('due_date', v)} />
                     </Field>
 
-                    <div className="space-y-4 rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700">
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('supplier_bill.lines_title')}</p>
+                    <div className="space-y-4 rounded-xl border-2 border-stone-200 p-4 dark:border-stone-700">
+                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('supplier_bill.lines_title')}</p>
                         {data.items.map((line, index) => (
-                            <div key={index} className="space-y-2 border-b border-gray-200 pb-4 last:border-0 last:pb-0 dark:border-gray-700" data-testid="bill-line">
+                            <div key={index} className="space-y-2 border-b border-stone-200 pb-4 last:border-0 last:pb-0 dark:border-stone-700" data-testid="bill-line">
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{t('supplier_bill.line_n', { n: index + 1 })}</p>
+                                    <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{t('supplier_bill.line_n', { n: index + 1 })}</p>
                                     {data.items.length > 1 && !line.purchase_order_item_id && (
                                         <Button type="button" variant="quiet" size="md" icon={TrashIcon} onClick={() => removeLine(index)}>{t('supplier_bill.remove_line')}</Button>
                                     )}
                                 </div>
                                 {line.purchase_order_item_id ? (
-                                    <p className="text-sm text-gray-700 dark:text-gray-300">{line.description}</p>
+                                    <p className="text-sm text-stone-700 dark:text-stone-300">{line.description}</p>
                                 ) : (
                                     <Field id={`bill_desc_${index}`} label={t('supplier_bill.description')} error={errors[`items.${index}.description`]}>
                                         <Input value={line.description} onChange={(e) => setLine(index, { description: e.target.value })} maxLength={255} autoComplete="off" />
@@ -107,11 +108,11 @@ export default function Create({ suppliers, eligibleOrders, fromOrder, expenseAc
                                         <Input inputMode="decimal" value={line.tax_amount} onChange={(e) => setLine(index, { tax_amount: e.target.value })} autoComplete="off" />
                                     </Field>
                                 </div>
-                                {lineTotal(line) !== null && <p className="text-sm text-gray-700 dark:text-gray-300">{t('quotation.line_total', { amount: money(lineTotal(line)) })}</p>}
+                                {lineTotal(line) !== null && <p className="text-sm text-stone-700 dark:text-stone-300">{t('quotation.line_total', { amount: money(lineTotal(line)) })}</p>}
                             </div>
                         ))}
                         <Button type="button" variant="secondary" icon={PlusIcon} onClick={addLine}>{t('supplier_bill.add_line')}</Button>
-                        {grandTotal > 0 && <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('quotation.grand_total', { amount: money(grandTotal) })}</p>}
+                        {grandTotal > 0 && <p className="text-lg font-bold text-stone-900 dark:text-stone-100">{t('quotation.grand_total', { amount: money(grandTotal) })}</p>}
                     </div>
 
                     <Field id="bill_notes" label={t('supplier_bill.notes')} optional error={errors.notes}>

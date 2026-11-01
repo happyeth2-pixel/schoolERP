@@ -23,8 +23,8 @@ export default function ConfirmDialog({ open, title, children, confirmLabel, can
                 <div className="flex items-start gap-4">
                     <Icon className={`h-8 w-8 shrink-0 ${tone === 'danger' ? TONE.danger.icon : TONE.info.icon}`} aria-hidden="true" />
                     <div className="min-w-0">
-                        <DialogTitle as="h2" className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</DialogTitle>
-                        {children && <div className="mt-2 space-y-2 text-base text-gray-700 dark:text-gray-300">{children}</div>}
+                        <DialogTitle as="h2" className="text-xl font-semibold text-stone-900 dark:text-stone-100">{title}</DialogTitle>
+                        {children && <div className="mt-2 space-y-2 text-base text-stone-700 dark:text-stone-300">{children}</div>}
                     </div>
                 </div>
                 {/* DOM order = Cancel, then the action; on a phone the action is shown on top (flex-col-reverse) */}

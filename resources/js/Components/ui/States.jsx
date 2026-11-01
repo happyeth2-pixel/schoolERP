@@ -9,11 +9,11 @@ import { FOCUS } from './tokens';
 export function EmptyState({ icon: Icon = InboxIcon, title, children, action, className = '' }) {
     return (
         <div className={`flex flex-col items-center px-4 py-10 text-center ${className}`}>
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                <Icon className="h-8 w-8 text-gray-500 dark:text-gray-300" aria-hidden="true" />
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700">
+                <Icon className="h-8 w-8 text-stone-500 dark:text-stone-300" aria-hidden="true" />
             </span>
-            <p className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</p>
-            {children && <p className="mt-1 max-w-md text-base text-gray-600 dark:text-gray-400">{children}</p>}
+            <p className="mt-4 text-lg font-semibold text-stone-900 dark:text-stone-100">{title}</p>
+            {children && <p className="mt-1 max-w-md text-base text-stone-600 dark:text-stone-400">{children}</p>}
             {action && <div className="mt-5">{action}</div>}
         </div>
     );
@@ -48,16 +48,16 @@ export function Disclosure({ title, description, defaultOpen = false, tone = 'ne
         <details
             open={defaultOpen}
             {...props}
-            className={`group rounded-2xl border-2 bg-white dark:bg-gray-800 ${danger ? 'border-red-200 dark:border-red-900' : 'border-gray-200 dark:border-gray-700'} ${className}`}
+            className={`group rounded-2xl border-2 bg-white dark:bg-stone-800 ${danger ? 'border-red-200 dark:border-red-900' : 'border-stone-200 dark:border-stone-700'} ${className}`}
         >
             <summary className={`flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-3 ${FOCUS}`}>
                 <span className="min-w-0">
-                    <span className={`block text-lg font-semibold ${danger ? 'text-red-800 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'}`}>{title}</span>
-                    {description && <span className="block text-sm text-gray-600 dark:text-gray-400">{description}</span>}
+                    <span className={`block text-lg font-semibold ${danger ? 'text-red-800 dark:text-red-300' : 'text-stone-900 dark:text-stone-100'}`}>{title}</span>
+                    {description && <span className="block text-sm text-stone-600 dark:text-stone-400">{description}</span>}
                 </span>
-                <ChevronDownIcon className="h-6 w-6 shrink-0 text-gray-500 transition group-open:rotate-180" aria-hidden="true" />
+                <ChevronDownIcon className="h-6 w-6 shrink-0 text-stone-500 transition group-open:rotate-180" aria-hidden="true" />
             </summary>
-            <div className="border-t border-gray-200 p-5 dark:border-gray-700">{children}</div>
+            <div className="border-t border-stone-200 p-5 dark:border-stone-700">{children}</div>
         </details>
     );
 }

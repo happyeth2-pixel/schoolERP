@@ -6,9 +6,15 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BookItemController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\ContactInquiryController;
+use App\Http\Controllers\GalleryImageController;
+use App\Http\Controllers\PublicSiteController;
+use App\Http\Controllers\SiteAnnouncementController;
+use App\Http\Controllers\SiteContentController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamController;
@@ -30,6 +36,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AccountingOverviewController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\AccountingPeriodController;
@@ -65,6 +72,7 @@ use App\Http\Controllers\MarkBatchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OptionalServiceController;
 use App\Http\Controllers\ParentController;
+use App\Http\Controllers\ParentMessageController;
 use App\Http\Controllers\PaymentAccountController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
@@ -81,15 +89,12 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', [PublicSiteController::class, 'home'])->name('home');
+Route::get('/about', [PublicSiteController::class, 'about'])->name('about');
+Route::get('/contact', [PublicSiteController::class, 'contact'])->name('contact');
+Route::post('/contact', [PublicSiteController::class, 'submitContact'])->middleware('throttle:contact')->name('contact.submit');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'throttle:dashboard'])->name('dashboard');
 
 // Public, no-login ID card verification -- this is what a card's QR code
 // points to, so it deliberately lives outside the auth middleware group.
@@ -106,7 +111,7 @@ Route::middleware(['guest', 'throttle:invitation', 'privacy'])->group(function (
         ->where('token', '[A-Za-z0-9]{40}')->name('invitation.accept');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 
     // A live gallery of the shared UX components (resources/js/Components/ui) for developers and
@@ -118,8 +123,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->middleware('throttle:upload')->name('profile.photo');
     Route::post('/profile/locale', [ProfileController::class, 'updateLocale'])->name('profile.locale');
+
+    Route::get('/contact-inquiries', [ContactInquiryController::class, 'index'])->name('contact-inquiries.index');
+    Route::post('/contact-inquiries/{inquiry}/read', [ContactInquiryController::class, 'markRead'])->name('contact-inquiries.read');
+
+    Route::get('/settings/gallery', [GalleryImageController::class, 'index'])->name('gallery.index');
+    Route::post('/settings/gallery', [GalleryImageController::class, 'store'])->middleware('throttle:upload')->name('gallery.store');
+    Route::delete('/settings/gallery/{image}', [GalleryImageController::class, 'destroy'])->name('gallery.destroy');
+    Route::post('/settings/gallery/{image}/move', [GalleryImageController::class, 'move'])->name('gallery.move');
+
+    Route::get('/settings/website-text/{page}', [SiteContentController::class, 'edit'])->name('site-content.edit');
+    Route::patch('/settings/website-text/{page}', [SiteContentController::class, 'update'])->name('site-content.update');
+
+    Route::get('/settings/announcements', [SiteAnnouncementController::class, 'index'])->name('site-announcements.index');
+    Route::post('/settings/announcements', [SiteAnnouncementController::class, 'store'])->name('site-announcements.store');
+    Route::post('/settings/announcements/{announcement}/toggle', [SiteAnnouncementController::class, 'toggle'])->name('site-announcements.toggle');
+    Route::delete('/settings/announcements/{announcement}', [SiteAnnouncementController::class, 'destroy'])->name('site-announcements.destroy');
 
     Route::get('/settings/school', [SchoolSettingsController::class, 'edit'])->name('school-settings.edit');
     Route::patch('/settings/school', [SchoolSettingsController::class, 'update'])->name('school-settings.update');
@@ -159,36 +180,50 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
-    Route::get('/staff/export', [StaffController::class, 'export'])->name('staff.export');
-    Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
-    Route::patch('/staff/{staff}', [StaffController::class, 'update'])->name('staff.update');
-    Route::post('/staff/{staff}/password-reset', [StaffController::class, 'resetPassword'])->name('staff.reset-password');
-    Route::post('/staff/{staff}/unlock-sign-in', [StaffController::class, 'unlockSignIn'])->name('staff.unlock-sign-in');
-    Route::post('/staff/{staff}/deactivate', [StaffController::class, 'deactivate'])->name('staff.deactivate');
-    Route::post('/staff/{staff}/reactivate', [StaffController::class, 'reactivate'])->name('staff.reactivate');
+    Route::get('/staff/export', [StaffController::class, 'export'])->middleware('throttle:export')->name('staff.export');
+    Route::post('/staff', [StaffController::class, 'store'])->middleware('throttle:admin')->name('staff.store');
+    Route::patch('/staff/{staff}', [StaffController::class, 'update'])->middleware('throttle:admin')->name('staff.update');
+    Route::post('/staff/{staff}/password-reset', [StaffController::class, 'resetPassword'])->middleware('throttle:admin')->name('staff.reset-password');
+    Route::post('/staff/{staff}/unlock-sign-in', [StaffController::class, 'unlockSignIn'])->middleware('throttle:admin')->name('staff.unlock-sign-in');
+    Route::post('/staff/{staff}/deactivate', [StaffController::class, 'deactivate'])->middleware('throttle:admin')->name('staff.deactivate');
+    Route::post('/staff/{staff}/reactivate', [StaffController::class, 'reactivate'])->middleware('throttle:admin')->name('staff.reactivate');
 
-    Route::get('/students', [StudentController::class, 'index'])->name('students.index');
-    Route::get('/students/export', [StudentController::class, 'export'])->name('students.export');
-    Route::get('/students/contacts', [StudentController::class, 'contacts'])->name('students.contacts');
+    Route::get('/students', [StudentController::class, 'index'])->middleware('throttle:search')->name('students.index');
+    Route::get('/students/export', [StudentController::class, 'export'])->middleware('throttle:export')->name('students.export');
+    Route::get('/students/contacts', [StudentController::class, 'contacts'])->middleware('throttle:search')->name('students.contacts');
     Route::get('/students/{student}/help', [\App\Http\Controllers\StudentDeskController::class, 'show'])->whereNumber('student')->name('students.desk');
+    Route::get('/students/{student}/fees/statement', [\App\Http\Controllers\StudentDeskController::class, 'statement'])->middleware('throttle:pdf')->whereNumber('student')->name('students.fees.statement');
     Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->name('students.edit');
     Route::patch('/students/{student}', [StudentController::class, 'update'])->name('students.update');
     Route::post('/students/{student}/guardians', [StudentController::class, 'addGuardian'])->name('students.guardians.store');
     Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy');
-    Route::post('/students/{student}/photo', [StudentController::class, 'uploadPhoto'])->name('students.photo');
+    Route::post('/students/{student}/photo', [StudentController::class, 'uploadPhoto'])->middleware('throttle:upload')->name('students.photo');
     Route::delete('/students/{student}/photo', [StudentController::class, 'removePhoto'])->name('students.photo.destroy');
     Route::post('/students/{student}/withdraw', [StudentController::class, 'withdraw'])->name('students.withdraw');
     Route::post('/students/{student}/transfer', [StudentController::class, 'transfer'])->name('students.transfer');
     Route::get('/students/{student}/id-card', [IdCardController::class, 'show'])->name('id-card.show');
+    Route::get('/sections/{section}/id-cards', [IdCardController::class, 'batch'])->name('id-card.batch');
     Route::post('/students/{student}/optional-services', [OptionalServiceController::class, 'enrollStudent'])->name('students.optional-services.store');
     Route::patch('/students/{student}/optional-services/{optionalService}', [OptionalServiceController::class, 'updateStudentService'])->name('students.optional-services.update');
     Route::delete('/students/{student}/optional-services/{optionalService}', [OptionalServiceController::class, 'withdrawStudent'])->name('students.optional-services.destroy');
+    Route::get('/optional-services/{optionalService}/enroll', [OptionalServiceController::class, 'enrollForm'])->name('optional-services.enroll-form');
+    Route::post('/optional-services/{optionalService}/enroll', [OptionalServiceController::class, 'bulkEnroll'])->name('optional-services.bulk-enroll');
+    Route::get('/students/{student}/books', [BookItemController::class, 'catalogForStudent'])->name('students.books.index');
+    Route::post('/students/{student}/books', [BookItemController::class, 'sell'])->name('students.books.store');
+    Route::get('/medical-records', [StudentMedicalRecordController::class, 'index'])->name('medical-records.index');
+    Route::get('/medical-records/student-search', [StudentMedicalRecordController::class, 'studentSearch'])->middleware('throttle:search')->name('medical-records.student-search');
     Route::get('/students/{student}/medical', [StudentMedicalRecordController::class, 'show'])->name('students.medical.show');
     Route::put('/students/{student}/medical', [StudentMedicalRecordController::class, 'update'])->name('students.medical.update');
 
+    Route::get('/messages', [ParentMessageController::class, 'inbox'])->name('messages.index');
+    Route::get('/students/{student}/messages', [ParentMessageController::class, 'index'])->name('students.messages.index');
+    Route::post('/students/{student}/messages', [ParentMessageController::class, 'store'])->name('students.messages.store');
+    Route::post('/sections/{section}/messages', [ParentMessageController::class, 'broadcast'])->name('sections.messages.broadcast');
+
     Route::get('/discipline', [DisciplineIncidentController::class, 'index'])->name('discipline.index');
+    Route::get('/discipline/student-search', [DisciplineIncidentController::class, 'studentSearch'])->middleware('throttle:search')->name('discipline.student-search');
     Route::get('/students/{student}/discipline', [DisciplineIncidentController::class, 'forStudent'])->name('discipline.for-student');
     Route::post('/students/{student}/discipline', [DisciplineIncidentController::class, 'store'])->name('discipline.store');
     Route::put('/discipline/{incident}', [DisciplineIncidentController::class, 'update'])->name('discipline.update');
@@ -202,7 +237,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/library', [LibraryLoanController::class, 'index'])->name('library.index');
     Route::get('/my-library-loans', [LibraryLoanController::class, 'mine'])->name('library.mine');
-    Route::get('/library/borrowers/search', [LibraryLoanController::class, 'borrowerSearch'])->name('library.borrower-search');
+    Route::get('/library/borrowers/search', [LibraryLoanController::class, 'borrowerSearch'])->middleware('throttle:search')->name('library.borrower-search');
     Route::post('/library/issue', [LibraryLoanController::class, 'issue'])->name('library.issue');
     Route::post('/library/loans/{loan}/return', [LibraryLoanController::class, 'returnLoan'])->name('library.loans.return');
     Route::post('/library/loans/{loan}/renew', [LibraryLoanController::class, 'renew'])->name('library.loans.renew');
@@ -224,16 +259,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/library/books/{book}/copies/{copy}/restore', [BookCopyController::class, 'restore'])->name('library-books.copies.restore');
 
     Route::get('/promotions', [PromotionController::class, 'index'])->name('promotions.index');
-    Route::post('/promotions', [PromotionController::class, 'store'])->name('promotions.store');
+    Route::post('/promotions', [PromotionController::class, 'store'])->middleware('throttle:bulk')->name('promotions.store');
 
-    Route::get('/parents', [ParentController::class, 'index'])->name('parents.index');
+    Route::get('/parents', [ParentController::class, 'index'])->middleware('throttle:search')->name('parents.index');
     Route::get('/parents/create', [ParentController::class, 'create'])->name('parents.create');
-    Route::post('/parents', [ParentController::class, 'store'])->name('parents.store');
-    Route::get('/parents/search', [ParentController::class, 'search'])->name('parents.search');
-    Route::patch('/parents/{parent}', [ParentController::class, 'update'])->name('parents.update');
-    Route::post('/parents/{parent}/password-reset', [ParentController::class, 'resetPassword'])->name('parents.reset-password');
-    Route::post('/parents/{parent}/deactivate', [ParentController::class, 'deactivate'])->name('parents.deactivate');
-    Route::post('/parents/{parent}/reactivate', [ParentController::class, 'reactivate'])->name('parents.reactivate');
+    Route::post('/parents', [ParentController::class, 'store'])->middleware('throttle:admin')->name('parents.store');
+    Route::get('/parents/search', [ParentController::class, 'search'])->middleware('throttle:search')->name('parents.search');
+    Route::patch('/parents/{parent}', [ParentController::class, 'update'])->middleware('throttle:admin')->name('parents.update');
+    Route::post('/parents/{parent}/password-reset', [ParentController::class, 'resetPassword'])->middleware('throttle:admin')->name('parents.reset-password');
+    Route::post('/parents/{parent}/deactivate', [ParentController::class, 'deactivate'])->middleware('throttle:admin')->name('parents.deactivate');
+    Route::post('/parents/{parent}/reactivate', [ParentController::class, 'reactivate'])->middleware('throttle:admin')->name('parents.reactivate');
 
     Route::get('/teaching-assignments', [TeachingAssignmentController::class, 'index'])->name('teaching-assignments.index');
     Route::post('/teaching-assignments', [TeachingAssignmentController::class, 'store'])->name('teaching-assignments.store');
@@ -242,13 +277,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/{section}', [AttendanceController::class, 'show'])->name('attendance.show');
-    Route::get('/attendance/{section}/export', [AttendanceController::class, 'exportRoster'])->name('attendance.export');
+    Route::get('/attendance/{section}/export', [AttendanceController::class, 'exportRoster'])->middleware('throttle:export')->name('attendance.export');
     Route::post('/attendance/{section}', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::get('/attendance-report', [AttendanceReportController::class, 'index'])->name('attendance-report.index');
 
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
-    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::get('/notifications', [NotificationController::class, 'index'])->middleware('throttle:notifications')->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->middleware('throttle:notifications')->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->middleware('throttle:notifications')->name('notifications.read-all');
 
     Route::get('/grade-bands', [GradeBandController::class, 'index'])->name('grade-bands.index');
     Route::post('/grade-bands', [GradeBandController::class, 'store'])->name('grade-bands.store');
@@ -265,19 +300,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/mark-batches/{markBatch}', [MarkBatchController::class, 'store'])->name('mark-batches.store');
     Route::post('/mark-batches/{markBatch}/submit', [MarkBatchController::class, 'submit'])->name('mark-batches.submit');
     Route::get('/marks/approvals', [MarkBatchController::class, 'approvalsIndex'])->name('mark-batches.approvals');
+    Route::get('/mark-batches/{markBatch}/view', [MarkBatchController::class, 'viewForApproval'])->name('mark-batches.view');
     Route::post('/mark-batches/{markBatch}/approve', [MarkBatchController::class, 'approve'])->name('mark-batches.approve');
     Route::post('/mark-batches/{markBatch}/send-back', [MarkBatchController::class, 'sendBack'])->name('mark-batches.send-back');
     Route::post('/mark-batches/{markBatch}/publish', [MarkBatchController::class, 'publish'])->name('mark-batches.publish');
     Route::post('/mark-batches/{markBatch}/reopen', [MarkBatchController::class, 'reopen'])->name('mark-batches.reopen');
 
     Route::get('/students/{student}/report-card', [ReportCardController::class, 'show'])->name('report-card.show');
-    Route::get('/students/{student}/report-card.pdf', [ReportCardController::class, 'pdf'])->name('report-card.pdf');
+    Route::get('/students/{student}/report-card.pdf', [ReportCardController::class, 'pdf'])->middleware('throttle:pdf')->name('report-card.pdf');
 
     Route::get('/my/attendance', [FamilyController::class, 'attendance'])->name('family.attendance');
     Route::get('/my/report-cards', [FamilyController::class, 'reportCards'])->name('family.report-cards');
     Route::get('/my/homework', [FamilyController::class, 'homework'])->name('family.homework');
     Route::get('/my/timetable', [FamilyController::class, 'timetable'])->name('family.timetable');
     Route::get('/my/results', [FamilyController::class, 'results'])->name('family.results');
+    Route::get('/my/invoices', [FamilyController::class, 'invoices'])->name('family.invoices');
+    Route::get('/my/invoices/{student}/statement', [FamilyController::class, 'statement'])->middleware('throttle:pdf')->whereNumber('student')->name('family.invoices.statement');
+    Route::get('/my/payments', [FamilyController::class, 'paymentsHub'])->name('family.payments');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/new', [AnnouncementController::class, 'create'])->name('announcements.create');
@@ -288,7 +327,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
 
     Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
-    Route::get('/audit-log/export', [AuditLogController::class, 'export'])->name('audit-log.export');
+    Route::get('/audit-log/export', [AuditLogController::class, 'export'])->middleware('throttle:export')->name('audit-log.export');
     Route::get('/audit-log/security', [\App\Http\Controllers\SecurityLogController::class, 'index'])->name('security-log.index');
 
     Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
@@ -304,11 +343,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/fee-structures/{feeStructure}', [FeeStructureController::class, 'update'])->name('fee-structures.update');
     Route::delete('/fee-structures/{feeStructure}', [FeeStructureController::class, 'destroy'])->name('fee-structures.destroy');
 
+    Route::get('/my-after-school-programs', [OptionalServiceController::class, 'myPrograms'])->name('optional-services.mine');
     Route::get('/optional-services', [OptionalServiceController::class, 'index'])->name('optional-services.index');
     Route::get('/optional-services/new', [OptionalServiceController::class, 'create'])->name('optional-services.create');
     Route::post('/optional-services', [OptionalServiceController::class, 'store'])->name('optional-services.store');
     Route::patch('/optional-services/{optionalService}', [OptionalServiceController::class, 'update'])->name('optional-services.update');
     Route::delete('/optional-services/{optionalService}', [OptionalServiceController::class, 'destroy'])->name('optional-services.destroy');
+    Route::get('/books', [BookItemController::class, 'index'])->name('books.index');
+    Route::post('/books', [BookItemController::class, 'store'])->name('books.store');
+    Route::patch('/books/{book}', [BookItemController::class, 'update'])->name('books.update');
+    Route::delete('/books/{book}', [BookItemController::class, 'destroy'])->name('books.destroy');
 
     Route::get('/inventory/items', [InventoryItemController::class, 'index'])->name('inventory-items.index');
     Route::get('/inventory/items/new', [InventoryItemController::class, 'create'])->name('inventory-items.create');
@@ -361,7 +405,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/stocktakes', [StocktakeController::class, 'store'])->name('stocktakes.store');
     Route::get('/stocktakes/{stocktake}', [StocktakeController::class, 'show'])->name('stocktakes.show');
     Route::post('/stocktakes/{stocktake}/counts', [StocktakeController::class, 'saveCounts'])->name('stocktakes.save-counts');
-    Route::post('/stocktakes/{stocktake}/complete', [StocktakeController::class, 'complete'])->name('stocktakes.complete');
+    Route::post('/stocktakes/{stocktake}/complete', [StocktakeController::class, 'complete'])->middleware('throttle:bulk')->name('stocktakes.complete');
 
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::get('/suppliers/new', [SupplierController::class, 'create'])->name('suppliers.create');
@@ -462,9 +506,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/my-payslips', [PayrollRunController::class, 'mine'])->name('payslips.mine');
     Route::get('/payroll-runs', [PayrollRunController::class, 'index'])->name('payroll-runs.index');
-    Route::post('/payroll-runs', [PayrollRunController::class, 'store'])->name('payroll-runs.store');
+    Route::post('/payroll-runs', [PayrollRunController::class, 'store'])->middleware('throttle:bulk')->name('payroll-runs.store');
     Route::get('/payroll-runs/{run}', [PayrollRunController::class, 'show'])->name('payroll-runs.show');
-    Route::post('/payroll-runs/{run}/finalize', [PayrollRunController::class, 'finalize'])->name('payroll-runs.finalize');
+    Route::post('/payroll-runs/{run}/finalize', [PayrollRunController::class, 'finalize'])->middleware('throttle:bulk')->name('payroll-runs.finalize');
     Route::delete('/payroll-runs/{run}', [PayrollRunController::class, 'destroy'])->name('payroll-runs.destroy');
 
     Route::get('/periods', [PeriodController::class, 'index'])->name('periods.index');
@@ -492,6 +536,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/calendar/{calendarEvent}', [CalendarEventController::class, 'update'])->name('calendar.update');
     Route::delete('/calendar/{calendarEvent}', [CalendarEventController::class, 'destroy'])->name('calendar.destroy');
 
+    Route::get('/accounting/overview', [AccountingOverviewController::class, 'index'])->middleware('throttle:reports')->name('accounting.overview');
+
     Route::get('/accounting/accounts', [AccountController::class, 'index'])->name('accounts.index');
     Route::post('/accounting/accounts', [AccountController::class, 'store'])->name('accounts.store');
     Route::patch('/accounting/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update');
@@ -517,23 +563,28 @@ Route::middleware('auth')->group(function () {
     Route::post('/accounting/journal-entries/{journalEntry}/reverse', [JournalEntryController::class, 'reverse'])->name('journal-entries.reverse');
     Route::delete('/accounting/journal-entries/{journalEntry}', [JournalEntryController::class, 'destroy'])->name('journal-entries.destroy');
 
-    Route::get('/accounting/reports/ledger', [FinancialReportController::class, 'ledger'])->name('reports.ledger');
-    Route::get('/accounting/reports/trial-balance', [FinancialReportController::class, 'trialBalance'])->name('reports.trial-balance');
-    Route::get('/accounting/reports/income-statement', [FinancialReportController::class, 'incomeStatement'])->name('reports.income-statement');
-    Route::get('/accounting/reports/balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
-    Route::get('/accounting/reports/cash-summary', [FinancialReportController::class, 'cashSummary'])->name('reports.cash-summary');
-    Route::get('/accounting/reports/ar-aging', [FinancialReportController::class, 'arAging'])->name('reports.ar-aging');
-    Route::get('/accounting/reports/ap-aging', [FinancialReportController::class, 'apAging'])->name('reports.ap-aging');
-    Route::get('/accounting/reports/reconciliation', [FinancialReportController::class, 'reconciliation'])->name('reports.reconciliation');
+    Route::middleware('throttle:reports')->group(function () {
+        Route::get('/accounting/reports/ledger', [FinancialReportController::class, 'ledger'])->name('reports.ledger');
+        Route::get('/accounting/reports/trial-balance', [FinancialReportController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('/accounting/reports/income-statement', [FinancialReportController::class, 'incomeStatement'])->name('reports.income-statement');
+        Route::get('/accounting/reports/balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::get('/accounting/reports/cash-summary', [FinancialReportController::class, 'cashSummary'])->name('reports.cash-summary');
+        Route::get('/accounting/reports/ar-aging', [FinancialReportController::class, 'arAging'])->name('reports.ar-aging');
+        Route::get('/accounting/reports/ap-aging', [FinancialReportController::class, 'apAging'])->name('reports.ap-aging');
+        Route::get('/accounting/reports/reconciliation', [FinancialReportController::class, 'reconciliation'])->name('reports.reconciliation');
+    });
 
-    Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
-    Route::get('/invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('throttle:search')->name('invoices.index');
+    Route::get('/invoices/export', [InvoiceController::class, 'export'])->middleware('throttle:export')->name('invoices.export');
     Route::get('/invoices/new', [InvoiceController::class, 'wizard'])->name('invoices.wizard');
-    Route::get('/invoices/generate/preview', [InvoiceController::class, 'generatePreview'])->name('invoices.generate.preview');
-    Route::post('/invoices/generate', [InvoiceController::class, 'generate'])->name('invoices.generate');
+    Route::get('/invoices/generate/preview', [InvoiceController::class, 'generatePreview'])->middleware('throttle:bulk')->name('invoices.generate.preview');
+    Route::post('/invoices/generate', [InvoiceController::class, 'generate'])->middleware('throttle:bulk')->name('invoices.generate');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::patch('/invoices/{invoice}/discount', [InvoiceController::class, 'setDiscount'])->name('invoices.discount');
     Route::post('/invoices/{invoice}/toggle-waive', [InvoiceController::class, 'toggleWaive'])->name('invoices.toggle-waive');
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::delete('/invoices', [InvoiceController::class, 'destroyMany'])->name('invoices.destroy-many');
+    Route::post('/invoices/batches/{batchId}/cancel', [InvoiceController::class, 'cancelBatch'])->name('invoices.batches.cancel');
 
     Route::post('/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/invoices/{invoice}/record-payment', [PaymentController::class, 'recordForm'])->name('payments.record.create');
@@ -544,7 +595,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
     Route::post('/payments/{payment}/reject', [PaymentController::class, 'reject'])->name('payments.reject');
     Route::get('/payments/{payment}/proof', [PaymentController::class, 'proof'])->name('payments.proof');
-    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->middleware('throttle:pdf')->name('payments.receipt');
 });
 
 require __DIR__.'/auth.php';

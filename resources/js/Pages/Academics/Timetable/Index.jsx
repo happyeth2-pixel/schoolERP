@@ -1,8 +1,8 @@
 import TimetableSlotDialog from '@/Components/TimetableSlotDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, Select, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, Select, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarDaysIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,8 @@ export default function Index({
     canManage, canOverride, terms, termId, scope, entityId, periods, sections, teachers, rooms, subjects, slots,
 }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [dialog, setDialog] = useState(null); // null | 'new' | a slot object
     const [ask, confirmDialog] = useConfirm();
 
@@ -35,10 +37,11 @@ export default function Index({
     const cellsFor = (periodId, day) => slots.filter((s) => s.period_id === periodId && s.day_of_week === day);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('timetable.title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('timetable.title')}</h2>}>
             <Page
                 title={t('timetable.title')}
                 description={t('timetable.desc')}
+                back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && entityId && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('timetable.add_slot_button')}</Button>}
             >
                 <FlashMessages errorKeys={['delete']} />
@@ -68,27 +71,27 @@ export default function Index({
                             <table className="w-full border-collapse text-left text-sm" data-testid="timetable-grid">
                                 <thead>
                                     <tr>
-                                        <th className="border border-gray-200 p-2 dark:border-gray-700" />
+                                        <th className="border border-stone-200 p-2 dark:border-stone-700" />
                                         {DAYS.map((d) => (
-                                            <th key={d} className="border border-gray-200 p-2 text-gray-700 dark:border-gray-700 dark:text-gray-300">{t(`timetable.day_${d}`)}</th>
+                                            <th key={d} className="border border-stone-200 p-2 text-stone-700 dark:border-stone-700 dark:text-stone-300">{t(`timetable.day_${d}`)}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {periods.map((p) => (
                                         <tr key={p.id}>
-                                            <td className="border border-gray-200 p-2 font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">{p.label}</td>
+                                            <td className="border border-stone-200 p-2 font-medium text-stone-700 dark:border-stone-700 dark:text-stone-300">{p.label}</td>
                                             {DAYS.map((d) => {
                                                 const cells = cellsFor(p.id, d);
                                                 return (
-                                                    <td key={d} className="border border-gray-200 p-2 align-top dark:border-gray-700" data-testid="timetable-cell">
+                                                    <td key={d} className="border border-stone-200 p-2 align-top dark:border-stone-700" data-testid="timetable-cell">
                                                         {cells.map((cell) => (
                                                             // An authorized override can leave two slots clashing in the same cell
                                                             // (same teacher/room/section double-booked on purpose) -- show every one
                                                             // of them, never just the first, or the other commitment goes invisible.
                                                             <div key={cell.id} data-testid="timetable-slot" className="mb-2 last:mb-0">
-                                                                <p className="font-semibold text-gray-900 dark:text-gray-100">{cell.subject}</p>
-                                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                <p className="font-semibold text-stone-900 dark:text-stone-100">{cell.subject}</p>
+                                                                <p className="text-xs text-stone-600 dark:text-stone-400">
                                                                     {scope !== 'section' && `${cell.section} · `}
                                                                     {scope !== 'teacher' && `${cell.teacher} · `}
                                                                     {cell.room ?? t('timetable.no_room')}
@@ -103,7 +106,7 @@ export default function Index({
                                                             </div>
                                                         ))}
                                                         {cells.length === 0 && canManage && (
-                                                            <button type="button" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400" onClick={() => setDialog({ day_of_week: d, period_id: p.id, ...(scope === 'section' ? { section_id: entityId } : scope === 'teacher' ? { teacher_id: entityId } : { room_id: entityId }) })}>
+                                                            <button type="button" className="text-sm text-brand-600 hover:underline dark:text-brand-400" onClick={() => setDialog({ day_of_week: d, period_id: p.id, ...(scope === 'section' ? { section_id: entityId } : scope === 'teacher' ? { teacher_id: entityId } : { room_id: entityId }) })}>
                                                                 {t('timetable.add_here')}
                                                             </button>
                                                         )}

@@ -1,14 +1,16 @@
 import AssignmentDialog from '@/Components/AssignmentDialog';
 import DateText from '@/Components/DateText';
-import { Button, Card, EmptyState, FlashMessages, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BookOpenIcon, PaperClipIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ assignments, teachingAssignments }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [dialog, setDialog] = useState(null); // null | 'new' | an assignment object
     const [ask, confirmDialog] = useConfirm();
     const title = t('homework.manage_title');
@@ -24,11 +26,12 @@ export default function Index({ assignments, teachingAssignments }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
             <Page
                 title={title}
                 description={t('homework.manage_desc')}
                 width="default"
+                back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={teachingAssignments.length > 0 && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('homework.add_button')}</Button>}
             >
                 <FlashMessages errorKeys={['delete']} />
@@ -43,12 +46,12 @@ export default function Index({ assignments, teachingAssignments }) {
                             <Card key={a.id} data-testid="assignment-row">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">{a.section_label} · {a.subject_name}</p>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{a.title}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('homework.due_label')} <DateText value={a.due_date} /> · {a.teacher_name}</p>
-                                        {a.description && <p className="mt-2 whitespace-pre-line text-base text-gray-800 dark:text-gray-200">{a.description}</p>}
+                                        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-400">{a.section_label} · {a.subject_name}</p>
+                                        <p className="text-lg font-bold text-stone-900 dark:text-stone-100">{a.title}</p>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">{t('homework.due_label')} <DateText value={a.due_date} /> · {a.teacher_name}</p>
+                                        {a.description && <p className="mt-2 whitespace-pre-line text-base text-stone-800 dark:text-stone-200">{a.description}</p>}
                                         {a.has_attachment && (
-                                            <a href={route('assignments.document', a.id)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                                            <a href={route('assignments.document', a.id)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">
                                                 <PaperClipIcon className="h-4 w-4" /> {t('homework.view_attachment')}
                                             </a>
                                         )}

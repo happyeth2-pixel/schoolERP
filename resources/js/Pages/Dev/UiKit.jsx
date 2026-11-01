@@ -114,7 +114,7 @@ export default function UiKit() {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">UI kit</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">UI kit</h2>}>
             <Page
                 title="UI kit"
                 description="Every shared component, live. Development only."
@@ -173,7 +173,7 @@ export default function UiKit() {
                             ]}
                         />
                         <ChoiceGroup label="Gender" layout="segmented" value={gender} onChange={setGender} options={[{ value: 'female', label: 'Female' }, { value: 'male', label: 'Male' }]} />
-                        <p id="choice-readout" className="text-sm text-gray-600 dark:text-gray-400">Selected: {method || 'nothing'} / {gender || 'nothing'}</p>
+                        <p id="choice-readout" className="text-sm text-stone-600 dark:text-stone-400">Selected: {method || 'nothing'} / {gender || 'nothing'}</p>
                     </div>
                 </Block>
 
@@ -194,7 +194,7 @@ export default function UiKit() {
 
                 <Block id="confirm" title="Destructive-action confirmation" description="Replaces window.confirm(). The confirm button names the outcome; Cancel is what has focus.">
                     <Button variant="danger" icon={TrashIcon} onClick={del}>Delete Student…</Button>
-                    <p id="confirm-readout" className="mt-3 text-sm text-gray-600 dark:text-gray-400">{answer}</p>
+                    <p id="confirm-readout" className="mt-3 text-sm text-stone-600 dark:text-stone-400">{answer}</p>
                     <div className="mt-4">
                         <Button variant="secondary" onClick={() => setBusyConfirm(true)}>Show the dialog while working</Button>
                         <ConfirmDialog open={busyConfirm} title="Create invoices?" tone="primary" confirmLabel="Create invoices" busy onConfirm={() => {}} onCancel={() => setBusyConfirm(false)}>
@@ -205,15 +205,15 @@ export default function UiKit() {
 
                 <Block id="states" title="Empty, loading and success states">
                     <div className="grid gap-4 md:grid-cols-3">
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700"><EmptyState title="No students in this class yet" action={<Button icon={PlusIcon}>Enroll a student</Button>}>Students you enroll in Grade 4 A will appear here.</EmptyState></div>
-                        <div className="rounded-xl border border-gray-200 dark:border-gray-700"><LoadingState label="Loading students…" /></div>
+                        <div className="rounded-xl border border-stone-200 dark:border-stone-700"><EmptyState title="No students in this class yet" action={<Button icon={PlusIcon}>Enroll a student</Button>}>Students you enroll in Grade 4 A will appear here.</EmptyState></div>
+                        <div className="rounded-xl border border-stone-200 dark:border-stone-700"><LoadingState label="Loading students…" /></div>
                         <SuccessPanel title="Invoices created" actions={<Button variant="secondary">See the invoices</Button>}>3 invoices for Grade 9 were created.</SuccessPanel>
                     </div>
                 </Block>
 
                 <Block id="print" title="Print action" description="Names the document, says what opens, and how to keep a file instead.">
                     <PrintButton label="Print ID card" />
-                    <PrintArea className="mt-4 max-w-xs rounded-xl border border-gray-300 p-4"><p className="font-semibold">Bethlehem Girma</p><p className="text-sm text-gray-600">Grade 4 A · STU-2026-000123</p></PrintArea>
+                    <PrintArea className="mt-4 max-w-xs rounded-xl border border-stone-300 p-4"><p className="font-semibold">Bethlehem Girma</p><p className="text-sm text-stone-600">Grade 4 A · STU-2026-000123</p></PrintArea>
                 </Block>
 
                 <Block id="wizard" title="Wizard" description="Step X of Y, title, explanation, validation before Next (with the reason), Back keeps answers, a review, and a strong final action.">

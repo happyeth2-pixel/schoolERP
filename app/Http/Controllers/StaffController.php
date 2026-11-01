@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Rules\PhoneNumberRule;
 use App\Models\SecurityEvent;
 use App\Rules\EthiopianMobileRule;
+use App\Rules\NotBasedOnIdentity;
 use App\Security\LoginThrottle;
 use App\Rules\UniqueAccountPhone;
 use App\Support\PhoneNumber;
@@ -100,6 +101,7 @@ class StaffController extends Controller
             'can_sign_in_with_phone' => $u->login_phone !== null,
             'sign_in_lock' => $throttle->status($u),
             'name' => $u->name,
+            'photo_url' => $u->profile_photo_url,
             'email' => $u->email,
             'title' => $u->title,
             'phone' => \App\Support\PhoneNumber::display($u->phone),
@@ -202,12 +204,7 @@ class StaffController extends Controller
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'title' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50', new EthiopianMobileRule, new UniqueAccountPhone],
-            'phone_confirmation' => ['required', 'string', function ($attribute, $value, $fail) use ($request) {
-                if (PhoneNumber::normalizeMobile((string) $value) !== PhoneNumber::normalizeMobile((string) $request->input('phone'))) {
-                    $fail('The two phone numbers are not the same. Check them and type the number again.');
-                }
-            }],
-            'temporary_password' => ['nullable', 'string', 'max:72', \Illuminate\Validation\Rules\Password::min(8)->letters()->numbers()],
+            'temporary_password' => ['nullable', 'string', 'max:72', \Illuminate\Validation\Rules\Password::min(8)->letters()->mixedCase()->numbers(), new NotBasedOnIdentity($request->input('name'), $request->input('phone'))],
             'class_teacher_section_id' => ['nullable', 'integer'],
             'role' => ['required', Rule::in($this->assignableRoles($actor))],
             'branch_id' => ['nullable', 'integer'],
@@ -430,12 +427,20 @@ class StaffController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50', new EthiopianMobileRule, new UniqueAccountPhone($staff->id)],
             'status' => ['required', 'in:active,inactive'],
+            'role' => ['sometimes', 'required', Rule::in($this->assignableRoles($actor))],
+            'branch_id' => ['nullable', 'integer'],
             'permissions' => ['array'],
             'permissions.*' => ['string'],
         ]);
 
         if ($validated['status'] === 'inactive' && $staff->status === 'active' && $staff->id === $actor->id) {
             throw ValidationException::withMessages(['status' => 'You cannot switch off your own account.']);
+        }
+
+        $roleBefore = $staff->getRoleNames()->first();
+        $newRole = $validated['role'] ?? null;
+        if ($newRole !== null && $newRole !== $roleBefore && $staff->id === $actor->id) {
+            throw ValidationException::withMessages(['role' => 'You cannot change your own system role.']);
         }
 
         $permissionsBefore = $staff->getPermissionNames()->sort()->values()->all();
@@ -446,7 +451,7 @@ class StaffController extends Controller
         try {
             $staff->update([
                 'name' => $validated['name'] ?? $staff->name,
-                'title' => $validated['title'],
+                'title' => array_key_exists('title', $validated) ? $validated['title'] : $staff->title,
                 'phone' => $newPhone ?? $staff->phone,
                 'login_phone' => $newPhone,
                 'status' => $validated['status'],
@@ -466,7 +471,17 @@ class StaffController extends Controller
             AuditLog::record($actor, 'staff.phone_changed', $staff, ['phone' => $phoneBefore], ['phone' => $staff->login_phone]);
         }
 
-        if ($staff->hasRole('branch_admin')) {
+        // Changing the system role resets permissions to that role's defaults (assignTier(), the same call
+        // creation uses) -- never a blend of the old role's leftover grants and the new role's defaults. A
+        // custom branch_admin permission set is then layered back on top, below, exactly like creation does.
+        if ($newRole !== null && $newRole !== $roleBefore) {
+            $branchId = $this->resolveBranchId($actor, $newRole, $validated['branch_id'] ?? $staff->branch_id);
+            $staff->update(['branch_id' => $branchId]);
+            $staff->assignTier($newRole, $validated['title'] ?? $staff->title);
+            AuditLog::record($actor, 'staff.role_changed', $staff, ['role' => $roleBefore], ['role' => $newRole]);
+        }
+
+        if ($staff->fresh()->hasRole('branch_admin')) {
             $staff->syncPermissions($this->clampPermissions($actor, $validated['permissions'] ?? []));
 
             $permissionsAfter = $staff->getPermissionNames()->sort()->values()->all();

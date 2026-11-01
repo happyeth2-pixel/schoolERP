@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -33,22 +34,22 @@ export default function GoodsReceiptDialog({ open, order, stores, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="goods-receipt-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('goods_receipt.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('goods_receipt.add_title')}</h2>
                     <Field id="gr_store" label={t('goods_receipt.store')} error={errors.store_id}>
                         <Select value={data.store_id} onChange={(e) => setData('store_id', e.target.value)}>
                             {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </Select>
                     </Field>
                     <Field id="gr_date" label={t('goods_receipt.received_date')} error={errors.received_date}>
-                        <Input type="date" value={data.received_date} onChange={(e) => setData('received_date', e.target.value)} />
+                        <DateInput value={data.received_date} onChange={(v) => setData('received_date', v)} />
                     </Field>
 
-                    <div className="space-y-4 rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700">
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('goods_receipt.lines_title')}</p>
+                    <div className="space-y-4 rounded-xl border-2 border-stone-200 p-4 dark:border-stone-700">
+                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('goods_receipt.lines_title')}</p>
                         {receivableItems.map((i, index) => (
-                            <div key={i.id} className="space-y-2 border-b border-gray-200 pb-3 last:border-0 last:pb-0 dark:border-gray-700">
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{i.description}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{t('goods_receipt.still_expected', { count: i.remaining_to_receive })}</p>
+                            <div key={i.id} className="space-y-2 border-b border-stone-200 pb-3 last:border-0 last:pb-0 dark:border-stone-700">
+                                <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{i.description}</p>
+                                <p className="text-xs text-stone-500 dark:text-stone-400">{t('goods_receipt.still_expected', { count: i.remaining_to_receive })}</p>
                                 <Field id={`gr_qty_${i.id}`} label={t('quotation.quantity')} error={errors[`items.${index}.quantity_received`]}>
                                     <Input inputMode="numeric" value={data.items[i.id].quantity_received} onChange={(e) => setLine(i.id, { quantity_received: e.target.value })} autoComplete="off" />
                                 </Field>

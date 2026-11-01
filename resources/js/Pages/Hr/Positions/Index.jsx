@@ -1,13 +1,14 @@
 import PositionDialog from '@/Components/PositionDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { IdentificationIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ positions, departments, canManage }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(null); // null | 'new' | a position object
     const [ask, confirmDialog] = useConfirm();
 
@@ -23,10 +24,11 @@ export default function Index({ positions, departments, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('position.list_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('position.list_title')}</h2>}>
             <Page
                 title={t('position.list_title')}
                 description={t('position.list_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('position.add_button')}</Button>}
             >
                 <FlashMessages errorKeys={['title']} />
@@ -35,13 +37,13 @@ export default function Index({ positions, departments, canManage }) {
                     <Card><EmptyState icon={IdentificationIcon} title={t('position.empty_title')}>{t('position.empty_body')}</EmptyState></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="position-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="position-list">
                             {positions.map((p) => (
                                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="position-row">
                                     <div>
-                                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{p.title}</span>
-                                        {p.department && <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{p.department}</span>}
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('position.employees_count', { count: p.employees_count })}</p>
+                                        <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{p.title}</span>
+                                        {p.department && <span className="ml-2 text-sm text-stone-600 dark:text-stone-400">{p.department}</span>}
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">{t('position.employees_count', { count: p.employees_count })}</p>
                                     </div>
                                     {canManage && (
                                         <div className="flex items-center gap-3">

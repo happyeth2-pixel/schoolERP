@@ -15,8 +15,8 @@ export function LoadingState({ label, className = '' }) {
     const { t } = useTranslation();
 
     return (
-        <div role="status" className={`flex flex-col items-center justify-center gap-3 py-10 text-gray-600 dark:text-gray-300 ${className}`}>
-            <Spinner className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+        <div role="status" className={`flex flex-col items-center justify-center gap-3 py-10 text-stone-600 dark:text-stone-300 ${className}`}>
+            <Spinner className="h-8 w-8 text-brand-600 dark:text-brand-400" />
             <p className="text-base">{label ?? t('common.loading')}</p>
         </div>
     );

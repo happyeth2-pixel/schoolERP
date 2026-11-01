@@ -37,7 +37,7 @@ class StudentNamesAndGuardiansTest extends TestCase
 
     private function payload(array $extra = []): array
     {
-        return array_merge(['first_name' => 'Selam', 'gender' => 'female', 'enrollment_date' => '2026-09-20', 'section_id' => $this->section->id, 'guardian_mode' => 'none'], $extra);
+        return array_merge(['first_name' => 'Selam', 'gender' => 'female', 'enrollment_date' => '2026-09-20', 'section_id' => $this->section->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344'], $extra);
     }
 
     public function test_only_a_first_name_is_required(): void
@@ -61,7 +61,7 @@ class StudentNamesAndGuardiansTest extends TestCase
     {
         foreach (['grandparent', 'aunt', 'uncle', 'foster_parent', 'sibling', 'other'] as $i => $rel) {
             $this->actingAs($this->owner)->post('/students', $this->payload([
-                'first_name' => "Kid{$i}", 'guardian_mode' => 'new', 'guardian_name' => "G{$i}", 'guardian_email' => "g{$i}@t.test", 'guardian_relationship' => $rel,
+                'first_name' => "Kid{$i}", 'guardian_mode' => 'new', 'guardian_name' => "G{$i}", 'guardian_phone' => "091100000{$i}", 'guardian_relationship' => $rel,
             ]))->assertSessionHasNoErrors();
             $this->assertSame($rel, Student::where('first_name', "Kid{$i}")->first()->guardians()->first()->pivot->relationship);
         }
@@ -69,12 +69,38 @@ class StudentNamesAndGuardiansTest extends TestCase
 
     public function test_an_unknown_relationship_is_rejected_and_two_guardians_can_share_a_student(): void
     {
-        $this->actingAs($this->owner)->post('/students', $this->payload(['guardian_mode' => 'new', 'guardian_name' => 'G', 'guardian_email' => 'g@t.test', 'guardian_relationship' => 'cousin-twice-removed']))
+        $this->actingAs($this->owner)->post('/students', $this->payload(['guardian_mode' => 'new', 'guardian_name' => 'G', 'guardian_phone' => '0911000010', 'guardian_relationship' => 'cousin-twice-removed']))
             ->assertSessionHasErrors('guardian_relationship');
 
-        $this->actingAs($this->owner)->post('/students', $this->payload(['guardian_mode' => 'new', 'guardian_name' => 'Aunt A', 'guardian_email' => 'a@t.test', 'guardian_relationship' => 'aunt']))->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->post('/students', $this->payload(['guardian_mode' => 'new', 'guardian_name' => 'Aunt A', 'guardian_phone' => '0911000011', 'guardian_relationship' => 'aunt']))->assertSessionHasNoErrors();
         $s = Student::first();
-        $this->actingAs($this->owner)->post("/students/{$s->id}/guardians", ['guardian_mode' => 'new', 'guardian_name' => 'Gran', 'guardian_email' => 'gran@t.test', 'guardian_relationship' => 'grandparent'])->assertSessionHasNoErrors();
+        $this->actingAs($this->owner)->post("/students/{$s->id}/guardians", ['guardian_mode' => 'new', 'guardian_name' => 'Gran', 'guardian_phone' => '0911000012', 'guardian_relationship' => 'grandparent'])->assertSessionHasNoErrors();
         $this->assertSame(2, $s->guardians()->count());
+    }
+
+    public function test_a_new_guardian_created_at_enrollment_gets_a_temporary_password_not_an_email_invite(): void
+    {
+        $this->actingAs($this->owner)->post('/students', $this->payload([
+            'guardian_mode' => 'new', 'guardian_name' => 'New Parent', 'guardian_phone' => '0911000020', 'guardian_relationship' => 'father',
+        ]))->assertSessionHasNoErrors()->assertSessionHas('credentials');
+
+        $parent = User::where('login_phone', '+251911000020')->firstOrFail();
+        $this->assertTrue($parent->hasRole('parent'));
+        $this->assertNull($parent->email);
+        $this->assertTrue((bool) $parent->must_change_password);
+    }
+
+    public function test_linking_an_existing_guardian_is_found_by_phone_not_email(): void
+    {
+        $this->actingAs($this->owner)->post('/students', $this->payload([
+            'first_name' => 'FirstChild', 'guardian_mode' => 'new', 'guardian_name' => 'Shared Parent', 'guardian_phone' => '0911000030', 'guardian_relationship' => 'mother',
+        ]))->assertSessionHasNoErrors();
+
+        $this->actingAs($this->owner)->post('/students', $this->payload([
+            'first_name' => 'SecondChild', 'guardian_mode' => 'existing', 'guardian_phone' => '0911 00 00 30', 'guardian_relationship' => 'mother',
+        ]))->assertSessionHasNoErrors();
+
+        $parent = User::where('login_phone', '+251911000030')->firstOrFail();
+        $this->assertSame(2, $parent->children()->count());
     }
 }

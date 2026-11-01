@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -35,7 +36,7 @@ export default function ContractDialog({ open, employeeId, contract, onClose }) 
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="contract-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('contract.edit_title') : t('contract.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('contract.edit_title') : t('contract.add_title')}</h2>
 
                     <Field id="contract_type" label={t('contract.contract_type')} error={errors.contract_type}>
                         <Select id="contract_type" value={data.contract_type} onChange={(e) => setData('contract_type', e.target.value)}>
@@ -43,10 +44,10 @@ export default function ContractDialog({ open, employeeId, contract, onClose }) 
                         </Select>
                     </Field>
                     <Field id="contract_start" label={t('contract.start_date')} error={errors.start_date}>
-                        <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                        <DateInput value={data.start_date} onChange={(v) => setData('start_date', v)} />
                     </Field>
                     <Field id="contract_end" label={t('contract.end_date')} hint={t('contract.end_date_hint')} error={errors.end_date}>
-                        <Input type="date" value={data.end_date} onChange={(e) => setData('end_date', e.target.value)} />
+                        <DateInput value={data.end_date} onChange={(v) => setData('end_date', v)} />
                     </Field>
                     <Field id="contract_status" label={t('contract.status')} error={errors.status}>
                         <Select id="contract_status" value={data.status} onChange={(e) => setData('status', e.target.value)}>
@@ -60,7 +61,7 @@ export default function ContractDialog({ open, employeeId, contract, onClose }) 
                         <Input value={data.working_schedule} onChange={(e) => setData('working_schedule', e.target.value)} maxLength={255} />
                     </Field>
                     <Field id="contract_renewal" label={t('contract.renewal_date')} hint={t('contract.renewal_date_hint')} error={errors.renewal_date}>
-                        <Input type="date" value={data.renewal_date} onChange={(e) => setData('renewal_date', e.target.value)} />
+                        <DateInput value={data.renewal_date} onChange={(v) => setData('renewal_date', v)} />
                     </Field>
                     <Field id="contract_document" label={t('contract.document')} hint={t('contract.document_hint')} error={errors.document}>
                         <input id="contract_document" type="file" accept="application/pdf" onChange={(e) => setData('document', e.target.files[0] ?? null)} className="block w-full text-base" />

@@ -27,11 +27,16 @@ class SafeUpload
     public const TYPES = [
         'jpg' => ['mime' => 'image/jpeg', 'magic' => "\xFF\xD8\xFF"],
         'png' => ['mime' => 'image/png', 'magic' => "\x89PNG\r\n\x1a\n"],
+        'gif' => ['mime' => 'image/gif', 'magic' => 'GIF8'],
         'pdf' => ['mime' => 'application/pdf', 'magic' => '%PDF-'],
     ];
 
     /** Largest decoded image we will process (guards against decompression bombs). */
     public const MAX_PIXELS = 36_000_000;
+
+    /** A GIF is never re-encoded (that would collapse it to its first frame and kill the animation), so it
+     * is never shrunk either -- this caps it directly instead. */
+    public const MAX_GIF_BYTES = 5 * 1024 * 1024;
 
     /** What kind of file this really is (jpg, png, pdf), or null if it is none of those or the evidence disagrees. */
     public static function detect(UploadedFile $file): ?string
@@ -82,6 +87,9 @@ class SafeUpload
         if ($info[0] * $info[1] > self::MAX_PIXELS) {
             return 'This image is too large in pixels. Please upload a smaller one.';
         }
+        if ($type === 'gif' && $file->getSize() > self::MAX_GIF_BYTES) {
+            return 'This GIF is too large (over 5 MB). Please upload a smaller one.';
+        }
 
         return null;
     }
@@ -118,9 +126,33 @@ class SafeUpload
         return $path;
     }
 
+    /**
+     * A chat/announcement/complaint attachment: public disk, random name. A jpg/png is decoded, shrunk to at
+     * most $maxSide px and re-encoded exactly like storePublicImage(); a GIF is deliberately left untouched
+     * (re-encoding would collapse it to a single frame and kill the animation) -- its magic bytes, declared
+     * MIME, structure and size were already checked in problem()/checked() above, which is as far as a file
+     * nobody will ever execute (only ever displayed as an <img>) needs to be checked.
+     */
+    public static function storePublicAttachment(UploadedFile $file, string $directory): string
+    {
+        $type = self::checked($file, ['jpg', 'png', 'gif']);
+        $path = trim($directory, '/').'/'.Str::random(40).'.'.$type;
+
+        $bytes = $type === 'gif' ? (string) file_get_contents($file->getRealPath()) : self::reencode($file, $type, 1280);
+        Storage::disk('public')->put($path, $bytes);
+
+        return $path;
+    }
+
     private static function checked(UploadedFile $file, array $allowed): string
     {
         if ($problem = self::problem($file, $allowed)) {
+            throw new RuntimeException($problem);
+        }
+
+        // Off by default -- see VirusScan's own docblock. Defense-in-depth on top of the content-sniffing
+        // and re-encoding above, not a replacement for it.
+        if ($problem = VirusScan::problem($file)) {
             throw new RuntimeException($problem);
         }
 

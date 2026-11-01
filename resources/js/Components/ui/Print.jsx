@@ -13,7 +13,7 @@ export function PrintButton({ label, hint = true, variant = 'secondary', classNa
     return (
         <div className={className}>
             <Button variant={variant} icon={PrinterIcon} onClick={() => window.print()}>{label}</Button>
-            {hint && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('ui.print_hint')}</p>}
+            {hint && <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">{t('ui.print_hint')}</p>}
         </div>
     );
 }

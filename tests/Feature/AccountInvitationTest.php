@@ -2,13 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademicYear;
 use App\Models\AccountInvitation;
 use App\Models\AuditLog;
 use App\Models\Branch;
-use App\Models\Grade;
 use App\Models\School;
-use App\Models\Section;
 use App\Models\User;
 use App\Notifications\AccountInvitationNotification;
 use App\Services\AccountOnboarding;
@@ -228,23 +225,9 @@ class AccountInvitationTest extends TestCase
         $this->assertTrue($summary['emailed']);
     }
 
-    public function test_new_guardians_created_at_enrollment_get_an_invitation_too(): void
-    {
-        $year = AcademicYear::create(['school_id' => $this->school->id, 'name' => '2026', 'start_date' => '2026-09-01', 'end_date' => '2027-06-30', 'is_current' => true]);
-        $grade = Grade::create(['school_id' => $this->school->id, 'name' => 'Grade 1', 'sort_order' => 1]);
-        $section = Section::create(['branch_id' => $this->branch->id, 'grade_id' => $grade->id, 'academic_year_id' => $year->id, 'name' => 'A']);
-
-        $this->actingAs($this->owner)->post('/students', [
-            'first_name' => 'Kid', 'father_name' => 'One', 'gender' => 'male', 'enrollment_date' => '2026-09-05',
-            'section_id' => $section->id, 'guardian_mode' => 'new', 'guardian_email' => 'parent@test.test',
-            'guardian_name' => 'New Parent', 'guardian_relationship' => 'father',
-        ])->assertSessionHas('invitation');
-
-        $parent = User::where('email', 'parent@test.test')->first();
-        $this->assertTrue($parent->hasRole('parent'));
-        $this->assertSame(1, AccountInvitation::where('user_id', $parent->id)->count());
-        $this->assertSame('New Parent', session('invitation')['name']);
-    }
+    // A new guardian created at enrollment now gets a temporary password handed to the registrar, the same way
+    // ParentController::store() creates any other parent account -- no email, no invitation link. See
+    // StudentNamesAndGuardiansTest::test_a_new_guardian_created_at_enrollment_gets_a_temporary_password_not_an_email_invite.
 
     // ------------------------------------------------------ hardening
 
@@ -305,6 +288,6 @@ class AccountInvitationTest extends TestCase
     {
         $props = $response->original->getData()['page']['props'];
 
-        return array_diff_key($props, array_flip(['errors', 'locale', 'auth', 'flash', 'notifications', 'monitoringUserPseudonym', 'today']));
+        return array_diff_key($props, array_flip(['errors', 'locale', 'auth', 'flash', 'notifications', 'monitoringUserPseudonym', 'today', 'parentChildren']));
     }
 }

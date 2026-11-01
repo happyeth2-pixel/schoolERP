@@ -30,7 +30,7 @@ export default function AccountDialog({ open, account, accounts, types, onClose 
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="account-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('account.edit_title') : t('account.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('account.edit_title') : t('account.add_title')}</h2>
                     {!editing && (
                         <Field id="account_code" label={t('account.code')} error={errors.code}>
                             <Input value={data.code} onChange={(e) => setData('code', e.target.value)} maxLength={20} autoComplete="off" />
@@ -54,8 +54,8 @@ export default function AccountDialog({ open, account, accounts, types, onClose 
                         </Select>
                     </Field>
                     {!editing && (
-                        <label className="flex items-center gap-2 text-base text-gray-800 dark:text-gray-200">
-                            <input type="checkbox" checked={data.is_header} onChange={(e) => setData('is_header', e.target.checked)} className="h-5 w-5 rounded border-gray-300" />
+                        <label className="flex items-center gap-2 text-base text-stone-800 dark:text-stone-200">
+                            <input type="checkbox" checked={data.is_header} onChange={(e) => setData('is_header', e.target.checked)} className="h-5 w-5 rounded border-stone-300" />
                             {t('account.is_header_label')}
                         </label>
                     )}

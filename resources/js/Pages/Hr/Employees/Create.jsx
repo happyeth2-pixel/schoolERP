@@ -1,12 +1,15 @@
 import { Alert, BackLink, Card, Field, Input, Page, ReviewList, Select, TextArea, WizardShell, useWizard } from '@/Components/ui';
+import DateInput from '@/Components/DateInput';
+import { useCalendar } from '@/useCalendar';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 export default function Create({ departments, positions, branches, linkableUsers, employmentStatuses, employmentTypes }) {
     const { t } = useTranslation();
+    const { format } = useCalendar();
     const form = useForm({
-        full_name: '', phone: '', email: '', gender: '', date_of_birth: '', photo: null,
+        full_name: '', phone: '', email: '', gender: '', age: '', photo: null,
         hire_date: '', department_id: '', position_id: '', branch_id: branches.length === 1 ? String(branches[0].id) : '',
         employment_status: 'active', employment_type: 'full_time', qualifications: '',
         address: '', emergency_contact_name: '', emergency_contact_phone: '', notes: '', user_id: '',
@@ -17,7 +20,7 @@ export default function Create({ departments, positions, branches, linkableUsers
     const positionsForDepartment = data.department_id ? positions.filter((p) => String(p.department_id) === data.department_id) : positions;
 
     const steps = [
-        { key: 'personal', label: t('employee.step_personal'), description: t('employee.step_personal_desc'), fields: ['full_name', 'phone', 'email', 'gender', 'date_of_birth'], isValid: () => data.full_name.trim() !== '' && data.phone.trim() !== '', whyBlocked: t('employee.why_personal') },
+        { key: 'personal', label: t('employee.step_personal'), description: t('employee.step_personal_desc'), fields: ['full_name', 'phone', 'email', 'gender', 'age'], isValid: () => data.full_name.trim() !== '' && data.phone.trim() !== '', whyBlocked: t('employee.why_personal') },
         { key: 'employment', label: t('employee.step_employment'), description: t('employee.step_employment_desc'), fields: ['hire_date', 'department_id', 'position_id', 'branch_id', 'employment_status', 'employment_type'], isValid: () => data.hire_date !== '' && (branches.length <= 1 || data.branch_id !== ''), whyBlocked: t('employee.why_employment') },
         { key: 'other', label: t('employee.step_other'), description: t('employee.step_other_desc') },
         { key: 'review', label: t('employee.step_review'), description: t('employee.step_review_desc') },
@@ -36,7 +39,7 @@ export default function Create({ departments, positions, branches, linkableUsers
     const linkedUser = linkableUsers.find((u) => String(u.id) === data.user_id);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('employee.new_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('employee.new_title')}</h2>}>
             <Page title={t('employee.new_title')} back={<BackLink href={route('employees.index')}>{t('employee.back_to_list')}</BackLink>}>
                 <Card>
                     <WizardShell wizard={wizard} finalLabel={t('employee.save_button')} processing={processing}>
@@ -58,8 +61,8 @@ export default function Create({ departments, positions, branches, linkableUsers
                                         <option value="female">{t('employee.gender_female')}</option>
                                     </Select>
                                 </Field>
-                                <Field id="emp_dob" label={t('employee.date_of_birth')} error={errors.date_of_birth}>
-                                    <Input type="date" value={data.date_of_birth} onChange={(e) => set('date_of_birth')(e.target.value)} />
+                                <Field id="emp_age" label={t('employee.age')} hint={t('enroll.age_hint')} error={errors.age}>
+                                    <Input type="number" inputMode="numeric" min="0" max="80" value={data.age} onChange={(e) => set('age')(e.target.value)} />
                                 </Field>
                                 <Field id="emp_photo" label={t('employee.photo')} hint={t('employee.photo_hint')} error={errors.photo}>
                                     <input id="emp_photo" type="file" accept="image/png,image/jpeg" onChange={(e) => set('photo')(e.target.files[0] ?? null)} className="block w-full text-base" />
@@ -70,7 +73,7 @@ export default function Create({ departments, positions, branches, linkableUsers
                         {key === 'employment' && (
                             <div className="space-y-5">
                                 <Field id="emp_hire_date" label={t('employee.hire_date')} error={errors.hire_date}>
-                                    <Input type="date" value={data.hire_date} onChange={(e) => set('hire_date')(e.target.value)} />
+                                    <DateInput large value={data.hire_date} onChange={set('hire_date')} />
                                 </Field>
                                 {branches.length > 1 && (
                                     <Field id="emp_branch" label={t('employee.branch')} error={errors.branch_id}>
@@ -133,15 +136,15 @@ export default function Create({ departments, positions, branches, linkableUsers
 
                         {key === 'review' && (
                             <div className="space-y-5">
-                                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="headline">
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.full_name}</p>
-                                    <p className="mt-1 text-lg text-gray-800 dark:text-gray-200">{position?.title ?? t('employee.no_job_title')}{department ? ` · ${department.name}` : ''}</p>
+                                <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 dark:border-brand-700 dark:bg-brand-900/20" data-testid="headline">
+                                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{data.full_name}</p>
+                                    <p className="mt-1 text-lg text-stone-800 dark:text-stone-200">{position?.title ?? t('employee.no_job_title')}{department ? ` · ${department.name}` : ''}</p>
                                 </div>
                                 <ReviewList
                                     onEdit={wizard.goTo}
                                     rows={[
                                         { label: t('employee.phone'), value: data.phone, step: stepOf('personal') },
-                                        { label: t('employee.hire_date'), value: data.hire_date, step: stepOf('employment') },
+                                        { label: t('employee.hire_date'), value: data.hire_date ? format(data.hire_date) : t('enroll.not_given'), step: stepOf('employment') },
                                         ...(branches.length > 1 ? [{ label: t('employee.branch'), value: branch?.name ?? '', step: stepOf('employment') }] : []),
                                         { label: t('employee.employment_status'), value: t(`employee.status_${data.employment_status}`), step: stepOf('employment') },
                                         { label: t('employee.link_account'), value: linkedUser ? linkedUser.name : t('employee.no_account'), step: stepOf('other') },

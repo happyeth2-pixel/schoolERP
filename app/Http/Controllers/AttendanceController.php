@@ -129,6 +129,7 @@ class AttendanceController extends Controller
                 ->with('markedBy')->latest('updated_at')->first()?->markedBy?->name,
             'roster' => $enrollments->map(fn ($e) => [
                 'enrollment_id' => $e->id,
+                'student_id' => $e->student_id,
                 'student_name' => $e->student->fullName(),
                 'student_id_number' => $e->student->student_id_number,
                 'status' => $e->attendanceRecords->first()->status ?? null,
@@ -136,6 +137,9 @@ class AttendanceController extends Controller
                 'marked_by' => $e->attendanceRecords->first()?->markedBy?->name,
                 'parent_count' => $e->student->guardians->count(),
             ]),
+            // Same eligibility attendance itself already enforced above (assertCanMark): the homeroom
+            // teacher, or any branch admin/owner in scope -- a subject teacher never reaches this far.
+            'canMessage' => $request->user()->can('parent-messages'),
         ]);
     }
 

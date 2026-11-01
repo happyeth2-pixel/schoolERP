@@ -23,7 +23,7 @@ export default function CapacityOverride({ section, needed = 1, canOverride, che
             {canOverride ? (
                 <div className="mt-2 space-y-2">
                     <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!checked} onChange={(e) => onChecked(e.target.checked)} className="rounded border-gray-300 text-indigo-600" />
+                        <input type="checkbox" checked={!!checked} onChange={(e) => onChecked(e.target.checked)} className="rounded border-stone-300 text-brand-600" />
                         <span>Override capacity</span>
                     </label>
                     {checked && (

@@ -26,7 +26,7 @@ export default function Medical({ student, record, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{t('medical.page_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{t('medical.page_title')}</h2>}>
             <Page
                 title={t('medical.title_for', { name: student.name })}
                 description={t('medical.page_desc')}
@@ -64,7 +64,7 @@ export default function Medical({ student, record, canManage }) {
                         </fieldset>
 
                         {record.updated_by && (
-                            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400" data-testid="medical-last-updated">
+                            <p className="mt-4 text-sm text-stone-600 dark:text-stone-400" data-testid="medical-last-updated">
                                 {t('medical.last_updated', { name: record.updated_by, when: record.updated_at })}
                             </p>
                         )}

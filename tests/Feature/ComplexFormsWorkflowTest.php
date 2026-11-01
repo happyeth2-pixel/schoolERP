@@ -85,7 +85,23 @@ class ComplexFormsWorkflowTest extends TestCase
         $this->assertSame('G2 A 2027', $result['to']);
     }
 
-    public function test_a_full_class_still_refuses_without_an_override_and_says_how_many_did_not_move(): void
+    public function test_a_full_class_still_refuses_without_the_override_right_and_says_how_many_did_not_move(): void
+    {
+        $this->makeStudent($this->branchA, $this->sectionA, 'Second', 'STU-A2');
+        $rows = Enrollment::where('section_id', $this->sectionA->id)->get()->map(fn ($e) => ['enrollment_id' => $e->id, 'graduate' => false])->all();
+        // no override-section-capacity -- unlike the owner/a principal, this registrar is genuinely capped
+        $registrar = $this->admin(['manage-students']);
+
+        $this->actingAs($registrar)->post('/promotions', ['from_section_id' => $this->sectionA->id, 'to_section_id' => $this->next->id, 'promotions' => $rows]);
+        $counts = session('promotion_result')['counts'];
+
+        $this->assertSame([1, 1], [$counts['promoted'], $counts['no_room']]);
+        $this->assertSame(1, Enrollment::where('section_id', $this->next->id)->count());
+    }
+
+    /** An owner/principal holding override-section-capacity is never capped this way: the class is over-filled
+     * automatically, exactly as SectionCapacity::grant() now does everywhere else (see YearsTermsCapacityTest). */
+    public function test_an_owner_promotes_everyone_into_a_full_class_automatically(): void
     {
         $this->makeStudent($this->branchA, $this->sectionA, 'Second', 'STU-A2');
         $rows = Enrollment::where('section_id', $this->sectionA->id)->get()->map(fn ($e) => ['enrollment_id' => $e->id, 'graduate' => false])->all();
@@ -93,8 +109,8 @@ class ComplexFormsWorkflowTest extends TestCase
         $this->actingAs($this->owner)->post('/promotions', ['from_section_id' => $this->sectionA->id, 'to_section_id' => $this->next->id, 'promotions' => $rows]);
         $counts = session('promotion_result')['counts'];
 
-        $this->assertSame([1, 1], [$counts['promoted'], $counts['no_room']]);
-        $this->assertSame(1, Enrollment::where('section_id', $this->next->id)->count());
+        $this->assertSame([2, 0], [$counts['promoted'], $counts['no_room']]);
+        $this->assertSame(2, Enrollment::where('section_id', $this->next->id)->count());
     }
 
     public function test_graduating_everyone_needs_no_destination(): void

@@ -42,7 +42,7 @@ export default function TimetableSlotDialog({ open, slot, prefill, terms, sectio
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form className="space-y-6 p-6" data-testid="timetable-slot-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('timetable.edit_slot_title') : t('timetable.add_slot_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('timetable.edit_slot_title') : t('timetable.add_slot_title')}</h2>
 
                     <Field id="slot_term" label={t('timetable.term_label')} error={errors.term_id}>
                         <Select id="slot_term" value={data.term_id} onChange={(e) => { setData('term_id', e.target.value); clearErrors(); }}>

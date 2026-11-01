@@ -58,6 +58,7 @@ class AcademicStructureController extends Controller
             'academicYears' => $school->academicYears()->orderByDesc('start_date')->get(['id', 'name', 'is_current']),
             'canManage' => $user->can('manage-classes'),
             'canAssignTeachers' => $user->can('manage-teachers'),
+            'canPrintIdCards' => $user->can('manage-students') || $user->hasRole('auditor'),
         ]);
     }
 }

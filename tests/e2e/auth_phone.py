@@ -134,7 +134,6 @@ with sync_playwright() as p:
     op.locator("form").get_by_role("button", name="Next").click(); op.wait_for_selector("text=Step 2 of 3")
     op.get_by_role("radio", name=re.compile("^Teacher")).click()
     op.locator("form").get_by_role("button", name="Next").click(); op.wait_for_selector("text=Step 3 of 3")
-    op.fill("#staff_phone_confirmation", "+251 711 22 33 44")
     op.get_by_role("button", name="Create Account").click(); op.wait_for_selector("[data-testid=credentials]")
     temp = op.locator("[data-testid=cred-password]").inner_text()
     check("new staff: their 07 number and a temporary password are shown once", "0711 22 33 44" in op.locator("[data-testid=cred-who]").inner_text() and re.fullmatch(r"[A-Za-z2-9]{10}", temp) is not None, temp)

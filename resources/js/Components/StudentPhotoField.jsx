@@ -166,27 +166,27 @@ export default function StudentPhotoField({ accepted = null, currentUrl = null, 
 
     return (
         <div className="space-y-4" data-testid="photo-field" data-mode={mode}>
-            <div className={`relative mx-auto flex ${size} items-center justify-center overflow-hidden rounded-2xl border-2 border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-900/40 sm:mx-0`} data-testid="photo-box">
+            <div className={`relative mx-auto flex ${size} items-center justify-center overflow-hidden rounded-2xl border-2 border-stone-300 bg-stone-100 dark:border-stone-600 dark:bg-stone-900/40 sm:mx-0`} data-testid="photo-box">
                 {(mode === 'live' || mode === 'starting') && (
                     <video ref={videoRef} playsInline muted autoPlay className={`h-full w-full object-cover ${facing === 'user' ? '[transform:scaleX(-1)]' : ''}`} data-testid="camera-video" />
                 )}
                 {mode !== 'live' && mode !== 'starting' && (shown
                     ? <img src={shown} alt={t('photo.alt')} className="h-full w-full object-cover" data-testid="photo-preview" />
                     : (
-                        <div className="p-4 text-center text-gray-600 dark:text-gray-400" data-testid="photo-placeholder">
-                            <UserCircleIcon className="mx-auto h-24 w-24 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                        <div className="p-4 text-center text-stone-600 dark:text-stone-400" data-testid="photo-placeholder">
+                            <UserCircleIcon className="mx-auto h-24 w-24 text-stone-400 dark:text-stone-500" aria-hidden="true" />
                             <p className="mt-1 text-base">{t('photo.none_yet')}</p>
                         </div>
                     ))}
                 {mode === 'starting' && <p className="absolute inset-x-0 bottom-3 text-center text-base font-medium text-white drop-shadow">{t('photo.starting')}</p>}
-                {working && <p className="absolute inset-0 flex items-center justify-center bg-white/80 text-base font-semibold text-gray-900 dark:bg-gray-900/80 dark:text-gray-100">{t('photo.preparing')}</p>}
+                {working && <p className="absolute inset-0 flex items-center justify-center bg-white/80 text-base font-semibold text-stone-900 dark:bg-stone-900/80 dark:text-stone-100">{t('photo.preparing')}</p>}
             </div>
 
             {notice === 'camera' && <div data-testid="camera-notice"><Alert tone="info">{t('photo.camera_unavailable')}</Alert></div>}
             {['type', 'size', 'unreadable'].includes(notice) && <div data-testid="photo-notice"><Alert tone="danger">{t(`photo.err_${notice}`)}</Alert></div>}
             {error && <div data-testid="photo-error"><Alert tone="danger">{error}</Alert></div>}
-            {mode === 'review' && <p className="text-base text-gray-700 dark:text-gray-300">{t('photo.review_hint')}</p>}
-            {mode === 'live' && <p className="text-base text-gray-700 dark:text-gray-300">{t('photo.live_hint')}</p>}
+            {mode === 'review' && <p className="text-base text-stone-700 dark:text-stone-300">{t('photo.review_hint')}</p>}
+            {mode === 'live' && <p className="text-base text-stone-700 dark:text-stone-300">{t('photo.live_hint')}</p>}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {mode === 'idle' && (

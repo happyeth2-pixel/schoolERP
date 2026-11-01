@@ -193,7 +193,10 @@ class PurchaseRequestController extends Controller
                 ]),
             ],
             'canSubmit' => $isMine && $purchaseRequest->status === 'draft',
-            'canApprove' => $purchaseRequest->status === 'submitted' && (
+            // Mirrors approve()/reject() exactly: a requester never approves or rejects their own
+            // request, even if they also hold purchase-approve(-large) -- so the buttons are never
+            // shown only to then 403 the moment they're pressed.
+            'canApprove' => ! $isMine && $purchaseRequest->status === 'submitted' && (
                 $purchaseRequest->needsLargeApproval() ? $user->can('purchase-approve-large') : $user->can('purchase-approve')
             ),
             'canManageQuotations' => $user->can('quotation-manage') && $purchaseRequest->status === 'approved',

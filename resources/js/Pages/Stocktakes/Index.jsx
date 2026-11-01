@@ -1,8 +1,8 @@
 import Modal from '@/Components/Modal';
-import { Button, Card, EmptyState, Field, FlashMessages, Page, Select, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Field, FlashMessages, Page, Select, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -19,7 +19,7 @@ function StartDialog({ open, stores, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="start-stocktake-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('stocktake.start_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('stocktake.start_title')}</h2>
                     <Field id="stocktake_store" label={t('stocktake.store')} hint={t('stocktake.store_hint')} error={errors.store_id}>
                         <Select value={data.store_id} onChange={(e) => setData('store_id', e.target.value)}>
                             <option value="">--</option>
@@ -38,13 +38,15 @@ function StartDialog({ open, stores, onClose }) {
 
 export default function Index({ stocktakes, stores, canManage }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [starting, setStarting] = useState(false);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('stocktake.list_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('stocktake.list_title')}</h2>}>
             <Page
                 title={t('stocktake.list_title')}
                 description={t('stocktake.list_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setStarting(true)}>{t('stocktake.start_button')}</Button>}
             >
                 <FlashMessages />
@@ -54,11 +56,11 @@ export default function Index({ stocktakes, stores, canManage }) {
                 ) : (
                     <ul className="grid gap-4 lg:grid-cols-2" data-testid="stocktake-list">
                         {stocktakes.data.map((s) => (
-                            <li key={s.id} data-testid="stocktake-row" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                            <li key={s.id} data-testid="stocktake-row" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
                                 <div className="flex flex-wrap items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                        <Link href={route('stocktakes.show', s.id)} className="text-lg font-semibold text-gray-900 hover:underline dark:text-gray-100">{s.store_name}</Link>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('stocktake.item_count', { count: s.line_count })} · {t('stocktake.started_by_x', { name: s.started_by, date: s.started_at })}</p>
+                                        <Link href={route('stocktakes.show', s.id)} className="text-lg font-semibold text-stone-900 hover:underline dark:text-stone-100">{s.store_name}</Link>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">{t('stocktake.item_count', { count: s.line_count })} · {t('stocktake.started_by_x', { name: s.started_by, date: s.started_at })}</p>
                                     </div>
                                     <StatusBadge tone={s.status === 'completed' ? 'success' : 'warning'} label={t(`stocktake.status_${s.status}`)} />
                                 </div>

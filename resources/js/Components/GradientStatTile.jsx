@@ -1,30 +1,29 @@
 import Card3D from '@/Components/Card3D';
 
-const GRADIENT = {
-    indigo: 'from-indigo-500 to-indigo-700',
-    purple: 'from-violet-500 to-purple-700',
-    blue: 'from-sky-500 to-blue-700',
-    green: 'from-emerald-500 to-green-700',
-    amber: 'from-amber-400 to-orange-600',
-    red: 'from-rose-500 to-red-700',
+// A flat tint, not a gradient+shadow badge: the icon square is a single muted colour, the number carries
+// the actual weight on the tile. `color` still groups stats by kind (and, in many call sites, by whether
+// the number itself is good/warning/bad -- see Dashboard.jsx's glowFor()) -- it just no longer shines.
+const TINT = {
+    indigo: 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300',
+    purple: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300',
+    blue: 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
+    green: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    red: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
-/**
- * A single count reads as a stat tile, not a chart — but a flat white
- * box with a number is easy to skim past. A colorful icon badge gives
- * each number a visual anchor a parent or first-time user can recognize
- * at a glance, without turning a count into something it isn't.
- */
+/** A single count reads as a stat, not a chart -- the icon tint gives it a visual anchor to scan for,
+ *  without turning a number into decoration. */
 export default function GradientStatTile({ icon: Icon, label, value, color = 'indigo' }) {
     return (
         <Card3D glow={color} className="p-5">
             <div className="flex items-center gap-4">
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${GRADIENT[color]} shadow-lg`}>
-                    <Icon className="h-6 w-6 text-white" />
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${TINT[color] ?? TINT.indigo}`}>
+                    <Icon className="h-6 w-6" />
                 </div>
-                <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+                <div className="min-w-0">
+                    <p className="text-sm text-stone-500 dark:text-stone-400">{label}</p>
+                    <p className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">{value}</p>
                 </div>
             </div>
         </Card3D>

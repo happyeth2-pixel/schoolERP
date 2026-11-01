@@ -15,7 +15,7 @@ export default function Index({ movements, type, types }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('inv.movement_history')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('inv.movement_history')}</h2>}>
             <Page
                 title={t('inv.movement_history')}
                 description={t('inv.movement_history_desc')}
@@ -30,14 +30,14 @@ export default function Index({ movements, type, types }) {
                     <Card><EmptyState icon={ClipboardDocumentListIcon} title={t('inv.no_movements_title')}>{t('inv.no_movements_body')}</EmptyState></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="movement-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="movement-list">
                             {movements.data.map((m) => (
                                 <li key={m.id} className="py-3" data-testid="movement-row">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{t(`inv.type_${m.type}`)} · {m.item_name} · {m.store_name}</span>
+                                        <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{t(`inv.type_${m.type}`)} · {m.item_name} · {m.store_name}</span>
                                         <span className={`text-lg font-bold ${m.is_increase ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{m.is_increase ? '+' : '-'}{m.quantity} {m.unit}</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{m.created_at} · {m.performed_by}{m.reason ? ` · ${m.reason}` : ''}{m.reference_number ? ` · ${m.reference_number}` : ''}</p>
+                                    <p className="text-sm text-stone-600 dark:text-stone-400">{m.created_at} · {m.performed_by}{m.reason ? ` · ${m.reason}` : ''}{m.reference_number ? ` · ${m.reference_number}` : ''}</p>
                                 </li>
                             ))}
                         </ul>

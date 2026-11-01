@@ -19,7 +19,7 @@ export default function BookCopyDialog({ open, bookId, branches, canPostSchoolWi
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="book-copy-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('library.add_copy_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('library.add_copy_title')}</h2>
                     {canPostSchoolWide && (
                         <Field id="copy_branch" label={t('library.branch_label')} error={errors.branch_id}>
                             <Select id="copy_branch" value={data.branch_id} onChange={(e) => setData('branch_id', e.target.value)}>

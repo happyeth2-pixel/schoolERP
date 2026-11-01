@@ -24,7 +24,7 @@ export default function Show({ supplier, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{supplier.name}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{supplier.name}</h2>}>
             <Page title={`${supplier.code} · ${supplier.name}`} back={<BackLink href={route('suppliers.index')}>{t('supplier.back_to_list')}</BackLink>}>
                 <FlashMessages />
                 <Card as="form" onSubmit={submit}>

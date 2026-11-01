@@ -174,7 +174,7 @@ class YearsTermsCapacityTest extends TestCase
 
     private function enrolPayload(Section $section, array $extra = []): array
     {
-        return $extra + ['first_name' => 'Newcomer', 'gender' => 'male', 'enrollment_date' => '2026-09-20', 'section_id' => $section->id, 'guardian_mode' => 'none'];
+        return $extra + ['first_name' => 'Newcomer', 'gender' => 'male', 'enrollment_date' => '2026-09-20', 'section_id' => $section->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344'];
     }
 
     public function test_enrolling_into_a_full_section_is_refused_and_creates_nothing(): void
@@ -187,10 +187,9 @@ class YearsTermsCapacityTest extends TestCase
         $this->assertSame(2, Enrollment::where('section_id', $section->id)->count());
         $this->assertStringContainsString('full', session('errors')->first('section_id'));
 
-        // even asking for an override without the right, or with no reason, changes nothing
+        // asking for an override without the right changes nothing -- only someone who actually
+        // holds override-section-capacity is ever auto-placed (see test_an_administrator_... below)
         $this->actingAs($registrar)->post('/students', $this->enrolPayload($section, ['override_capacity' => true, 'override_reason' => 'please']))->assertSessionHasErrors('section_id');
-        $admin = $this->makeUser('branch_admin', $this->branchA->id);
-        $this->actingAs($admin)->post('/students', $this->enrolPayload($section, ['override_capacity' => true, 'override_reason' => '']))->assertSessionHasErrors('section_id');
         $this->assertNull(Student::where('first_name', 'Newcomer')->first());
     }
 
@@ -198,10 +197,11 @@ class YearsTermsCapacityTest extends TestCase
     {
         $section = $this->fullSection(2);
         Enrollment::where('section_id', $section->id)->first()->update(['status' => 'withdrawn']);   // frees a seat
+        $registrar = $this->makeUser('branch_admin', $this->branchA->id, ['manage-students']);   // no override right -- still genuinely blocked once full again
 
-        $this->actingAs($this->owner)->post('/students', $this->enrolPayload($section))->assertSessionHasNoErrors();
+        $this->actingAs($registrar)->post('/students', $this->enrolPayload($section))->assertSessionHasNoErrors();
         $this->assertNotNull(Student::where('first_name', 'Newcomer')->first());
-        $this->actingAs($this->owner)->post('/students', $this->enrolPayload($section, ['first_name' => 'Another']))->assertSessionHasErrors('section_id');
+        $this->actingAs($registrar)->post('/students', $this->enrolPayload($section, ['first_name' => 'Another']))->assertSessionHasErrors('section_id');
     }
 
     public function test_an_administrator_can_override_with_a_reason_that_is_audited(): void
@@ -219,6 +219,67 @@ class YearsTermsCapacityTest extends TestCase
         $this->assertSame(1, $log->before['capacity']);
         $this->assertSame(1, $log->after['over_by']);
         $this->assertSame(Section::class, $log->auditable_type);
+    }
+
+    /** A principal/owner is auto-placed over capacity with no checkbox and no reason -- it just happens,
+     * logged with a default note, and the branch's own principal plus the owner are notified. */
+    public function test_a_principal_is_auto_placed_over_capacity_with_no_reason_and_the_branch_and_owner_are_notified(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        $section = $this->fullSection(1);
+        $principal = $this->makeUser('branch_admin', $this->branchA->id);
+        $otherBranchPrincipal = $this->makeUser('branch_admin', $this->branchB->id);
+        $this->assertTrue($principal->can('override-section-capacity'));
+
+        $this->actingAs($principal)->post('/students', $this->enrolPayload($section))->assertSessionHasNoErrors();
+
+        $this->assertNotNull(Student::where('first_name', 'Newcomer')->first());
+        $log = AuditLog::where('action', 'section.capacity_overridden')->firstOrFail();
+        $this->assertStringContainsString('automatically', $log->note);
+
+        \Illuminate\Support\Facades\Notification::assertSentTo($this->owner, \App\Notifications\SectionCapacityExceeded::class);
+        \Illuminate\Support\Facades\Notification::assertSentTo($principal, \App\Notifications\SectionCapacityExceeded::class);
+        \Illuminate\Support\Facades\Notification::assertNotSentTo($otherBranchPrincipal, \App\Notifications\SectionCapacityExceeded::class);
+    }
+
+    /** Regression: a new notification type that isn't taught to NotificationPresenter falls through to its
+     * `default => null` and becomes an unclickable dead end -- the same bug NewParentMessage had. */
+    public function test_the_over_capacity_notification_links_the_owner_to_that_class(): void
+    {
+        $section = $this->fullSection(1);
+        $principal = $this->makeUser('branch_admin', $this->branchA->id);
+        $this->actingAs($principal)->post('/students', $this->enrolPayload($section))->assertSessionHasNoErrors();
+
+        $presented = \App\Support\NotificationPresenter::present($this->owner->notifications()->firstOrFail());
+        $this->assertSame(route('teaching-assignments.index', ['section' => $section->id]), $presented['action_url']);
+        $this->actingAs($this->owner)->get($presented['action_url'])->assertOk();
+    }
+
+    /** A class can be decided later: give a branch instead of a section, and no enrollment is created yet. */
+    public function test_a_student_can_be_registered_with_no_class_yet_and_placed_afterward(): void
+    {
+        $registrar = $this->makeUser('branch_admin', $this->branchA->id, ['manage-students']);
+
+        $payload = ['first_name' => 'Undecided', 'gender' => 'male', 'enrollment_date' => '2026-09-20', 'branch_id' => $this->branchA->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344'];
+        $this->actingAs($registrar)->post('/students', $payload)->assertSessionHasNoErrors();
+
+        $student = Student::where('first_name', 'Undecided')->firstOrFail();
+        $this->assertSame($this->branchA->id, $student->branch_id);
+        $this->assertSame(0, $student->enrollments()->count(), 'no enrollment exists yet');
+        $this->assertNull($student->currentEnrollment);
+
+        // placed later through the existing "move to another class" action -- no special casing needed
+        $this->actingAs($registrar)->post("/students/{$student->id}/transfer", ['to_section_id' => $this->sectionA->id])->assertSessionHasNoErrors();
+        $this->assertSame($this->sectionA->id, $student->fresh()->currentEnrollment->section_id);
+    }
+
+    public function test_registering_a_student_needs_either_a_section_or_a_branch(): void
+    {
+        $registrar = $this->makeUser('branch_admin', $this->branchA->id, ['manage-students']);
+
+        $payload = ['first_name' => 'Nobody', 'gender' => 'male', 'enrollment_date' => '2026-09-20', 'guardian_mode' => 'none'];
+        $this->actingAs($registrar)->post('/students', $payload)->assertSessionHasErrors(['section_id', 'branch_id']);
+        $this->assertNull(Student::where('first_name', 'Nobody')->first());
     }
 
     public function test_a_section_without_capacity_is_unlimited(): void

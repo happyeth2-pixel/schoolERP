@@ -1,8 +1,8 @@
 import LeaveRequestDialog from '@/Components/LeaveRequestDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, SectionHeader, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, SectionHeader, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ const STATUS_TONE = { draft: 'neutral', submitted: 'info', approved: 'success', 
 
 export default function Mine({ employee, leaveTypes, allocations, requests }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(null); // null | 'new' | a request object
     const [ask, confirmDialog] = useConfirm();
 
@@ -25,8 +26,12 @@ export default function Mine({ employee, leaveTypes, allocations, requests }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('leave.my_leave_title')}</h2>}>
-            <Page title={t('leave.my_leave_title')} description={t('leave.my_leave_desc')}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('leave.my_leave_title')}</h2>}>
+            <Page
+                title={t('leave.my_leave_title')}
+                description={t('leave.my_leave_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
+            >
                 <FlashMessages errorKeys={['leave']} />
 
                 {!employee ? (
@@ -36,13 +41,13 @@ export default function Mine({ employee, leaveTypes, allocations, requests }) {
                         <Card>
                             <SectionHeader as="h3" title={t('leave.balances_title')} />
                             {allocations.length === 0 ? (
-                                <p className="text-base text-gray-600 dark:text-gray-400">{t('leave.no_allocations')}</p>
+                                <p className="text-base text-stone-600 dark:text-stone-400">{t('leave.no_allocations')}</p>
                             ) : (
-                                <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="leave-balance-list">
+                                <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="leave-balance-list">
                                     {allocations.map((a) => (
                                         <li key={a.id} className="py-3" data-testid="leave-balance-row">
-                                            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{a.leave_type}</p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('leave.balance_x', { balance: a.balance, used: a.used_days, allocated: a.allocated_days })}</p>
+                                            <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{a.leave_type}</p>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('leave.balance_x', { balance: a.balance, used: a.used_days, allocated: a.allocated_days })}</p>
                                         </li>
                                     ))}
                                 </ul>
@@ -56,14 +61,14 @@ export default function Mine({ employee, leaveTypes, allocations, requests }) {
                                 action={leaveTypes.length > 0 && <Button size="sm" onClick={() => setDialog('new')}>{t('leave.request_button')}</Button>}
                             />
                             {requests.length === 0 ? (
-                                <p className="text-base text-gray-600 dark:text-gray-400" data-testid="no-leave-requests">{t('leave.no_requests')}</p>
+                                <p className="text-base text-stone-600 dark:text-stone-400" data-testid="no-leave-requests">{t('leave.no_requests')}</p>
                             ) : (
-                                <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="leave-request-list">
+                                <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="leave-request-list">
                                     {requests.map((r) => (
                                         <li key={r.id} className="py-3" data-testid="leave-request-row">
                                             <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <div>
-                                                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{r.leave_type}</span>
+                                                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{r.leave_type}</span>
                                                     <StatusBadge tone={STATUS_TONE[r.status]} label={t(`leave.status_${r.status}`)} className="ml-2" />
                                                 </div>
                                                 {r.can_edit && (
@@ -73,7 +78,7 @@ export default function Mine({ employee, leaveTypes, allocations, requests }) {
                                                     </div>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('leave.dated_x', { start: r.start_date, end: r.end_date, count: r.days_count })}</p>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('leave.dated_x', { start: r.start_date, end: r.end_date, count: r.days_count })}</p>
                                             {r.status === 'rejected' && r.rejection_reason && (
                                                 <p className="text-sm text-red-700 dark:text-red-400">{t('leave.rejection_reason_x', { reason: r.rejection_reason })}</p>
                                             )}

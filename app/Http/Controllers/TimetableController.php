@@ -117,6 +117,9 @@ class TimetableController extends Controller
         $subject = Subject::where('school_id', $user->school_id)->findOrFail($validated['subject_id']);
         $teacher = User::where('school_id', $user->school_id)->findOrFail($validated['teacher_id']);
         $period = Period::where('school_id', $user->school_id)->findOrFail($validated['period_id']);
+        if ($period->type !== 'teaching') {
+            throw ValidationException::withMessages(['period_id' => "{$period->label()} is a {$period->type} period -- no subject or teacher can be assigned to it."]);
+        }
         $room = null;
         if (! empty($validated['room_id'])) {
             $room = Room::whereIn('branch_id', $branchIds)->findOrFail($validated['room_id']);

@@ -26,7 +26,7 @@ export default function PositionDialog({ open, departments, position, onClose })
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="position-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('position.edit_title') : t('position.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('position.edit_title') : t('position.add_title')}</h2>
                     <Field id="pos_title" label={t('position.job_title')} error={errors.title}>
                         <Input value={data.title} onChange={(e) => setData('title', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>

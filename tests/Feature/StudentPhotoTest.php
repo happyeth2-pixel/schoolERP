@@ -33,7 +33,7 @@ class StudentPhotoTest extends TestCase
 
     private function registration(array $over = []): array
     {
-        return $over + ['first_name' => 'Photo', 'father_name' => 'Kid', 'gender' => 'female', 'enrollment_date' => '2026-09-10', 'section_id' => $this->sectionA->id, 'guardian_mode' => 'none'];
+        return $over + ['first_name' => 'Photo', 'father_name' => 'Kid', 'gender' => 'female', 'enrollment_date' => '2026-09-10', 'section_id' => $this->sectionA->id, 'guardian_mode' => 'none', 'emergency_contact' => '0911223344'];
     }
 
     private function register(array $over = [], ?User $as = null)

@@ -27,7 +27,7 @@ export default function BookDialog({ open, book, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="book-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('library.edit_book_title') : t('library.add_book_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('library.edit_book_title') : t('library.add_book_title')}</h2>
                     <Field id="book_title" label={t('library.book_title_label')} error={errors.title}>
                         <Input value={data.title} onChange={(e) => setData('title', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>

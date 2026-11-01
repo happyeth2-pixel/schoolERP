@@ -31,7 +31,7 @@ class NotificationPresenter
         return match (class_basename($n->type)) {
             'AnnouncementPublished' => route('announcements.index'),
             'StudentMarkedAbsent', 'AttendanceCorrected' => isset($data['student_id']) ? route('family.attendance', ['student' => $data['student_id']]) : null,
-            'InvoiceGenerated', 'PaymentRefunded' => isset($data['invoice_id']) ? route('invoices.show', $data['invoice_id']) : null,
+            'InvoiceGenerated', 'PaymentRefunded', 'InvoiceOverdue' => isset($data['invoice_id']) ? route('invoices.show', $data['invoice_id']) : null,
             'PaymentVerified', 'PaymentRejected' => self::invoiceUrlForPayment($data['payment_id'] ?? null),
             'ComplaintSubmitted', 'ComplaintUpdated' => isset($data['complaint_id']) ? route('complaints.show', $data['complaint_id']) : null,
             'LowStockAlert' => isset($data['item_id']) ? route('inventory-items.show', $data['item_id']) : null,
@@ -61,6 +61,19 @@ class NotificationPresenter
             'LoanOverdue' => route('library.index'),
             // The recipient is always a guardian -- route straight to the child this one is about.
             'AssignmentPublished', 'AssignmentDueSoon' => isset($data['student_id']) ? route('family.homework', ['student' => $data['student_id']]) : route('family.homework'),
+            // Straight to that student's private thread -- works for the guardian and for staff alike,
+            // since StudentPolicy::viewMessages() covers both sides of the same conversation.
+            'NewParentMessage' => isset($data['student_id']) ? route('students.messages.index', $data['student_id']) : null,
+            // The recipient is always the branch principal or the owner -- route to that class, scoped
+            // the same way Academic Structure's own "choose a class teacher" link already deep-links.
+            'SectionCapacityExceeded' => isset($data['section_id']) ? route('teaching-assignments.index', ['section' => $data['section_id']]) : null,
+            // The recipient is always the branch's own approver (owner/principal) -- straight to the
+            // queue, not a nonexistent single-batch page (the same choice LowStockAlert/LoanOverdue make).
+            'MarkBatchSubmitted' => route('mark-batches.approvals'),
+            // The recipient is always a guardian -- route straight to the child this result is about.
+            'MarkBatchPublished' => isset($data['student_id']) ? route('family.results', ['student' => $data['student_id']]) : route('family.results'),
+            // The recipient is always an owner/branch admin -- straight to the public contact inbox.
+            'NewContactInquiry' => route('contact-inquiries.index'),
             default => null,
         };
     }

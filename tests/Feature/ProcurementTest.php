@@ -132,6 +132,30 @@ class ProcurementTest extends TestCase
         $pr = PurchaseRequest::firstOrFail();
 
         $this->actingAs($requester)->post("/purchase-requests/{$pr->id}/approve")->assertForbidden();
+        $this->actingAs($requester)->post("/purchase-requests/{$pr->id}/reject", ['reason' => 'no'])->assertForbidden();
+    }
+
+    /**
+     * The approve/reject buttons on the request's own page must agree with what approve()/reject()
+     * actually allow -- a requester who also holds purchase-approve must never be shown a button that
+     * can only 403 the moment it's pressed (exactly what the "the buttons don't work" bug looked like).
+     */
+    public function test_the_shown_page_never_offers_approve_or_reject_to_the_requester_themselves(): void
+    {
+        $requester = $this->makeUser('branch_admin', null, ['purchase-request-create', 'purchase-approve']);
+        $otherApprover = $this->makeUser('branch_admin', null, ['purchase-approve']);
+
+        $this->actingAs($requester)->post('/purchase-requests', [
+            'purpose' => 'Books', 'priority' => 'normal', 'action' => 'submit',
+            'items' => [['description' => 'Books', 'quantity' => 1, 'estimated_unit_price' => 100]],
+        ]);
+        $pr = PurchaseRequest::firstOrFail();
+
+        $ownPage = $this->props($this->actingAs($requester)->get("/purchase-requests/{$pr->id}")->assertOk());
+        $this->assertFalse($ownPage['canApprove'], 'a requester who also approves must never see the button on their own request');
+
+        $othersPage = $this->props($this->actingAs($otherApprover)->get("/purchase-requests/{$pr->id}")->assertOk());
+        $this->assertTrue($othersPage['canApprove']);
     }
 
     public function test_above_the_configured_threshold_needs_the_large_approval_permission_instead(): void
@@ -170,6 +194,7 @@ class ProcurementTest extends TestCase
             'missing_mark_policy' => 'exclude',
             'discount_limit_percent' => 10,
             'waiver_limit_amount' => 1000,
+            'payment_due_days' => 14,
             'allow_overlapping_terms' => false,
             'enabled_languages' => ['en'],
         ], $overrides);

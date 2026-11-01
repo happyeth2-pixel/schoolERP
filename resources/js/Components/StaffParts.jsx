@@ -16,18 +16,18 @@ export function TitleVersusAccess({ compact = false }) {
 
     return (
         <div className="grid gap-3 sm:grid-cols-2" data-testid="title-vs-access">
-            <div className="flex gap-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <BriefcaseIcon className="h-7 w-7 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
+            <div className="flex gap-3 rounded-xl border-2 border-stone-200 bg-stone-50 p-4 dark:border-stone-700 dark:bg-stone-900/40">
+                <BriefcaseIcon className="h-7 w-7 shrink-0 text-stone-600 dark:text-stone-300" aria-hidden="true" />
                 <div>
-                    <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('staff.vs_title_head')}</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{t('staff.vs_title_body')}</p>
+                    <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('staff.vs_title_head')}</p>
+                    <p className="text-sm text-stone-700 dark:text-stone-300">{t('staff.vs_title_body')}</p>
                 </div>
             </div>
-            <div className="flex gap-3 rounded-xl border-2 border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-900/20">
-                <KeyIcon className="h-7 w-7 shrink-0 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />
+            <div className="flex gap-3 rounded-xl border-2 border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-900/20">
+                <KeyIcon className="h-7 w-7 shrink-0 text-brand-700 dark:text-brand-300" aria-hidden="true" />
                 <div>
-                    <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('staff.vs_access_head')}</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{compact ? t('staff.vs_access_body_short') : t('staff.vs_access_body')}</p>
+                    <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('staff.vs_access_head')}</p>
+                    <p className="text-sm text-stone-700 dark:text-stone-300">{compact ? t('staff.vs_access_body_short') : t('staff.vs_access_body')}</p>
                 </div>
             </div>
         </div>
@@ -51,7 +51,7 @@ export function PermissionPicker({ groups, value, onChange, myPermissions, defau
         <div className="space-y-5" data-testid="permission-picker">
             {!readOnly && (
                 <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-base font-semibold text-gray-900 dark:text-gray-100" data-testid="perm-count">{t('staff.perm_count', { count: value.length, total: all.filter((p) => mine.has(p)).length })}</p>
+                    <p className="text-base font-semibold text-stone-900 dark:text-stone-100" data-testid="perm-count">{t('staff.perm_count', { count: value.length, total: all.filter((p) => mine.has(p)).length })}</p>
                     {usual && <Button variant="secondary" size="md" onClick={() => onChange(usual)}>{t('staff.perm_usual')}</Button>}
                     <Button variant="quiet" size="md" onClick={() => onChange([])}>{t('staff.perm_none')}</Button>
                 </div>
@@ -62,8 +62,8 @@ export function PermissionPicker({ groups, value, onChange, myPermissions, defau
                 return (
                     <fieldset key={group} className="space-y-2" data-testid={`perm-group-${group}`}>
                         <legend className="mb-1 flex w-full items-baseline justify-between gap-3">
-                            <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t(`perm.group_${group}`)}</span>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{t('staff.perm_group_count', { on: n, total: names.length })}</span>
+                            <span className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t(`perm.group_${group}`)}</span>
+                            <span className="text-sm text-stone-600 dark:text-stone-400">{t('staff.perm_group_count', { on: n, total: names.length })}</span>
                         </legend>
                         {names.map((name) => {
                             const cannot = !mine.has(name);
@@ -90,10 +90,10 @@ export function PermissionPicker({ groups, value, onChange, myPermissions, defau
 /** A short, readable list of what a set of permissions allows (used on the review step and the list). */
 export function PermissionSummary({ names }) {
     const { t } = useTranslation();
-    if (names.length === 0) return <p className="text-base text-gray-700 dark:text-gray-300">{t('staff.perm_summary_none')}</p>;
+    if (names.length === 0) return <p className="text-base text-stone-700 dark:text-stone-300">{t('staff.perm_summary_none')}</p>;
 
     return (
-        <ul className="list-disc space-y-0.5 pl-5 text-base text-gray-900 dark:text-gray-100" data-testid="perm-summary">
+        <ul className="list-disc space-y-0.5 pl-5 text-base text-stone-900 dark:text-stone-100" data-testid="perm-summary">
             {names.map((n) => <li key={n}>{t(`perm.${n}`)}</li>)}
         </ul>
     );

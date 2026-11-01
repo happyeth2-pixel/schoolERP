@@ -1,3 +1,5 @@
+import Avatar from '@/Components/Avatar';
+import CredentialsPanel from '@/Components/CredentialsPanel';
 import DateInput from '@/Components/DateInput';
 import DateText from '@/Components/DateText';
 import StudentPhotoField from '@/Components/StudentPhotoField';
@@ -21,7 +23,7 @@ import {
 import { todayISO } from '@/calendar';
 import { useUnsavedGuard } from '@/useUnsavedGuard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DocumentChartBarIcon, ExclamationTriangleIcon, HeartIcon, IdentificationIcon, LifebuoyIcon, PhoneIcon, UserCircleIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, ChatBubbleLeftRightIcon, DocumentChartBarIcon, ExclamationTriangleIcon, HeartIcon, IdentificationIcon, LifebuoyIcon, PhoneIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -93,8 +95,8 @@ function CustomPriceRow({ studentId, service }) {
     return (
         <div className="space-y-3 py-4">
             <div>
-                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{service.category === 'transport' ? routeName(service.name) : service.name}</p>
-                <p className="text-base text-gray-600 dark:text-gray-400">{t('services.custom_standard', { price: priceText({ ...service, custom_amount: null }) })}</p>
+                <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{service.category === 'transport' ? routeName(service.name) : service.name}</p>
+                <p className="text-base text-stone-600 dark:text-stone-400">{t('services.custom_standard', { price: priceText({ ...service, custom_amount: null }) })}</p>
             </div>
             <Field id={`custom_${service.id}`} label={t('services.custom_label')} hint={t('services.custom_hint')} optional error={error}>
                 <Input type="number" inputMode="decimal" min="0" step="0.01" value={value} onChange={(e) => setValue(e.target.value)} />
@@ -124,7 +126,7 @@ function OptionalServicesForm({ studentId, services }) {
     };
 
     if (services.length === 0) {
-        return <p className="text-base text-gray-600 dark:text-gray-400">{t('student.services_none')}</p>;
+        return <p className="text-base text-stone-600 dark:text-stone-400">{t('student.services_none')}</p>;
     }
 
     return (
@@ -132,7 +134,7 @@ function OptionalServicesForm({ studentId, services }) {
             <ServiceChoices services={services} selectedIds={selectedIds} onPick={pick} onDrop={drop} busyId={busyId} />
             {enrolled.length > 0 && (
                 <Disclosure title={t('services.custom_title')} description={t('services.custom_desc')} defaultOpen={enrolled.some((s) => s.custom_amount != null)}>
-                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    <div className="divide-y divide-stone-200 dark:divide-stone-700">
                         {enrolled.map((s) => <CustomPriceRow key={`${s.id}:${s.custom_amount ?? ''}`} studentId={studentId} service={s} />)}
                     </div>
                 </Disclosure>
@@ -145,7 +147,6 @@ function AddGuardianForm({ studentId, studentName, onDone, relationships }) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         guardian_mode: 'existing',
-        guardian_email: '',
         guardian_name: '',
         guardian_phone: '',
         guardian_relationship: '',
@@ -158,7 +159,7 @@ function AddGuardianForm({ studentId, studentName, onDone, relationships }) {
     };
 
     return (
-        <form onSubmit={submit} className="mt-5 space-y-5 rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-5 dark:border-indigo-800 dark:bg-indigo-900/10">
+        <form onSubmit={submit} className="mt-5 space-y-5 rounded-xl border-2 border-brand-200 bg-brand-50/40 p-5 dark:border-brand-800 dark:bg-brand-900/10">
             <ChoiceGroup
                 layout="segmented"
                 label={t('student.parents_title')}
@@ -167,17 +168,12 @@ function AddGuardianForm({ studentId, studentName, onDone, relationships }) {
                 options={[{ value: 'existing', label: t('enroll.mode_existing') }, { value: 'new', label: t('enroll.mode_new') }]}
             />
             {data.guardian_mode === 'new' && (
-                <>
-                    <Field id="ng_name" label={t('enroll.parent_name')} error={errors.guardian_name}>
-                        <Input value={data.guardian_name} onChange={set('guardian_name')} autoComplete="off" />
-                    </Field>
-                    <Field id="ng_phone" label={t('enroll.parent_phone')} hint={t('enroll.phone_example')} optional error={errors.guardian_phone}>
-                        <Input type="tel" inputMode="tel" value={data.guardian_phone} onChange={set('guardian_phone')} />
-                    </Field>
-                </>
+                <Field id="ng_name" label={t('enroll.parent_name')} error={errors.guardian_name}>
+                    <Input value={data.guardian_name} onChange={set('guardian_name')} autoComplete="off" />
+                </Field>
             )}
-            <Field id="ng_email" label={data.guardian_mode === 'new' ? t('enroll.parent_email') : t('enroll.existing_email')} hint={data.guardian_mode === 'new' ? t('enroll.parent_email_hint') : t('enroll.existing_email_hint')} error={errors.guardian_email}>
-                <Input type="email" inputMode="email" value={data.guardian_email} onChange={set('guardian_email')} autoComplete="off" />
+            <Field id="ng_phone" label={t('enroll.parent_phone')} hint={t('enroll.phone_example')} error={errors.guardian_phone}>
+                <Input type="tel" inputMode="tel" value={data.guardian_phone} onChange={set('guardian_phone')} />
             </Field>
             <Field id="ng_rel" label={t('enroll.relationship')} error={errors.guardian_relationship}>
                 <Select value={data.guardian_relationship} onChange={set('guardian_relationship')}>
@@ -187,7 +183,7 @@ function AddGuardianForm({ studentId, studentName, onDone, relationships }) {
             </Field>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>
-                <Button type="submit" variant="success" busy={processing} disabled={!data.guardian_email || !data.guardian_relationship}>{t('student.link_button', { name: studentName })}</Button>
+                <Button type="submit" variant="success" busy={processing} disabled={!data.guardian_phone || !data.guardian_relationship}>{t('student.link_button', { name: studentName })}</Button>
             </div>
         </form>
     );
@@ -196,12 +192,12 @@ function AddGuardianForm({ studentId, studentName, onDone, relationships }) {
 function TransferSectionForm({ student, sections, canOverride }) {
     const { t } = useTranslation();
     const [ask, confirmDialog] = useConfirm();
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({ to_section_id: '', override_capacity: false, override_reason: '' });
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({ to_section_id: '', override_reason: '' });
     const target = sections.find((s) => String(s.id) === String(data.to_section_id));
-    const ready = !!target && (!target.full || (canOverride && data.override_capacity && data.override_reason.trim() !== ''));
+    const ready = !!target && (!target.full || canOverride);
 
     if (sections.length === 0) {
-        return <p className="text-base text-gray-600 dark:text-gray-400">{t('student.move_none')}</p>;
+        return <p className="text-base text-stone-600 dark:text-stone-400">{t('student.move_none')}</p>;
     }
 
     const submit = async (e) => {
@@ -220,11 +216,9 @@ function TransferSectionForm({ student, sections, canOverride }) {
             <SectionPicker
                 sections={sections}
                 value={data.to_section_id}
-                onChange={(id) => { clearErrors('to_section_id'); setData((d) => ({ ...d, to_section_id: id, override_capacity: false, override_reason: '' })); }}
+                onChange={(id) => { clearErrors('to_section_id'); setData((d) => ({ ...d, to_section_id: id, override_reason: '' })); }}
                 canOverride={canOverride}
-                overrideChecked={data.override_capacity}
                 overrideReason={data.override_reason}
-                onOverrideChecked={(v) => setData('override_capacity', v)}
                 onOverrideReason={(v) => setData('override_reason', v)}
                 personName={student.first_name}
                 errors={{ section_id: errors.to_section_id, override_reason: errors.override_reason }}
@@ -245,14 +239,14 @@ function WithdrawForm({ student, minDate }) {
 
     if (student.status === 'withdrawn') {
         return (
-            <p className="text-base text-gray-700 dark:text-gray-300">
+            <p className="text-base text-stone-700 dark:text-stone-300">
                 {t('student.withdrawn_note')} <DateText value={student.withdrawn_on} />{student.withdrawal_reason ? ` — ${student.withdrawal_reason}` : ''}. {t('student.withdrawn_kept')}
             </p>
         );
     }
 
     if (student.status !== 'active' && student.status !== 'suspended') {
-        return <p className="text-base text-gray-600 dark:text-gray-400">{t('student.not_enrolled')}</p>;
+        return <p className="text-base text-stone-600 dark:text-stone-400">{t('student.not_enrolled')}</p>;
     }
 
     const submit = async (e) => {
@@ -286,8 +280,8 @@ function WithdrawForm({ student, minDate }) {
 // sends every field to the same endpoint as before, so no field went away and no rule changed. The Save button says
 // which groups were touched, and a change of status asks first, because leaving "Active" takes the student out of
 // their class (the server closes their enrolment) and going back needs a free seat.
-const MAIN_FIELDS = ['first_name', 'father_name', 'grandfather_name', 'gender', 'date_of_birth'];
-const MORE_FIELDS = ['mother_name', 'address', 'emergency_contact', 'previous_school'];
+const MAIN_FIELDS = ['first_name', 'father_name', 'grandfather_name', 'gender', 'age'];
+const MORE_FIELDS = ['mother_name', 'kebele', 'city', 'emergency_contact', 'previous_school'];
 
 function DetailsForm({ student, canManage }) {
     const { t } = useTranslation();
@@ -298,8 +292,9 @@ function DetailsForm({ student, canManage }) {
         grandfather_name: student.grandfather_name ?? '',
         mother_name: student.mother_name ?? '',
         gender: student.gender,
-        date_of_birth: student.date_of_birth ?? '',
-        address: student.address ?? '',
+        age: student.age ?? '',
+        kebele: student.kebele ?? '',
+        city: student.city ?? '',
         emergency_contact: student.emergency_contact ?? '',
         previous_school: student.previous_school ?? '',
         status: student.status,
@@ -307,7 +302,7 @@ function DetailsForm({ student, canManage }) {
     const set = (k) => (e) => setData(k, e.target.value);
     const initial = {
         first_name: student.first_name, father_name: student.father_name ?? '', grandfather_name: student.grandfather_name ?? '', mother_name: student.mother_name ?? '', gender: student.gender,
-        date_of_birth: student.date_of_birth ?? '', address: student.address ?? '', emergency_contact: student.emergency_contact ?? '', previous_school: student.previous_school ?? '', status: student.status,
+        age: student.age ?? '', kebele: student.kebele ?? '', city: student.city ?? '', emergency_contact: student.emergency_contact ?? '', previous_school: student.previous_school ?? '', status: student.status,
     };
     const touched = (fields) => fields.some((f) => String(data[f] ?? '') !== String(initial[f] ?? ''));
     const changed = [touched(MAIN_FIELDS) && t('student.g_main'), touched(MORE_FIELDS) && t('student.g_more'), data.status !== student.status && t('student.g_status')].filter(Boolean);
@@ -346,8 +341,8 @@ function DetailsForm({ student, canManage }) {
                         <Field id="father_name" label={t('enroll.father_name')} optional error={errors.father_name}><Input value={data.father_name} onChange={set('father_name')} /></Field>
                         <Field id="grandfather_name" label={t('enroll.grandfather_name')} optional error={errors.grandfather_name}><Input value={data.grandfather_name} onChange={set('grandfather_name')} /></Field>
                         <ChoiceGroup heading={t('enroll.gender')} layout="segmented" value={data.gender} onChange={(v) => setData('gender', v)} options={[{ value: 'female', label: t('enroll.female') }, { value: 'male', label: t('enroll.male') }]} />
-                        <Field id="date_of_birth" label={t('enroll.date_of_birth')} optional error={errors.date_of_birth} hint={student.age !== null && student.age !== undefined ? t('student.age_note', { count: student.age }) : undefined}>
-                            <DateInput large value={data.date_of_birth} max={todayISO()} onChange={(v) => setData('date_of_birth', v)} />
+                        <Field id="age" label={t('enroll.age')} optional error={errors.age} hint={t('enroll.age_hint')}>
+                            <Input type="number" inputMode="numeric" min="0" max="40" value={data.age} onChange={set('age')} />
                         </Field>
                     </div>
                 </Disclosure>
@@ -355,7 +350,10 @@ function DetailsForm({ student, canManage }) {
                 <Disclosure title={t('student.g_more')} description={t('student.g_more_desc')} defaultOpen={errored(MORE_FIELDS)} data-testid="group-more">
                     <div className="space-y-5">
                         <Field id="mother_name" label={t('enroll.mother_name')} optional error={errors.mother_name}><Input value={data.mother_name} onChange={set('mother_name')} /></Field>
-                        <Field id="address" label={t('enroll.address')} optional error={errors.address}><Input value={data.address} onChange={set('address')} /></Field>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <Field id="kebele" label={t('enroll.kebele')} optional error={errors.kebele}><Input value={data.kebele} onChange={set('kebele')} /></Field>
+                            <Field id="city" label={t('enroll.city')} optional error={errors.city}><Input value={data.city} onChange={set('city')} /></Field>
+                        </div>
                         <Field id="emergency_contact" label={t('enroll.emergency_contact')} hint={t('enroll.phone_example')} optional error={errors.emergency_contact}><Input type="tel" inputMode="tel" value={data.emergency_contact} onChange={set('emergency_contact')} /></Field>
                         <Field id="previous_school" label={t('enroll.previous_school')} optional error={errors.previous_school}><Input value={data.previous_school} onChange={set('previous_school')} /></Field>
                     </div>
@@ -368,14 +366,14 @@ function DetailsForm({ student, canManage }) {
                                 {['active', 'transferred', 'graduated', 'suspended', 'expelled', 'inactive', ...(student.status === 'withdrawn' ? ['withdrawn'] : [])].map((st) => <option key={st} value={st}>{cap(st)}</option>)}
                             </Select>
                         </Field>
-                        <p className="text-base text-gray-700 dark:text-gray-300">{t('student.status_withdraw_hint')}</p>
+                        <p className="text-base text-stone-700 dark:text-stone-300">{t('student.status_withdraw_hint')}</p>
                     </div>
                 </Disclosure>
             </fieldset>
 
             {canManage && (
-                <div className="space-y-2 rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800" data-testid="details-save">
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="changed-note">{changed.length === 0 ? t('student.nothing_changed') : t('student.changed_in', { groups: changed.join(', ') })}</p>
+                <div className="space-y-2 rounded-2xl border-2 border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800" data-testid="details-save">
+                    <p className="text-base text-stone-700 dark:text-stone-300" data-testid="changed-note">{changed.length === 0 ? t('student.nothing_changed') : t('student.changed_in', { groups: changed.join(', ') })}</p>
                     <Button type="submit" variant="success" busy={processing} disabled={changed.length === 0}>{t('student.save_details', { name: student.first_name })}</Button>
                 </div>
             )}
@@ -384,9 +382,11 @@ function DetailsForm({ student, canManage }) {
     );
 }
 
-export default function Edit({ student, guardianRelationships, canOverrideCapacity, canManage, availableServices, transferSections, canManageServices, minWithdrawDate, canViewMedical, canViewDiscipline }) {
+export default function Edit({ student, guardianRelationships, canOverrideCapacity, canManage, availableServices, transferSections, canManageServices, minWithdrawDate, canViewMedical, canViewDiscipline, canMessage }) {
     const { t } = useTranslation();
-    const { errors: pageErrors } = usePage().props;
+    const { errors: pageErrors, flash } = usePage().props;
+    const credentials = flash?.credentials;
+    const [hiddenPassword, setHiddenPassword] = useState(null);
     const [addingGuardian, setAddingGuardian] = useState(false);
     const [ask, confirmDialog] = useConfirm();
     const fullName = [student.first_name, student.father_name, student.grandfather_name].filter(Boolean).join(' ');
@@ -403,13 +403,14 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{t('student.title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{t('student.title')}</h2>}>
             <Page
                 title={fullName}
                 width="default"
                 back={<BackLink href={route('students.index')}>{t('enroll.back_to_students')}</BackLink>}
-                actions={(canViewMedical || canViewDiscipline) && (
+                actions={(canViewMedical || canViewDiscipline || canMessage) && (
                     <>
+                        {canMessage && <Button as={Link} href={route('students.messages.index', student.id)} variant="secondary" icon={ChatBubbleLeftRightIcon}>{t('messages.nav_button')}</Button>}
                         {canViewMedical && <Button as={Link} href={route('students.medical.show', student.id)} variant="secondary" icon={HeartIcon}>{t('medical.nav_button')}</Button>}
                         {canViewDiscipline && <Button as={Link} href={route('discipline.for-student', student.id)} variant="secondary" icon={ExclamationTriangleIcon}>{t('discipline.nav_button')}</Button>}
                     </>
@@ -417,21 +418,28 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
             >
                 <FlashMessages errorKeys={['locked', 'delete', 'optional_service_id']} />
 
+                {credentials && hiddenPassword !== credentials.password && (
+                    <div data-testid="guardian-credentials">
+                        <CredentialsPanel credentials={credentials} />
+                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHiddenPassword(credentials.password)}>{t('cred.hide')}</Button></div>
+                    </div>
+                )}
+
                 {!canManage && <Alert tone="info">{t('student.read_only')}</Alert>}
 
                 {/* ---- who they are, and the two things people come here for */}
                 <Card>
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                        {student.photo_url ? <img src={student.photo_url} alt="" className="h-28 w-28 shrink-0 rounded-2xl object-cover" /> : <UserCircleIcon className="h-28 w-28 shrink-0 text-gray-300 dark:text-gray-600" />}
+                        <Avatar src={student.photo_url} name={fullName} size={112} shape="rounded" />
                         <div className="min-w-0 flex-1">
-                            <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">{student.section ?? t('find.no_class')}</p>
-                            <p className="mt-1 text-base text-gray-700 dark:text-gray-300">
+                            <p className="text-xl font-semibold text-stone-900 dark:text-stone-100">{student.section ?? t('find.no_class')}</p>
+                            <p className="mt-1 text-base text-stone-700 dark:text-stone-300">
                                 {t('find.id_number', { id: student.student_id_number })} · {t(`enroll.${student.gender}`)}
                                 {student.age !== null && student.age !== undefined ? ` · ${t('student.age', { count: student.age })}` : ''}
                             </p>
                             <p className="mt-2"><StatusBadge status={student.status} label={cap(student.status)} /></p>
                             {canManage && student.emergency_contact && (
-                                <p className="mt-2 text-base text-gray-700 dark:text-gray-300">{t('student.emergency', { phone: student.emergency_contact })}</p>
+                                <p className="mt-2 text-base text-stone-700 dark:text-stone-300">{t('student.emergency', { phone: student.emergency_contact })}</p>
                             )}
                         </div>
                     </div>
@@ -445,7 +453,7 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
                 {/* ---- parents: always visible, with a number to call */}
                 <Card as="section" aria-labelledby="parents-title">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <h2 id="parents-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('student.parents_title')}</h2>
+                        <h2 id="parents-title" className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('student.parents_title')}</h2>
                         {canManage && !addingGuardian && student.guardians.length > 0 && (
                             <Button size="md" variant="secondary" icon={UserPlusIcon} onClick={() => setAddingGuardian(true)}>{t('student.link_parent')}</Button>
                         )}
@@ -456,12 +464,12 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
                             {t('student.parents_none_hint')}
                         </Alert>
                     ) : (
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700">
                             {student.guardians.map((g) => (
                                 <li key={g.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <span className="min-w-0">
-                                        <span className="block text-lg font-medium text-gray-900 dark:text-gray-100">{g.name} <span className="text-base font-normal text-gray-600 dark:text-gray-400">({g.relationship_label ?? g.relationship})</span></span>
-                                        <span className="block break-words text-base text-gray-600 dark:text-gray-400">{g.email}</span>
+                                        <span className="block text-lg font-medium text-stone-900 dark:text-stone-100">{g.name} <span className="text-base font-normal text-stone-600 dark:text-stone-400">({g.relationship_label ?? g.relationship})</span></span>
+                                        {g.email && <span className="block break-words text-base text-stone-600 dark:text-stone-400">{g.email}</span>}
                                     </span>
                                     <span className="flex flex-wrap gap-2">
                                         {g.phone && <Button as="a" href={`tel:${g.phone.replace(/\s+/g, '')}`} size="md" variant="secondary" icon={PhoneIcon}>{g.phone}</Button>}
@@ -491,17 +499,22 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
                         {canManage ? (
                             <TransferSectionForm student={student} sections={transferSections} canOverride={canOverrideCapacity} />
                         ) : (
-                            <p className="text-base text-gray-600 dark:text-gray-400">{t('student.read_only_short')}</p>
+                            <p className="text-base text-stone-600 dark:text-stone-400">{t('student.read_only_short')}</p>
                         )}
                     </Disclosure>
 
                     <Disclosure title={t('student.services_title')} description={enrolledServices.length ? summariseServices(availableServices, enrolledServices.map((s) => s.id)) : t('student.services_desc_none')}>
                         {canManageServices ? (
-                            <OptionalServicesForm studentId={student.id} services={availableServices} />
+                            <>
+                                <OptionalServicesForm studentId={student.id} services={availableServices} />
+                                <div className="mt-4 border-t border-stone-200 pt-4 dark:border-stone-700">
+                                    <Button as={Link} href={route('students.books.index', student.id)} variant="secondary" size="md" icon={BookOpenIcon}>{t('books.sell_books')}</Button>
+                                </div>
+                            </>
                         ) : (
-                            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {enrolledServices.map((s) => <li key={s.id} className="py-3 text-base text-gray-800 dark:text-gray-200">{s.name}</li>)}
-                                {enrolledServices.length === 0 && <li className="py-3 text-base text-gray-600 dark:text-gray-400">{t('student.services_not_enrolled')}</li>}
+                            <ul className="divide-y divide-stone-200 dark:divide-stone-700">
+                                {enrolledServices.map((s) => <li key={s.id} className="py-3 text-base text-stone-800 dark:text-stone-200">{s.name}</li>)}
+                                {enrolledServices.length === 0 && <li className="py-3 text-base text-stone-600 dark:text-stone-400">{t('student.services_not_enrolled')}</li>}
                             </ul>
                         )}
                     </Disclosure>

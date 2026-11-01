@@ -30,3 +30,6 @@ Schedule::command('hr:check-contract-expiry')->dailyAt('06:15')->timezone(config
 // Library had no overdue-loan reminder of any kind -- a real, disclosed gap, not a missing feature
 // invented here from nothing (see App\Console\Commands\CheckOverdueLoans's own docblock).
 Schedule::command('library:check-overdue-loans')->dailyAt('06:45')->timezone(config('app.business_timezone'))->onOneServer();
+// Billing had no overdue reminder of any kind either -- same real, disclosed gap, now covered by
+// App\Console\Commands\CheckOverdueInvoices (see its own docblock).
+Schedule::command('invoices:check-overdue')->dailyAt('07:00')->timezone(config('app.business_timezone'))->onOneServer();

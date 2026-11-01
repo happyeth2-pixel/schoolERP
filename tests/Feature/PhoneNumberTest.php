@@ -72,14 +72,13 @@ class PhoneNumberTest extends TestCase
 
         $this->actingAs($owner)->post('/students', $base + ['first_name' => 'A', 'guardian_mode' => 'none', 'emergency_contact' => 'call me'])->assertSessionHasErrors('emergency_contact');
 
-        $this->actingAs($owner)->post('/students', $base + ['first_name' => 'A', 'guardian_mode' => 'new', 'guardian_name' => 'Mum', 'guardian_email' => 'mum@t.test', 'guardian_relationship' => 'mother', 'guardian_phone' => '0911 22 33 44', 'emergency_contact' => '0922334455'])->assertSessionHasNoErrors();
-        $this->assertSame('+251911223344', User::where('email', 'mum@t.test')->value('phone'));
+        $this->actingAs($owner)->post('/students', $base + ['first_name' => 'A', 'guardian_mode' => 'new', 'guardian_name' => 'Mum', 'guardian_relationship' => 'mother', 'guardian_phone' => '0911 22 33 44', 'emergency_contact' => '0922334455'])->assertSessionHasNoErrors();
+        $this->assertSame('+251911223344', User::where('login_phone', '+251911223344')->value('phone'));
         $this->assertSame('+251922334455', Student::where('first_name', 'A')->value('emergency_contact'));
-        $this->assertNull(session('warning'));
 
-        // a second, different account registered with the same number in another format -> warned, not blocked
-        $this->actingAs($owner)->post('/students', $base + ['first_name' => 'B', 'guardian_mode' => 'new', 'guardian_name' => 'Mum again', 'guardian_email' => 'mum2@t.test', 'guardian_relationship' => 'mother', 'guardian_phone' => '+251911223344'])->assertSessionHasNoErrors();
-        $this->assertStringContainsString('already used by Mum', session('warning'));
-        $this->assertSame(2, User::where('phone', '+251911223344')->count());
+        // a second, different account registered with the same number in another format -> rejected, not silently allowed
+        $this->actingAs($owner)->post('/students', $base + ['first_name' => 'B', 'guardian_mode' => 'new', 'guardian_name' => 'Mum again', 'guardian_relationship' => 'mother', 'guardian_phone' => '+251911223344'])->assertSessionHasErrors('guardian_phone');
+        $this->assertSame(1, User::where('phone', '+251911223344')->count());
+        $this->assertSame(0, Student::where('first_name', 'B')->count());
     }
 }

@@ -74,7 +74,7 @@ export default function Wizard({ branches, grades, academicYears, existing, term
     const indexOf = (k) => steps.findIndex((s) => s.key === k);
 
     const title = editing ? t('fee.title_edit') : t('fee.title_add');
-    const layoutHeader = <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>;
+    const layoutHeader = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>;
     const back = <BackLink href={route('fee-structures.index')}>{t('fee.back_to_fees')}</BackLink>;
 
     // ------------------------------------------------------------------ saved
@@ -119,9 +119,9 @@ export default function Wizard({ branches, grades, academicYears, existing, term
                 {(errors.name && key === 'review') && <Alert tone="danger" title={t('fee.error_title')}>{errors.name}</Alert>}
                 <Card>
                     {editing && (
-                        <div className="mb-5 rounded-xl bg-gray-50 p-4 dark:bg-gray-900/40" data-testid="locked">
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{fee.grade} · {fee.academic_year}{branches.length > 1 ? ` · ${fee.branch}` : ''}</p>
-                            <p className="text-base text-gray-700 dark:text-gray-300">{t('fee.edit_locked')}</p>
+                        <div className="mb-5 rounded-xl bg-stone-50 p-4 dark:bg-stone-900/40" data-testid="locked">
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{fee.grade} · {fee.academic_year}{branches.length > 1 ? ` · ${fee.branch}` : ''}</p>
+                            <p className="text-base text-stone-700 dark:text-stone-300">{t('fee.edit_locked')}</p>
                         </div>
                     )}
                     <WizardShell wizard={wizard} finalLabel={editing ? t('fee.save_changes') : t('fee.save_button')} processing={processing}>
@@ -138,16 +138,16 @@ export default function Wizard({ branches, grades, academicYears, existing, term
                                 />
                                 {data.branch_id && (
                                     <div>
-                                        <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('fee.grade')}</p>
+                                        <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('fee.grade')}</p>
                                         <div role="radiogroup" aria-label={t('fee.grade')} className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="grade-grid">
                                             {grades.map((g) => {
                                                 const selected = String(g.id) === data.grade_id;
                                                 const n = countFor(g);
                                                 return (
                                                     <button key={g.id} type="button" role="radio" aria-checked={selected} onClick={() => set('grade_id')(String(g.id))}
-                                                        className={`flex min-h-[72px] flex-col items-center justify-center rounded-xl border-2 px-3 py-2 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 bg-white text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'}`}>
+                                                        className={`flex min-h-[72px] flex-col items-center justify-center rounded-xl border-2 px-3 py-2 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'}`}>
                                                         <span className="text-lg font-bold">{g.name}</span>
-                                                        {data.academic_year_id && <span className={`text-sm ${selected ? 'text-indigo-100' : 'text-gray-600 dark:text-gray-400'}`}>{n === 0 ? t('fee.grade_fees_zero') : t('fee.grade_fees_n', { count: n })}</span>}
+                                                        {data.academic_year_id && <span className={`text-sm ${selected ? 'text-brand-100' : 'text-stone-600 dark:text-stone-400'}`}>{n === 0 ? t('fee.grade_fees_zero') : t('fee.grade_fees_n', { count: n })}</span>}
                                                     </button>
                                                 );
                                             })}
@@ -155,14 +155,14 @@ export default function Wizard({ branches, grades, academicYears, existing, term
                                     </div>
                                 )}
                                 {grade && year && (
-                                    <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900/40" data-testid="existing">
-                                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('fee.existing_title', { grade: grade.name, year: year.name })}</p>
-                                        {here.length === 0 ? <p className="mt-1 text-base text-gray-700 dark:text-gray-300">{t('fee.existing_none')}</p> : (
+                                    <div className="rounded-xl bg-stone-50 p-4 dark:bg-stone-900/40" data-testid="existing">
+                                        <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('fee.existing_title', { grade: grade.name, year: year.name })}</p>
+                                        {here.length === 0 ? <p className="mt-1 text-base text-stone-700 dark:text-stone-300">{t('fee.existing_none')}</p> : (
                                             <>
-                                                <ul className="mt-2 space-y-1 text-base text-gray-800 dark:text-gray-200">
+                                                <ul className="mt-2 space-y-1 text-base text-stone-800 dark:text-stone-200">
                                                     {here.map((f) => <li key={f.id} className="flex justify-between gap-3"><span>{f.name}</span><span>{money(f.amount)} ETB · {freqLabel(f.frequency)}</span></li>)}
                                                 </ul>
-                                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{t('fee.existing_tip')}</p>
+                                                <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">{t('fee.existing_tip')}</p>
                                             </>
                                         )}
                                     </div>
@@ -177,9 +177,9 @@ export default function Wizard({ branches, grades, academicYears, existing, term
                                 </Field>
                                 {!editing && (
                                     <div className="-mt-3">
-                                        <p className="mb-1 text-sm text-gray-600 dark:text-gray-400">{t('fee.name_suggest')}</p>
+                                        <p className="mb-1 text-sm text-stone-600 dark:text-stone-400">{t('fee.name_suggest')}</p>
                                         <div className="flex flex-wrap gap-2">
-                                            {suggestions.map((s) => <button key={s} type="button" onClick={() => set('name')(s)} className="min-h-[44px] rounded-xl border-2 border-gray-300 bg-white px-3 text-base font-medium text-gray-900 hover:border-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">{s}</button>)}
+                                            {suggestions.map((s) => <button key={s} type="button" onClick={() => set('name')(s)} className="min-h-[44px] rounded-xl border-2 border-stone-300 bg-white px-3 text-base font-medium text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100">{s}</button>)}
                                         </div>
                                     </div>
                                 )}
@@ -196,14 +196,14 @@ export default function Wizard({ branches, grades, academicYears, existing, term
 
                         {key === 'review' && (
                             <div className="space-y-4">
-                                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="headline">
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{nameTrim} — {money(amountNum ?? 0)} ETB</p>
-                                    <p className="mt-1 text-lg text-gray-800 dark:text-gray-200">{data.frequency ? freqLabel(data.frequency) : ''} · {grade?.name} · {year?.name}</p>
+                                <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 dark:border-brand-700 dark:bg-brand-900/20" data-testid="headline">
+                                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{nameTrim} — {money(amountNum ?? 0)} ETB</p>
+                                    <p className="mt-1 text-lg text-stone-800 dark:text-stone-200">{data.frequency ? freqLabel(data.frequency) : ''} · {grade?.name} · {year?.name}</p>
                                 </div>
                                 <ReviewList rows={reviewRows} onEdit={wizard.goTo} />
                                 {amountNum === 0 && <Alert tone="warning" title={t('fee.warn_zero_title')}>{t('fee.warn_zero_body')}</Alert>}
                                 {noTerms && <Alert tone="warning" title={t('fee.warn_terms_title')}>{t('fee.warn_terms_body')}</Alert>}
-                                <p className="text-base text-gray-700 dark:text-gray-300">{t('fee.review_note')}</p>
+                                <p className="text-base text-stone-700 dark:text-stone-300">{t('fee.review_note')}</p>
                             </div>
                         )}
                     </WizardShell>

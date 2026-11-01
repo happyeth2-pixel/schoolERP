@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Notifications\ComplaintSubmitted;
 use App\Notifications\ComplaintUpdated;
+use App\Support\AttachmentUpload;
 use App\Support\SchoolCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,20 +87,33 @@ class ComplaintController extends Controller
             'student_id' => ['nullable', 'integer'],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:5000'],
-        ]);
+        ] + AttachmentUpload::rules());
 
+        $student = null;
         if (! empty($validated['student_id'])) {
-            Gate::authorize('complainAbout', Student::findOrFail($validated['student_id']));
+            $student = Student::findOrFail($validated['student_id']);
+            Gate::authorize('complainAbout', $student);
         }
+
+        // A parent (unlike every staff tier) is deliberately never branch-scoped -- branch_id is always null
+        // on their own account, since their children could in principle be in different branches. The branch
+        // this complaint is filed under comes from whichever student it's actually about instead; failing
+        // that, a guess from the parent's own linked children; a complaint about nothing in particular, from
+        // a parent with no children linked yet, genuinely has no branch and is routed to the owner instead
+        // (see recipientsFor() and ComplaintsController::index()'s org-wide staff view).
+        $branchId = $user->branch_id
+            ?? $student?->branch_id
+            ?? ($user->hasRole('parent') ? $user->children()->value('branch_id') : null);
 
         $complaint = Complaint::create([
             'school_id' => $user->school_id,
-            'branch_id' => $user->branch_id,
+            'branch_id' => $branchId,
             'submitted_by' => $user->id,
             'student_id' => $validated['student_id'] ?? null,
             'subject' => $validated['subject'],
             'body' => $validated['body'],
         ]);
+        AttachmentUpload::attach($request->file('images', []), $complaint, $user, 'complaints');
 
         $this->recipientsFor($complaint)->each(fn ($staff) => $staff->notify(new ComplaintSubmitted($complaint)));
 
@@ -111,7 +125,7 @@ class ComplaintController extends Controller
         $user = $request->user();
         Gate::authorize('view', $complaint);
 
-        $complaint->load(['submittedBy', 'student.currentEnrollment.section.grade', 'resolvedBy']);
+        $complaint->load(['submittedBy', 'student.currentEnrollment.section.grade', 'resolvedBy', 'attachments']);
 
         $submitter = $complaint->submittedBy;
         // Other children of the same parent: each one is that child's own student record,
@@ -138,11 +152,13 @@ class ComplaintController extends Controller
                 'resolved_by' => $complaint->resolvedBy?->name,
                 'resolved_at' => $complaint->resolved_at?->diffForHumans(),
                 'submitted_by' => $submitter->name,
+                'submitted_by_photo_url' => $submitter->profile_photo_url,
                 'submitted_by_email' => $canSeeContact ? $submitter->email : null,
                 'submitted_by_phone' => $canSeeContact ? \App\Support\PhoneNumber::display($submitter->phone) : null,
                 'contact_restricted' => ! $canSeeContact,
                 'student' => $this->studentContext($complaint->student, $complaint, $user),
                 'siblings' => $siblings,
+                'images' => $complaint->attachments->map(fn ($a) => $a->url())->values(),
                 'created_at' => SchoolCalendar::dateTime($complaint->created_at, $user),
             ],
             'canManage' => $user->can('manage-complaints'),

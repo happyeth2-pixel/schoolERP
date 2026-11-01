@@ -21,7 +21,7 @@ export default function ForgotPassword({ status }) {
         <GuestLayout>
             <Head title={t('auth.forgot_password_title')} />
 
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            <div className="mb-4 text-sm text-stone-600 dark:text-stone-400">
                 {t('auth.forgot_password_intro')}
             </div>
 

@@ -26,9 +26,9 @@ export default function RoomDialog({ open, room, branches, fixedBranch, onClose 
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="room-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('timetable.edit_room_title') : t('timetable.add_room_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('timetable.edit_room_title') : t('timetable.add_room_title')}</h2>
                     {!editing && (fixedBranch ? (
-                        <p className="text-base text-gray-800 dark:text-gray-200" data-testid="fixed-branch">{fixedBranch.name}</p>
+                        <p className="text-base text-stone-800 dark:text-stone-200" data-testid="fixed-branch">{fixedBranch.name}</p>
                     ) : (
                         <Field id="room_branch" label={t('payroll.branch_label')} error={errors.branch_id}>
                             <Select id="room_branch" value={data.branch_id} onChange={(e) => setData('branch_id', e.target.value)}>

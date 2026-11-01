@@ -28,34 +28,34 @@ export default function Show({ stocktake, lines, canManage }) {
     const everyDifferenceExplained = lines.every((l) => diffOf(l) === 0 || diffOf(l) === null || data.counts[l.id].reason.trim() !== '');
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{stocktake.store_name}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{stocktake.store_name}</h2>}>
             <Page title={t('stocktake.show_title', { store: stocktake.store_name })} back={<BackLink href={route('stocktakes.index')}>{t('stocktake.back_to_list')}</BackLink>}>
                 <FlashMessages />
 
                 <Card>
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-base text-gray-700 dark:text-gray-300">{t('stocktake.started_by_x', { name: stocktake.started_by, date: stocktake.started_at })}</p>
+                        <p className="text-base text-stone-700 dark:text-stone-300">{t('stocktake.started_by_x', { name: stocktake.started_by, date: stocktake.started_at })}</p>
                         <StatusBadge tone={stocktake.status === 'completed' ? 'success' : 'warning'} label={t(`stocktake.status_${stocktake.status}`)} />
                     </div>
                     {stocktake.status === 'completed' && (
-                        <p className="mt-2 text-base text-gray-700 dark:text-gray-300">{t('stocktake.completed_by_x', { name: stocktake.completed_by, date: stocktake.completed_at })}</p>
+                        <p className="mt-2 text-base text-stone-700 dark:text-stone-300">{t('stocktake.completed_by_x', { name: stocktake.completed_by, date: stocktake.completed_at })}</p>
                     )}
                 </Card>
 
                 <Card as="form" onSubmit={saveCounts}>
                     <SectionHeader as="h3" title={t('stocktake.lines_title')} description={t('stocktake.lines_desc')} />
-                    <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="stocktake-lines">
+                    <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="stocktake-lines">
                         {lines.map((line) => {
                             const diff = diffOf(line);
                             return (
                                 <li key={line.id} className="py-4" data-testid="stocktake-line-row">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div>
-                                            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{line.item_name}</p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('stocktake.system_quantity', { count: line.system_quantity, unit: line.unit })}</p>
+                                            <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{line.item_name}</p>
+                                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('stocktake.system_quantity', { count: line.system_quantity, unit: line.unit })}</p>
                                         </div>
                                         {readOnly ? (
-                                            <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{line.physical_quantity ?? '—'} {line.unit}</p>
+                                            <p className="text-lg font-bold text-stone-900 dark:text-stone-100">{line.physical_quantity ?? '—'} {line.unit}</p>
                                         ) : (
                                             <div className="w-32">
                                                 <Field id={`count_${line.id}`} label={t('stocktake.physical_quantity')} error={errors[`counts.${line.id}.physical_quantity`]}>
@@ -76,7 +76,7 @@ export default function Show({ stocktake, lines, canManage }) {
                                             </Field>
                                         </div>
                                     )}
-                                    {readOnly && line.reason && <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{line.reason}</p>}
+                                    {readOnly && line.reason && <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{line.reason}</p>}
                                 </li>
                             );
                         })}
@@ -89,7 +89,7 @@ export default function Show({ stocktake, lines, canManage }) {
                         </div>
                     )}
                     {!readOnly && (!allCounted || !everyDifferenceExplained) && (
-                        <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{!allCounted ? t('stocktake.why_not_counted') : t('stocktake.why_no_reason')}</p>
+                        <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">{!allCounted ? t('stocktake.why_not_counted') : t('stocktake.why_no_reason')}</p>
                     )}
                 </Card>
             </Page>

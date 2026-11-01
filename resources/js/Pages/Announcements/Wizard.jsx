@@ -1,3 +1,4 @@
+import AttachmentPicker from '@/Components/AttachmentPicker';
 import DateInput from '@/Components/DateInput';
 import DateText from '@/Components/DateText';
 import { BackLink, Button, Card, ChoiceGroup, Field, Input, Page, ReviewList, SuccessPanel, TextArea, WizardShell, useWizard } from '@/Components/ui';
@@ -18,7 +19,7 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
     const tomorrow = nextDay(today);
     const fixedBranch = !canPostSchoolWide;
 
-    const form = useForm({ title: '', body: '', audience: '', branch: fixedBranch ? String(branches[0]?.id ?? '') : '', when: '', publish_on: tomorrow });
+    const form = useForm({ title: '', body: '', audience: '', branch: fixedBranch ? String(branches[0]?.id ?? '') : '', when: '', publish_on: tomorrow, images: [] });
     const { data, setData, errors, processing, clearErrors } = form;
     const set = (k) => (v) => { clearErrors(k); setData(k, v); };
     const [dismissed, setDismissed] = useState(false);
@@ -42,15 +43,15 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
         steps,
         errors,
         onSubmit: () => {
-            form.transform((d) => ({ title: d.title.trim(), body: d.body.trim(), audience: d.audience, branch_id: d.branch === '' || d.branch === 'all' ? null : d.branch, publish_on: later ? d.publish_on : today }));
-            form.post(route('announcements.store'), { preserveScroll: true });
+            form.transform((d) => ({ title: d.title.trim(), body: d.body.trim(), audience: d.audience, branch_id: d.branch === '' || d.branch === 'all' ? null : d.branch, publish_on: later ? d.publish_on : today, images: d.images }));
+            form.post(route('announcements.store'), { preserveScroll: true, forceFormData: true });
         },
     });
     const key = wizard.step.key;
     const stepOf = (k) => steps.findIndex((s) => s.key === k);
 
     const title = t('ann.title_add');
-    const header = <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>;
+    const header = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>;
     const back = <BackLink href={route('announcements.index')}>{t('ann.back')}</BackLink>;
 
     if (saved && !dismissed) {
@@ -87,6 +88,7 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
                                 <Field id="ann_body" label={t('ann.body_label')} hint={t('ann.body_hint')} error={errors.body}>
                                     <TextArea rows={7} value={data.body} onChange={(e) => set('body')(e.target.value)} maxLength={5000} />
                                 </Field>
+                                <AttachmentPicker value={data.images} onChange={set('images')} error={errors.images} busy={processing} />
                             </div>
                         )}
 
@@ -101,7 +103,7 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
                                 {errors.audience && <p className="-mt-4 text-sm font-medium text-red-700">{errors.audience}</p>}
 
                                 {fixedBranch ? (
-                                    <p className="rounded-xl bg-gray-50 p-4 text-base text-gray-800 dark:bg-gray-900/40 dark:text-gray-200" data-testid="fixed-branch">{t('ann.fixed_branch', { branch: branches[0]?.name })}</p>
+                                    <p className="rounded-xl bg-stone-50 p-4 text-base text-stone-800 dark:bg-stone-900/40 dark:text-stone-200" data-testid="fixed-branch">{t('ann.fixed_branch', { branch: branches[0]?.name })}</p>
                                 ) : (
                                     <ChoiceGroup
                                         heading={t('ann.q_branch')}
@@ -131,10 +133,10 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
 
                         {key === 'review' && (
                             <div className="space-y-5">
-                                <div className="rounded-2xl border-2 border-gray-300 bg-white p-5 dark:border-gray-600 dark:bg-gray-900/40" data-testid="preview">
-                                    <p className="text-sm font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">{t('ann.preview')}</p>
-                                    <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">{titleT}</h3>
-                                    <p className="mt-2 whitespace-pre-line text-base text-gray-800 dark:text-gray-200">{bodyT}</p>
+                                <div className="rounded-2xl border-2 border-stone-300 bg-white p-5 dark:border-stone-600 dark:bg-stone-900/40" data-testid="preview">
+                                    <p className="text-sm font-medium uppercase tracking-wide text-stone-600 dark:text-stone-400">{t('ann.preview')}</p>
+                                    <h3 className="mt-1 text-xl font-bold text-stone-900 dark:text-stone-100">{titleT}</h3>
+                                    <p className="mt-2 whitespace-pre-line text-base text-stone-800 dark:text-stone-200">{bodyT}</p>
                                 </div>
                                 <ReviewList
                                     onEdit={wizard.goTo}
@@ -144,7 +146,7 @@ export default function Wizard({ audiences, branches, canPostSchoolWide, today, 
                                         { label: t('ann.r_when'), value: later ? <DateText value={data.publish_on} /> : t('ann.when_now'), step: stepOf('who') },
                                     ]}
                                 />
-                                <p className="text-base text-gray-700 dark:text-gray-300">{later ? t('ann.review_note_later') : t('ann.review_note_now')}</p>
+                                <p className="text-base text-stone-700 dark:text-stone-300">{later ? t('ann.review_note_later') : t('ann.review_note_now')}</p>
                             </div>
                         )}
                     </WizardShell>

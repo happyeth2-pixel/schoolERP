@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Rules\NotBasedOnIdentity;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +36,12 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $target = User::where('email', $request->input('email'))->first();
+
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::defaults(), NotBasedOnIdentity::forUser($target)],
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we

@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ export default function SupplierPaymentDialog({ open, bill, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="supplier-payment-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('supplier_payment.add_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('supplier_payment.add_title')}</h2>
                     <Field id="sp_amount" label={t('supplier_payment.amount')} error={errors.amount}>
                         <Input inputMode="decimal" value={data.amount} onChange={(e) => setData('amount', e.target.value)} autoComplete="off" />
                     </Field>
@@ -40,7 +41,7 @@ export default function SupplierPaymentDialog({ open, bill, onClose }) {
                         <Input value={data.reference_number} onChange={(e) => setData('reference_number', e.target.value)} maxLength={255} autoComplete="off" />
                     </Field>
                     <Field id="sp_date" label={t('supplier_payment.paid_date')} error={errors.paid_date}>
-                        <Input type="date" value={data.paid_date} onChange={(e) => setData('paid_date', e.target.value)} />
+                        <DateInput value={data.paid_date} onChange={(v) => setData('paid_date', v)} />
                     </Field>
                     <Field id="sp_notes" label={t('quotation.notes')} optional error={errors.notes}>
                         <TextArea id="sp_notes" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />

@@ -20,7 +20,7 @@ const STATUS = {
     empty: {
         icon: MinusCircleIcon,
         labelKey: 'attendance.progress_empty',
-        classes: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+        classes: 'bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400',
     },
 };
 

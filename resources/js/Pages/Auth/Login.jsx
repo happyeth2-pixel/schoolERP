@@ -32,8 +32,8 @@ function PreLoginLanguagePicker() {
                     aria-pressed={current === code}
                     className={`min-h-[44px] rounded-full px-4 text-sm font-medium ${
                         current === code
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                            ? 'bg-brand-600 text-white'
+                            : 'bg-stone-100 text-stone-700 hover:bg-stone-200 dark:bg-stone-700 dark:text-stone-300 dark:hover:bg-stone-600'
                     }`}
                 >
                     {label}
@@ -68,9 +68,13 @@ export default function Login({ status }) {
 
             <PreLoginLanguagePicker />
 
-            <h1 className="mb-5 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">{t('signin.title')}</h1>
+            <h1 className="mb-5 text-center text-2xl font-bold text-stone-900 dark:text-stone-100">{t('signin.title')}</h1>
 
             {status && <div className="mb-4 text-base font-medium text-green-700">{status}</div>}
+
+            <p className="mb-4 rounded-lg border border-gold-300 bg-gold-100 px-4 py-3 text-center text-sm font-medium text-stone-800 dark:border-gold-600 dark:bg-stone-800 dark:text-gold-300" data-testid="password-reminder">
+                {t('signin.password_reminder')}
+            </p>
 
             <form onSubmit={submit} className="space-y-5" data-testid="login-form">
                 <Field id="phone" label={t('signin.phone')} hint={t('signin.phone_hint')} error={errors.phone}>
@@ -89,12 +93,12 @@ export default function Login({ status }) {
 
                 <label className="flex min-h-[48px] items-center gap-3">
                     <Checkbox name="remember" checked={data.remember} onChange={(e) => setData('remember', e.target.checked)} />
-                    <span className="text-base text-gray-700 dark:text-gray-300">{t('auth.remember_me')}</span>
+                    <span className="text-base text-stone-700 dark:text-stone-300">{t('auth.remember_me')}</span>
                 </label>
 
                 <Button type="submit" fullWidth busy={processing}>{t('auth.log_in')}</Button>
 
-                <p className="text-center text-base text-gray-700 dark:text-gray-300" data-testid="forgot-note">{t('signin.forgot_office')}</p>
+                <p className="text-center text-base text-stone-700 dark:text-stone-300" data-testid="forgot-note">{t('signin.forgot_office')}</p>
             </form>
         </GuestLayout>
     );

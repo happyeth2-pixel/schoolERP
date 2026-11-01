@@ -4,7 +4,12 @@
 // See resources/js/lang/review-status.json and LOCALIZATION.md.
 return [
 
-    'student_marked_absent' => [
+    'student_marked_absent_male' => [
+        'title' => 'Galmeen Dhabamuu',
+        'body' => ":student guyyaa :date hin argamne jedhamee galmaa'e. Kun dogoggora yoo ta'e, mana barumsichaatu sirreessa, isinis ni beeksifamtu.",
+    ],
+
+    'student_marked_absent_female' => [
         'title' => 'Galmeen Dhabamuu',
         'body' => ":student guyyaa :date hin argamne jedhamee galmaa'e. Kun dogoggora yoo ta'e, mana barumsichaatu sirreessa, isinis ni beeksifamtu.",
     ],
@@ -22,6 +27,11 @@ return [
     'announcement_published' => [
         'title' => 'Beeksisa haaraa',
         'body' => 'Beeksisa haaraa: :title',
+    ],
+
+    'contact_inquiry_received' => [
+        'title' => 'Ergaa quunnamtii haaraa',
+        'body' => ':name (:phone) irraa',
     ],
 
     'complaint_updated' => [
@@ -185,6 +195,31 @@ return [
     'assignment_due_soon' => [
         'title' => 'Hojiin Manaa Boru Dhihaata',
         'body' => 'Hojiin manaa :subject ":title" boru dhihaata.',
+    ],
+
+    'new_parent_message' => [
+        'title' => 'Ergaa Haaraa',
+        'body' => ':sender waa\'ee :student ergaa ergeera.',
+    ],
+
+    'section_capacity_exceeded' => [
+        'title' => 'Kutaan Dandeettii Isaa Caalee',
+        'body' => ':section amma barattoota :occupied qaba, dandeettii isaa :capacity caalee.',
+    ],
+
+    'invoice_overdue' => [
+        'title' => 'Invoisiin Tureera',
+        'body' => 'Invoisii :student:period (:balance ETB hin kaffalamin) guyyaa :date irratti kaffalamuu qaba ture. Maatii hordofaa.',
+    ],
+
+    'mark_batch_submitted' => [
+        'title' => 'Firiin Mirkaneeffama Eegaa Jira',
+        'body' => ':teacher firii :subject kan :section (:exam) mirkaneeffamaaf galcheera.',
+    ],
+
+    'mark_batch_published' => [
+        'title' => 'Firiin Qormaataa Haaraan Maxxanfameera',
+        'body' => 'Firiin :subject :student kan :exam amma maxxanfameera.',
     ],
 
 ];

@@ -17,7 +17,7 @@ export default function VerifyEmail({ status }) {
         <GuestLayout>
             <Head title={t('auth.verify_email_title')} />
 
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            <div className="mb-4 text-sm text-stone-600 dark:text-stone-400">
                 {t('auth.verify_email_intro')}
             </div>
 
@@ -37,7 +37,7 @@ export default function VerifyEmail({ status }) {
                         href={route('logout')}
                         method="post"
                         as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                        className="rounded-md text-sm text-stone-600 underline hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:text-stone-400 dark:hover:text-stone-100 dark:focus:ring-offset-stone-800"
                     >
                         {t('auth.logout_button')}
                     </Link>

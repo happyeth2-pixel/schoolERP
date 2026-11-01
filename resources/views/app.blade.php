@@ -6,9 +6,14 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fonts: IBM Plex Sans for Latin script (English, Afaan Oromoo), Noto Sans Ethiopic for Ge'ez
+             script (Amharic, Tigrinya) -- see tailwind.config.js's `ethiopic` font family. Playfair Display
+             is the editorial display serif used only by the public marketing pages (Home/About/Contact) --
+             see tailwind.config.js's `display` font family. -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600,700|noto-sans-ethiopic:400,500,700|playfair-display:500,600,700,800,900&display=swap" rel="stylesheet" />
+
+        <link rel="icon" href="/images/brand/paradise-logo.jpg" type="image/jpeg">
 
         <!-- Frontend error monitoring config (see MONITORING.md). Injected per-request, server-side,
              rather than baked into the built JS bundle at compile time, so the one build artifact

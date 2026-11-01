@@ -1,3 +1,144 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Base presentation only -- no selectors here change markup, behaviour or data. A warm paper tone
+   instead of stark white/cold grey (the rest of the palette is in tailwind.config.js `brand`/`gold`
+   plus Tailwind's own warm `stone` neutrals), and tabular figures wherever a number sits in a table
+   or money/stat context, so columns of digits line up instead of drifting with each glyph's width. */
+@layer base {
+    html {
+        @apply bg-stone-50 dark:bg-stone-950;
+    }
+
+    body {
+        @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+    }
+
+    ::selection {
+        background-color: #E3B59E;
+        color: #452014;
+    }
+
+    .dark ::selection {
+        background-color: #5E2717;
+        color: #FBEFE9;
+    }
+
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Public marketing site only (Home/About/Contact -- see Layouts/MarketingLayout.jsx). Namespaced under
+   `ph-` so nothing here can ever bleed into the ERP's own component styles. Deep forest green/navy,
+   warm ivory, muted gold -- a different palette from the app's own `brand`/`gold` Tailwind tokens on
+   purpose, kept out of tailwind.config.js so it can never ripple into an authenticated-app page. */
+:root {
+    --ph-forest: #0e3b2e;
+    --ph-forest-dark: #082820;
+    --ph-navy: #0a1b2e;
+    --ph-ivory: #faf6ec;
+    --ph-beige: #f0e8d8;
+    --ph-gold: #c9a24b;
+    --ph-gold-light: #e4c878;
+    --ph-ink: #16241d;
+}
+
+.ph-site {
+    font-feature-settings: 'liga' 1, 'kern' 1;
+}
+
+.ph-glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.ph-glass-light {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+/* Soft dual-shadow "pressed into the surface" look -- used sparingly, only on the ivory/beige sections,
+   for small icon badges and stat chips. Reads as a tactile object, not a flat card. */
+.ph-neu {
+    background: var(--ph-ivory);
+    box-shadow: 8px 8px 16px rgba(180, 160, 120, 0.25), -8px -8px 16px rgba(255, 255, 255, 0.9);
+}
+
+.ph-neu-inset {
+    background: var(--ph-beige);
+    box-shadow: inset 4px 4px 8px rgba(180, 160, 120, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7);
+}
+
+/* Skeuomorphic raised button -- a real bevel (gradient + inner highlight + outer shadow), not a flat
+   Tailwind button. */
+.ph-btn-gold {
+    background: linear-gradient(180deg, var(--ph-gold-light) 0%, var(--ph-gold) 55%, #a9802f 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 -2px 4px rgba(0, 0, 0, 0.25) inset, 0 10px 24px -8px rgba(201, 162, 75, 0.55);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ph-btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 -2px 4px rgba(0, 0, 0, 0.25) inset, 0 16px 28px -8px rgba(201, 162, 75, 0.65);
+}
+
+.ph-btn-gold:active {
+    transform: translateY(0);
+}
+
+.ph-btn-ghost {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ph-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.55);
+    transform: translateY(-2px);
+}
+
+@keyframes ph-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+}
+
+.ph-floating {
+    animation: ph-float 7s ease-in-out infinite;
+}
+
+.ph-floating-delay {
+    animation: ph-float 7s ease-in-out infinite;
+    animation-delay: 2.2s;
+}
+
+.ph-floating-delay-2 {
+    animation: ph-float 8s ease-in-out infinite;
+    animation-delay: 4.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ph-floating, .ph-floating-delay, .ph-floating-delay-2 {
+        animation: none;
+    }
+}
+
+/* A thin, sharp diagonal-cut accent -- the "sharp edges" geometric motif used instead of rounded blobs. */
+.ph-cut-corner {
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+}

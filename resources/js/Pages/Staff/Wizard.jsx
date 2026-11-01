@@ -10,12 +10,11 @@ import { useTranslation } from 'react-i18next';
 // Creating a staff account as an administrator, in three short steps:
 //   1. Staff member  - name, phone number, job title (a label only)
 //   2. School access - role, branch, permissions and, for a teacher, the class they look after
-//   3. Account       - the phone number typed again, a temporary password (made for them, or typed by you), Create Account
+//   3. Account       - a temporary password (made for them, or typed by you), Create Account
 // The administrator gives the phone number and temporary password to the person directly; the person must choose their
 // own password at the first sign-in. Nothing here decides access: the server still refuses roles the person adding
 // cannot give, clamps permissions to what they hold themselves, and scopes the branch.
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 0911..., 0711..., 911..., +251911..., 251911... (spaces and dashes allowed): what the server accepts as a mobile number
 const MOBILE = /^(?:\+?251|0)?[79]\d{8}$/;
 const phoneClean = (v) => String(v).replace(/[\s\-().]/g, '');
@@ -23,7 +22,7 @@ const canonical = (v) => phoneClean(v).replace(/^(?:\+?251|0)/, '');
 const ACROSS_BRANCHES = ['owner', 'auditor'];
 const blank = (branches) => ({
     name: '', phone: '', title: '', role: '', branch_id: branches.length === 1 ? String(branches[0].id) : '', permissions: [],
-    class_teacher_section_id: '', phone_confirmation: '', pw_mode: 'generate', temporary_password: '', email: '',
+    class_teacher_section_id: '', pw_mode: 'generate', temporary_password: '',
 });
 
 export default function Wizard({ assignableRoles, permissionGroups, tierDefaults, myPermissions, branches, canAssignClass, classesWithoutTeacher }) {
@@ -58,8 +57,6 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
     const phoneOk = MOBILE.test(phoneClean(data.phone));
     const branchOk = !needsBranch || data.branch_id !== '';
     const permsOk = !customises || data.permissions.length > 0;
-    const confirmOk = phoneOk && data.phone_confirmation.trim() !== '' && canonical(data.phone_confirmation) === canonical(data.phone);
-    const emailOk = data.email.trim() === '' || EMAIL.test(data.email.trim());
     const own = data.pw_mode === 'own';
     const pw = data.temporary_password;
     const pwOk = !own || (pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw));
@@ -74,8 +71,8 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
             isValid: () => data.role !== '' && branchOk && permsOk, whyBlocked: data.role === '' ? t('staff.why_role') : !branchOk ? t('staff.why_branch') : t('staff.why_perms'),
         },
         {
-            key: 'account', label: t('staff.step_account'), description: t('staff.step_account_desc'), fields: ['phone_confirmation', 'temporary_password', 'email'],
-            isValid: () => confirmOk && pwOk && emailOk, whyBlocked: !confirmOk ? t('staff.why_confirm') : !pwOk ? t('staff.why_password') : t('staff.err_email'),
+            key: 'account', label: t('staff.step_account'), description: t('staff.step_account_desc'), fields: ['temporary_password'],
+            isValid: () => pwOk, whyBlocked: t('staff.why_password'),
         },
     ];
 
@@ -84,7 +81,7 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
         errors,
         onSubmit: () => {
             form.transform((d) => ({
-                name: d.name.trim(), email: d.email.trim(), title: d.title.trim() || null, phone: d.phone.trim(), phone_confirmation: d.phone_confirmation.trim(), role: d.role,
+                name: d.name.trim(), title: d.title.trim() || null, phone: d.phone.trim(), role: d.role,
                 branch_id: ACROSS_BRANCHES.includes(d.role) ? null : d.branch_id || null,
                 class_teacher_section_id: d.role === 'teacher' && d.class_teacher_section_id ? d.class_teacher_section_id : null,
                 temporary_password: d.pw_mode === 'own' ? d.temporary_password : null,
@@ -96,7 +93,7 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
     const key = wizard.step.key;
     const stepOf = (k) => steps.findIndex((s) => s.key === k);
 
-    const layoutHeader = <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('staff.title_add')}</h2>;
+    const layoutHeader = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('staff.title_add')}</h2>;
     const back = <BackLink href={route('staff.index')}>{t('staff.back_to_staff')}</BackLink>;
 
     // ------------------------------------------------------------------ created
@@ -154,7 +151,7 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
 
                                 {data.role === 'owner' && <Alert tone="warning" title={t('staff.owner_warn_title')}>{t('staff.owner_warn_body')}</Alert>}
 
-                                {acrossBranches && <p className="rounded-xl bg-gray-50 p-4 text-base text-gray-800 dark:bg-gray-900/40 dark:text-gray-200" data-testid="all-branches">{t('staff.all_branches_note')}</p>}
+                                {acrossBranches && <p className="rounded-xl bg-stone-50 p-4 text-base text-stone-800 dark:bg-stone-900/40 dark:text-stone-200" data-testid="all-branches">{t('staff.all_branches_note')}</p>}
 
                                 {needsBranch && branches.length > 1 && (
                                     <div>
@@ -163,14 +160,14 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
                                     </div>
                                 )}
                                 {needsBranch && branches.length === 1 && (
-                                    <p className="rounded-xl bg-gray-50 p-4 text-base text-gray-800 dark:bg-gray-900/40 dark:text-gray-200" data-testid="fixed-branch">{t('staff.fixed_branch', { branch: branches[0].name })}</p>
+                                    <p className="rounded-xl bg-stone-50 p-4 text-base text-stone-800 dark:bg-stone-900/40 dark:text-stone-200" data-testid="fixed-branch">{t('staff.fixed_branch', { branch: branches[0].name })}</p>
                                 )}
 
                                 {customises && (
                                     <div className="space-y-3" data-testid="custom-permissions">
                                         <div>
-                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('staff.perm_head')}</h4>
-                                            <p className="text-base text-gray-600 dark:text-gray-400">{t('staff.perm_intro')}</p>
+                                            <h4 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('staff.perm_head')}</h4>
+                                            <p className="text-base text-stone-600 dark:text-stone-400">{t('staff.perm_intro')}</p>
                                         </div>
                                         <PermissionPicker groups={permissionGroups} value={data.permissions} onChange={set('permissions')} myPermissions={myPermissions} defaults={tierDefaults.branch_admin} />
                                         {errors.permissions && <p className="text-sm font-medium text-red-700">{errors.permissions}</p>}
@@ -178,8 +175,8 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
                                 )}
                                 {data.role && !customises && (
                                     <div className="space-y-2" data-testid="fixed-permissions">
-                                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('staff.fixed_head', { role: t(`staff.role_${data.role}`) })}</h4>
-                                        <p className="text-base text-gray-600 dark:text-gray-400">{t('staff.fixed_intro')}</p>
+                                        <h4 className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('staff.fixed_head', { role: t(`staff.role_${data.role}`) })}</h4>
+                                        <p className="text-base text-stone-600 dark:text-stone-400">{t('staff.fixed_intro')}</p>
                                         <PermissionSummary names={effective} />
                                     </div>
                                 )}
@@ -199,9 +196,9 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
 
                         {key === 'account' && (
                             <div className="space-y-6">
-                                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="headline">
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{data.name.trim()}</p>
-                                    <p className="mt-1 text-lg text-gray-800 dark:text-gray-200">{t(`staff.role_${data.role}`)}{acrossBranches ? '' : ` · ${branch?.name ?? ''}`}</p>
+                                <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-5 dark:border-brand-700 dark:bg-brand-900/20" data-testid="headline">
+                                    <p className="text-2xl font-bold text-stone-900 dark:text-stone-100">{data.name.trim()}</p>
+                                    <p className="mt-1 text-lg text-stone-800 dark:text-stone-200">{t(`staff.role_${data.role}`)}{acrossBranches ? '' : ` · ${branch?.name ?? ''}`}</p>
                                 </div>
                                 <ReviewList
                                     onEdit={wizard.goTo}
@@ -217,10 +214,6 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
                                 <Disclosure title={t('staff.r_can_do')} data-testid="can-do"><PermissionSummary names={effective} /></Disclosure>
                                 {data.role === 'owner' && <Alert tone="warning" title={t('staff.owner_warn_title')}>{t('staff.owner_warn_body')}</Alert>}
 
-                                <Field id="staff_phone_confirmation" label={t('staff.confirm_phone')} hint={t('staff.confirm_phone_hint')} error={data.phone_confirmation !== '' && !confirmOk ? t('staff.err_confirm') : errors.phone_confirmation}>
-                                    <Input type="tel" inputMode="tel" value={data.phone_confirmation} onChange={(e) => set('phone_confirmation')(e.target.value)} autoComplete="off" maxLength={50} />
-                                </Field>
-
                                 <ChoiceGroup
                                     heading={t('staff.pw_question')}
                                     value={data.pw_mode}
@@ -233,10 +226,6 @@ export default function Wizard({ assignableRoles, permissionGroups, tierDefaults
                                 {own && (
                                     <PasswordField id="staff_temp_password" label={t('staff.pw_label')} hint={t('staff.pw_hint')} error={pw !== '' && !pwOk ? t('staff.err_password') : errors.temporary_password} value={pw} onChange={set('temporary_password')} autoComplete="new-password" />
                                 )}
-
-                                <Field id="staff_email" label={t('staff.email')} hint={t('staff.email_hint')} optional error={data.email !== '' && !emailOk ? t('staff.err_email') : errors.email}>
-                                    <Input type="email" inputMode="email" value={data.email} onChange={(e) => set('email')(e.target.value)} autoComplete="off" maxLength={255} />
-                                </Field>
 
                                 <Alert tone="info" title={t('staff.give_title')}>{t('staff.give_body')}</Alert>
                             </div>

@@ -199,6 +199,16 @@ class FamilyAndAnnouncementsTest extends TestCase
         $this->assertNotNull(AuditLog::where('action', 'announcement.archived')->first());
     }
 
+    public function test_an_announcement_can_carry_photos(): void
+    {
+        $data = ['title' => 'Photo day', 'body' => 'See attached', 'audience' => 'everyone', 'branch_id' => '', 'publish_on' => '2026-10-15'];
+        $images = [\Illuminate\Http\UploadedFile::fake()->image('a.jpg'), \Illuminate\Http\UploadedFile::fake()->image('b.png')];
+
+        $this->actingAs($this->owner)->post('/announcements', $data + ['images' => $images])->assertSessionHasNoErrors();
+
+        $this->assertCount(2, Announcement::firstOrFail()->attachments);
+    }
+
     // ------------------------------------------------------------------ 29b: announcement notifications
 
     public function test_publishing_an_announcement_today_notifies_its_audience_immediately(): void

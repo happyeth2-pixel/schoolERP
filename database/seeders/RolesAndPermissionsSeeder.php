@@ -68,9 +68,15 @@ class RolesAndPermissionsSeeder extends Seeder
         'manage-announcements',
         'manage-complaints',
         'manage-calendar',
+        'parent-messages', // private messaging with a student's guardians -- homeroom teacher, branch admin, owner only
 
         // Oversight
         'view-audit-log',
+        // Deliberately separate from view-audit-log (added 2026-10-28): the security log holds
+        // authentication-abuse telemetry (failed logins, lockouts, masked identifiers) that someone
+        // toggled into the ordinary audit trail for day-to-day record-keeping has no particular need
+        // to see. See App\Http\Controllers\SecurityLogController.
+        'view-security-log',
 
         // Inventory & stores (Phase A: catalog + stock ledger. Phase B: requisitions/approvals/issuing. Assets follow later.)
         'inventory-view',
@@ -154,8 +160,8 @@ class RolesAndPermissionsSeeder extends Seeder
         'medical' => ['medical-records-view', 'medical-records-manage'],
         'academics' => ['mark-attendance', 'view-attendance-reports', 'enter-marks', 'approve-results', 'publish-results', 'manage-assignments'],
         'money' => ['manage-fee-structures', 'manage-invoices', 'verify-payments', 'view-financial-reports', 'refund-payments', 'approve-large-discounts'],
-        'messages' => ['manage-announcements', 'manage-complaints', 'manage-calendar'],
-        'oversight' => ['view-audit-log'],
+        'messages' => ['manage-announcements', 'manage-complaints', 'manage-calendar', 'parent-messages'],
+        'oversight' => ['view-audit-log', 'view-security-log'],
         'inventory' => ['inventory-view', 'inventory-manage', 'stock-receive', 'stock-issue', 'stock-transfer', 'stock-adjust', 'requisition-create', 'requisition-approve', 'requisition-issue', 'asset-view', 'asset-manage'],
         'procurement' => ['supplier-manage', 'purchase-request-create', 'purchase-approve', 'purchase-approve-large', 'quotation-manage', 'purchase-order-manage', 'goods-receipt-manage', 'supplier-bill-manage', 'supplier-payment-manage'],
         'accounting' => ['accounting-view', 'accounting-manage', 'accounting-period-manage', 'accounting-period-reopen'],
@@ -208,6 +214,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage-announcements',
             'manage-complaints',
             'manage-calendar',
+            'parent-messages',
             'employee-view',
             'employee-manage',
             'contract-view',
@@ -231,6 +238,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'enter-marks',
             'manage-assignments',
             'leave-request',
+            'parent-messages',
         ],
 
         'accountant' => [
@@ -252,6 +260,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-attendance-reports',
             'view-financial-reports',
             'view-audit-log',
+            'view-security-log',
         ],
     ];
 

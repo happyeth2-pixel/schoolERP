@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { BackLink } from '@/Components/ui';
 import {
     AcademicCapIcon,
     ChatBubbleLeftRightIcon,
@@ -15,8 +16,8 @@ function StepList({ items }) {
     return (
         <ol className="mt-3 space-y-2">
             {items.map((text, i) => (
-                <li key={i} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
-                    <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{i + 1}</span>
+                <li key={i} className="flex gap-3 text-sm text-stone-700 dark:text-stone-300">
+                    <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">{i + 1}</span>
                     <span>{text}</span>
                 </li>
             ))}
@@ -26,12 +27,12 @@ function StepList({ items }) {
 
 function Section({ icon: Icon, title, blurb, children }) {
     return (
-        <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800">
+        <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-stone-800">
             <div className="mb-1 flex items-center gap-2">
-                <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+                <Icon className="h-5 w-5 text-brand-600 dark:text-brand-400" />
+                <h3 className="text-base font-semibold text-stone-900 dark:text-stone-100">{title}</h3>
             </div>
-            <p className="text-sm text-gray-500">{blurb}</p>
+            <p className="text-sm text-stone-500">{blurb}</p>
             {children}
         </div>
     );
@@ -39,7 +40,7 @@ function Section({ icon: Icon, title, blurb, children }) {
 
 function Diagram({ viewBox, height = 100, children }) {
     return (
-        <div className="mt-3 overflow-x-auto rounded-md bg-slate-50 p-3">
+        <div className="mt-3 overflow-x-auto rounded-md bg-stone-50 p-3">
             <svg viewBox={viewBox} style={{ height, maxWidth: '100%' }} className="mx-auto block" xmlns="http://www.w3.org/2000/svg" fontFamily="inherit">
                 {children}
             </svg>
@@ -76,7 +77,7 @@ export default function Index() {
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('nav.help')}</h2>}
+            header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('nav.help')}</h2>}
         >
             <Head title={t('nav.help')} />
 
@@ -96,7 +97,8 @@ export default function Index() {
 
             <div className="py-8">
                 <div className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8">
-                    <p className="text-sm text-gray-500">{t('help.intro')}</p>
+                    <BackLink href={route('dashboard')}>{t('common.back')}</BackLink>
+                    <p className="text-sm text-stone-500">{t('help.intro')}</p>
 
                     <Section icon={HomeIcon} title={t('help.getting_started.title')} blurb={t('help.getting_started.blurb')}>
                         <Diagram viewBox="0 0 640 70">
@@ -214,7 +216,7 @@ export default function Index() {
 
                     {isAuditor && (
                         <Section icon={ShieldCheckIcon} title={t('help.auditor.title')} blurb={t('help.auditor.blurb')}>
-                            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                            <p className="mt-3 text-sm text-stone-600 dark:text-stone-300">
                                 {t('help.auditor.body')}
                             </p>
                         </Section>

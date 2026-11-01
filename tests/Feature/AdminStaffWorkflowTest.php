@@ -27,9 +27,7 @@ class AdminStaffWorkflowTest extends TestCase
 
     private function payload(array $over = []): array
     {
-        $data = array_merge(['name' => 'New Person', 'email' => 'new.person@test.test', 'title' => 'Registrar', 'phone' => '0911 22 33 44', 'role' => 'branch_admin', 'branch_id' => $this->branchA->id, 'permissions' => ['manage-students', 'manage-parents']], $over);
-
-        return $data + ['phone_confirmation' => $data['phone']];
+        return array_merge(['name' => 'New Person', 'email' => 'new.person@test.test', 'title' => 'Registrar', 'phone' => '0911 22 33 44', 'role' => 'branch_admin', 'branch_id' => $this->branchA->id, 'permissions' => ['manage-students', 'manage-parents']], $over);
     }
 
     private function admin(array $permissions): User
@@ -209,5 +207,80 @@ class AdminStaffWorkflowTest extends TestCase
         $this->actingAs($actor)->patch("/staff/{$east->id}", ['title' => 'x', 'status' => 'inactive'])->assertForbidden();
         $this->actingAs($actor)->patch("/staff/{$this->owner->id}", ['title' => 'x', 'status' => 'inactive'])->assertForbidden();
         $this->assertSame('active', $east->fresh()->status);
+    }
+
+    // ------------------------------------------------------------------ changing a system role after creation
+
+    public function test_an_owner_can_promote_a_teacher_to_branch_admin_with_fresh_permissions(): void
+    {
+        $teacher = $this->makeUser('teacher', $this->branchA->id);
+
+        $this->actingAs($this->owner)->patch("/staff/{$teacher->id}", [
+            'status' => 'active', 'role' => 'branch_admin', 'permissions' => ['manage-students', 'manage-classes'],
+        ])->assertSessionHasNoErrors();
+
+        $teacher->refresh();
+        $this->assertTrue($teacher->hasRole('branch_admin'));
+        $this->assertFalse($teacher->hasRole('teacher'));
+        $this->assertEqualsCanonicalizing(['manage-students', 'manage-classes'], $teacher->getPermissionNames()->all());
+        $this->assertSame($this->branchA->id, $teacher->branch_id, 'stays in the same branch');
+
+        $log = AuditLog::where('action', 'staff.role_changed')->where('auditable_id', $teacher->id)->firstOrFail();
+        $this->assertSame('teacher', $log->before['role']);
+        $this->assertSame('branch_admin', $log->after['role']);
+    }
+
+    public function test_demoting_a_branch_admin_resets_them_to_the_new_roles_fixed_permissions(): void
+    {
+        $admin = $this->makeUser('branch_admin', $this->branchA->id, ['manage-students', 'manage-parents', 'manage-staff']);
+
+        // asking for permissions a teacher can never customize is simply ignored -- teacher gets teacher's defaults
+        $this->actingAs($this->owner)->patch("/staff/{$admin->id}", ['status' => 'active', 'role' => 'teacher', 'permissions' => ['manage-staff']])->assertSessionHasNoErrors();
+
+        $admin->refresh();
+        $this->assertTrue($admin->hasRole('teacher'));
+        $this->assertEqualsCanonicalizing(RolesAndPermissionsSeeder::DEFAULT_PERMISSIONS['teacher'], $admin->getPermissionNames()->all());
+    }
+
+    public function test_promoting_someone_to_an_org_wide_role_clears_their_branch(): void
+    {
+        $admin = $this->makeUser('branch_admin', $this->branchA->id);
+
+        $this->actingAs($this->owner)->patch("/staff/{$admin->id}", ['status' => 'active', 'role' => 'auditor'])->assertSessionHasNoErrors();
+
+        $admin->refresh();
+        $this->assertTrue($admin->hasRole('auditor'));
+        $this->assertNull($admin->branch_id);
+    }
+
+    public function test_a_branch_admin_can_only_set_roles_they_could_assign_at_creation(): void
+    {
+        $actor = $this->admin(['manage-staff', 'manage-students']);
+        $teacher = $this->makeUser('teacher', $this->branchA->id);
+
+        // owner/auditor are org-wide roles only an owner may hand out
+        $this->actingAs($actor)->patch("/staff/{$teacher->id}", ['status' => 'active', 'role' => 'owner'])->assertSessionHasErrors('role');
+        $this->assertTrue($teacher->fresh()->hasRole('teacher'));
+
+        $this->actingAs($actor)->patch("/staff/{$teacher->id}", ['status' => 'active', 'role' => 'accountant'])->assertSessionHasNoErrors();
+        $this->assertTrue($teacher->fresh()->hasRole('accountant'));
+    }
+
+    public function test_nobody_can_change_their_own_system_role(): void
+    {
+        $admin = $this->admin(['manage-staff']);
+
+        $this->actingAs($admin)->patch("/staff/{$admin->id}", ['status' => 'active', 'role' => 'teacher'])->assertSessionHasErrors('role');
+        $this->assertTrue($admin->fresh()->hasRole('branch_admin'));
+    }
+
+    public function test_leaving_the_role_field_out_entirely_changes_nothing_about_it(): void
+    {
+        $teacher = $this->makeUser('teacher', $this->branchA->id);
+
+        $this->actingAs($this->owner)->patch("/staff/{$teacher->id}", ['title' => 'Senior Teacher', 'status' => 'active'])->assertSessionHasNoErrors();
+
+        $this->assertTrue($teacher->fresh()->hasRole('teacher'));
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'staff.role_changed', 'auditable_id' => $teacher->id]);
     }
 }

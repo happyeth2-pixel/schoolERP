@@ -410,14 +410,28 @@ class LoginThrottleTest extends TestCase
         $this->assertSame(30, $lock->context['lock_minutes']);
     }
 
-    public function test_only_people_who_may_read_the_audit_log_see_the_security_log(): void
+    public function test_only_people_holding_view_security_log_specifically_see_the_security_log(): void
     {
         $this->attempt('0977000000');
 
         $this->actingAs($this->makeUser('teacher', $this->branchA->id))->get('/audit-log/security')->assertForbidden();
+
+        // Holding the ordinary audit-log permission alone is deliberately not enough -- view-security-log
+        // was split off from it precisely so this case is refused (see the migration/controller that did it).
+        $this->actingAs($this->makeUser('branch_admin', $this->branchA->id, ['view-audit-log']))->get('/audit-log/security')->assertForbidden();
+
         $page = $this->props($this->actingAs($this->makeUser('auditor', null))->get('/audit-log/security')->assertOk());
         $this->assertSame('login_failed', $page['events']['data'][0]['event']);
         $this->assertSame('+2519*****000', json_decode(json_encode($page), true)['events']['data'][0]['identifier']);
+    }
+
+    public function test_the_audit_log_pages_security_link_only_shows_for_someone_who_can_actually_open_it(): void
+    {
+        $withBoth = $this->makeUser('branch_admin', $this->branchA->id, ['view-audit-log', 'view-security-log']);
+        $withOnlyAuditLog = $this->makeUser('branch_admin', $this->branchA->id, ['view-audit-log']);
+
+        $this->assertTrue($this->props($this->actingAs($withBoth)->get('/audit-log')->assertOk())['canViewSecurityLog']);
+        $this->assertFalse($this->props($this->actingAs($withOnlyAuditLog)->get('/audit-log')->assertOk())['canViewSecurityLog']);
     }
 
     public function test_old_events_are_pruned(): void

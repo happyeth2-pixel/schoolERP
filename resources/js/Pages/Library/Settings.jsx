@@ -1,10 +1,11 @@
-import { Alert, Button, Card, CheckRow, Field, FlashMessages, Input, Page } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, CheckRow, Field, FlashMessages, Input, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 
 export default function Settings({ canManage, loanDays, finePerDay }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const { data, setData, put, processing, errors } = useForm({
         library_loan_days: String(loanDays),
         fines_enabled: finePerDay !== null,
@@ -17,8 +18,8 @@ export default function Settings({ canManage, loanDays, finePerDay }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('library.settings_title')}</h2>}>
-            <Page title={t('library.settings_title')} description={t('library.settings_desc')} width="narrow">
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('library.settings_title')}</h2>}>
+            <Page title={t('library.settings_title')} description={t('library.settings_desc')} width="narrow" back={<BackLink big={auth.role === 'teacher'} href={route('library.index')}>{t('common.back')}</BackLink>}>
                 <FlashMessages />
                 {!canManage && <Alert tone="info">{t('student.read_only')}</Alert>}
 

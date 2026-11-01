@@ -46,6 +46,8 @@ class Student extends Model
         'date_of_birth',
         'photo_path',
         'address',
+        'kebele',
+        'city',
         'emergency_contact',
         'previous_school',
         'enrollment_date',
@@ -377,11 +379,21 @@ class Student extends Model
             ->withTimestamps();
     }
 
+    public function parentMessages(): HasMany
+    {
+        return $this->hasMany(ParentMessage::class);
+    }
+
     public function optionalServices(): BelongsToMany
     {
         return $this->belongsToMany(OptionalService::class, 'student_optional_service')
             ->withPivot('enrolled_on', 'custom_amount')
             ->withTimestamps();
+    }
+
+    public function bookPurchases(): HasMany
+    {
+        return $this->hasMany(StudentBookPurchase::class);
     }
 
     public function auditLabel(): string

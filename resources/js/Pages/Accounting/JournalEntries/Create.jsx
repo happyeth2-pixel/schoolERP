@@ -1,3 +1,4 @@
+import DateInput from '@/Components/DateInput';
 import { BackLink, Button, Field, FlashMessages, Input, Page, Select, TextArea } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -42,7 +43,7 @@ export default function Create({ accounts, journals, entry }) {
     const backLabel = editing ? entry.entry_number : t('journal_entry.back_to_list');
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
             <Page title={title} back={<BackLink href={backHref}>{backLabel}</BackLink>}>
                 <FlashMessages errorKeys={['lines']} />
                 <form onSubmit={submit} className="space-y-6">
@@ -52,7 +53,7 @@ export default function Create({ accounts, journals, entry }) {
                         </Select>
                     </Field>
                     <Field id="je_date" label={t('journal_entry.entry_date')} error={errors.entry_date}>
-                        <Input type="date" value={data.entry_date} onChange={(e) => setData('entry_date', e.target.value)} />
+                        <DateInput value={data.entry_date} onChange={(v) => setData('entry_date', v)} />
                     </Field>
                     <Field id="je_reference" label={t('journal_entry.reference')} optional error={errors.reference}>
                         <Input value={data.reference} onChange={(e) => setData('reference', e.target.value)} maxLength={255} autoComplete="off" />
@@ -61,12 +62,12 @@ export default function Create({ accounts, journals, entry }) {
                         <TextArea id="je_description" value={data.description} onChange={(e) => setData('description', e.target.value)} />
                     </Field>
 
-                    <div className="space-y-4 rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700">
-                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('journal_entry.lines_title')}</p>
+                    <div className="space-y-4 rounded-xl border-2 border-stone-200 p-4 dark:border-stone-700">
+                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('journal_entry.lines_title')}</p>
                         {data.lines.map((line, index) => (
-                            <div key={index} className="space-y-2 border-b border-gray-200 pb-4 last:border-0 last:pb-0 dark:border-gray-700" data-testid="je-line">
+                            <div key={index} className="space-y-2 border-b border-stone-200 pb-4 last:border-0 last:pb-0 dark:border-stone-700" data-testid="je-line">
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{t('journal_entry.line_n', { n: index + 1 })}</p>
+                                    <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{t('journal_entry.line_n', { n: index + 1 })}</p>
                                     {data.lines.length > 2 && (
                                         <Button type="button" variant="quiet" size="md" icon={TrashIcon} onClick={() => removeLine(index)}>{t('journal_entry.remove_line')}</Button>
                                     )}
@@ -89,14 +90,14 @@ export default function Create({ accounts, journals, entry }) {
                         ))}
                         <Button type="button" variant="secondary" icon={PlusIcon} onClick={addLine}>{t('journal_entry.add_line')}</Button>
 
-                        <div className="flex items-center justify-between border-t-2 border-gray-200 pt-4 dark:border-gray-700">
-                            <p className="text-base text-gray-800 dark:text-gray-200">{t('journal_entry.totals', { debit: money(totalDebit), credit: money(totalCredit) })}</p>
+                        <div className="flex items-center justify-between border-t-2 border-stone-200 pt-4 dark:border-stone-700">
+                            <p className="text-base text-stone-800 dark:text-stone-200">{t('journal_entry.totals', { debit: money(totalDebit), credit: money(totalCredit) })}</p>
                             {!balanced && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{t('journal_entry.not_balanced')}</p>}
                         </div>
                     </div>
 
                     <Button type="submit" fullWidth busy={processing} disabled={!data.journal_id || !linesValid}>{editing ? t('journal_entry.save_changes_button') : t('journal_entry.save_draft_button')}</Button>
-                    {!balanced && <p className="text-center text-sm text-gray-600 dark:text-gray-400">{t('journal_entry.draft_can_be_unbalanced')}</p>}
+                    {!balanced && <p className="text-center text-sm text-stone-600 dark:text-stone-400">{t('journal_entry.draft_can_be_unbalanced')}</p>}
                 </form>
             </Page>
         </AuthenticatedLayout>

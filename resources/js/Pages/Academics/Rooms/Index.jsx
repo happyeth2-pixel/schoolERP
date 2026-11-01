@@ -1,13 +1,15 @@
 import RoomDialog from '@/Components/RoomDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BuildingOffice2Icon, PlusIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ rooms, canManage, branches, fixedBranch }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
+    const isTeacher = auth.role === 'teacher';
     const [dialog, setDialog] = useState(null); // null | 'new' | a room object
     const [ask, confirmDialog] = useConfirm();
 
@@ -23,10 +25,11 @@ export default function Index({ rooms, canManage, branches, fixedBranch }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('timetable.rooms_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('timetable.rooms_title')}</h2>}>
             <Page
                 title={t('timetable.rooms_title')}
                 description={t('timetable.rooms_desc')}
+                back={<BackLink big={isTeacher} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('timetable.add_room_button')}</Button>}
             >
                 <FlashMessages errorKeys={['name']} />
@@ -35,12 +38,12 @@ export default function Index({ rooms, canManage, branches, fixedBranch }) {
                     <Card><EmptyState icon={BuildingOffice2Icon} title={t('timetable.empty_rooms_title')}>{t('timetable.empty_rooms_body')}</EmptyState></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="room-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="room-list">
                             {rooms.map((r) => (
                                 <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="room-row">
                                     <div>
-                                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{r.name}</span>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{r.name}</span>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">
                                             {r.branch}{r.capacity != null && ` · ${t('timetable.room_capacity_x', { count: r.capacity })}`}
                                         </p>
                                     </div>

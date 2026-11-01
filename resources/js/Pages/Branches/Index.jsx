@@ -5,6 +5,7 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import { BackLink } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -32,7 +33,7 @@ function BranchForm({ branch, onDone }) {
 
     return (
         <form onSubmit={submit} className="space-y-4 p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                 {isEdit ? t('branches.edit_title') : t('branches.add_title')}
             </h2>
             <div>
@@ -69,7 +70,7 @@ function BranchForm({ branch, onDone }) {
                     checked={data.is_main}
                     onChange={(e) => setData('is_main', e.target.checked)}
                 />
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('branches.main_campus_label')}</span>
+                <span className="text-sm text-stone-600 dark:text-stone-400">{t('branches.main_campus_label')}</span>
             </label>
             <div className="flex justify-end gap-3">
                 <SecondaryButton type="button" onClick={onDone}>{t('common.cancel')}</SecondaryButton>
@@ -81,14 +82,14 @@ function BranchForm({ branch, onDone }) {
 
 export default function Index({ branches }) {
     const { t } = useTranslation();
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
     const [showCreate, setShowCreate] = useState(false);
     const [editing, setEditing] = useState(null);
 
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
                     {t('branches.page_title')}
                 </h2>
             }
@@ -97,6 +98,7 @@ export default function Index({ branches }) {
 
             <div className="py-8">
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-4"><BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink></div>
                     {flash?.success && (
                         <div className="mb-4 rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             {flash.success}
@@ -109,27 +111,27 @@ export default function Index({ branches }) {
                         </PrimaryButton>
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
+                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-stone-800">
+                        <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+                            <thead className="bg-stone-50 dark:bg-stone-900/40">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('branches.col_name')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('branches.col_code')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('branches.col_staff')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('branches.col_main')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('branches.col_name')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('branches.col_code')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('branches.col_staff')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('branches.col_main')}</th>
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody className="divide-y divide-stone-200 dark:divide-stone-700">
                                 {branches.map((branch) => (
                                     <tr key={branch.id}>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{branch.name}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{branch.code}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{branch.users_count}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{branch.is_main ? t('common.yes') : ''}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-900 dark:text-stone-100">{branch.name}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-500">{branch.code}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-500">{branch.users_count}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-500">{branch.is_main ? t('common.yes') : ''}</td>
                                         <td className="px-4 py-3 text-right text-sm">
                                             <button
-                                                className="text-indigo-600 hover:underline dark:text-indigo-400"
+                                                className="text-brand-600 hover:underline dark:text-brand-400"
                                                 onClick={() => setEditing(branch)}
                                             >
                                                 {t('common.edit')}
@@ -139,7 +141,7 @@ export default function Index({ branches }) {
                                 ))}
                                 {branches.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">
+                                        <td colSpan={5} className="px-4 py-6 text-center text-sm text-stone-400">
                                             {t('branches.none_yet')}
                                         </td>
                                     </tr>

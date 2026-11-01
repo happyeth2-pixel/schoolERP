@@ -1,4 +1,4 @@
-import { Button, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, StatusBadge } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -21,11 +21,13 @@ export default function Index({ complaints, isStaffView, statusFilter }) {
     ];
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{title}</h2>}>
             <Head title={title} />
 
             <div className="py-8">
                 <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    <BackLink href={route('dashboard')}>{t('common.back')}</BackLink>
+
                     {flash?.success && (
                         <div className="rounded-md bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             {flash.success}
@@ -39,7 +41,7 @@ export default function Index({ complaints, isStaffView, statusFilter }) {
                                     <button
                                         key={label}
                                         onClick={() => setFilter(value)}
-                                        className={`rounded-full px-3 py-1 ${(statusFilter ?? null) === value ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
+                                        className={`rounded-full px-3 py-1 ${(statusFilter ?? null) === value ? 'bg-brand-600 text-white' : 'bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300'}`}
                                     >
                                         {label}
                                     </button>
@@ -53,36 +55,36 @@ export default function Index({ complaints, isStaffView, statusFilter }) {
                         )}
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-gray-800">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-900/40">
+                    <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-stone-800">
+                        <table className="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+                            <thead className="bg-stone-50 dark:bg-stone-900/40">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('complaints.col_subject')}</th>
-                                    {isStaffView && <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('complaints.col_from')}</th>}
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('complaints.col_student')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('complaints.col_status')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">{t('complaints.col_submitted')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('complaints.col_subject')}</th>
+                                    {isStaffView && <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('complaints.col_from')}</th>}
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('complaints.col_student')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('complaints.col_status')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-stone-500">{t('complaints.col_submitted')}</th>
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody className="divide-y divide-stone-200 dark:divide-stone-700">
                                 {complaints.map((c) => (
                                     <tr key={c.id}>
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{c.subject}</td>
-                                        {isStaffView && <td className="px-4 py-3 text-sm text-gray-500">{c.submitted_by}</td>}
-                                        <td className="px-4 py-3 text-sm text-gray-500">{c.student ? (c.student.restricted ? <span className="italic text-gray-400">{t('complaints.restricted')}</span> : `${c.student.name} — ${c.student.section}`) : '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-900 dark:text-stone-100">{c.subject}</td>
+                                        {isStaffView && <td className="px-4 py-3 text-sm text-stone-500">{c.submitted_by}</td>}
+                                        <td className="px-4 py-3 text-sm text-stone-500">{c.student ? (c.student.restricted ? <span className="italic text-stone-400">{t('complaints.restricted')}</span> : `${c.student.name} — ${c.student.section}`) : '—'}</td>
                                         <td className="px-4 py-3 text-sm">
                                             <StatusBadge status={c.status} />
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{c.created_at}</td>
+                                        <td className="px-4 py-3 text-sm text-stone-500">{c.created_at}</td>
                                         <td className="px-4 py-3 text-right text-sm">
-                                            <Link href={route('complaints.show', c.id)} className="text-indigo-600 hover:underline dark:text-indigo-400">{t('complaints.view_link')}</Link>
+                                            <Link href={route('complaints.show', c.id)} className="text-brand-600 hover:underline dark:text-brand-400">{t('complaints.view_link')}</Link>
                                         </td>
                                     </tr>
                                 ))}
                                 {complaints.length === 0 && (
                                     <tr>
-                                        <td colSpan={isStaffView ? 6 : 5} className="px-4 py-6 text-center text-sm text-gray-400">
+                                        <td colSpan={isStaffView ? 6 : 5} className="px-4 py-6 text-center text-sm text-stone-400">
                                             {isStaffView ? t('complaints.none_staff') : t('complaints.none_mine')}
                                         </td>
                                     </tr>

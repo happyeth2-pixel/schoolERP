@@ -31,10 +31,12 @@ class PeriodController extends Controller
                     'id' => $p->id,
                     'period_number' => $p->period_number,
                     'name' => $p->name,
+                    'type' => $p->type,
                     'start_time' => substr($p->start_time, 0, 5),
                     'end_time' => substr($p->end_time, 0, 5),
                     'slots_count' => $p->timetable_slots_count,
                 ]),
+            'types' => Period::TYPES,
             'canManage' => $user->can('timetable-manage'),
         ]);
     }
@@ -47,6 +49,7 @@ class PeriodController extends Controller
         $validated = $request->validate([
             'period_number' => ['required', 'integer', 'min:1', 'max:20', Rule::unique('periods')->where('school_id', $user->school_id)],
             'name' => ['nullable', 'string', 'max:255'],
+            'type' => ['required', Rule::in(Period::TYPES)],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
         ]);
@@ -65,9 +68,16 @@ class PeriodController extends Controller
         $validated = $request->validate([
             'period_number' => ['required', 'integer', 'min:1', 'max:20', Rule::unique('periods')->where('school_id', $user->school_id)->ignore($period->id)],
             'name' => ['nullable', 'string', 'max:255'],
+            'type' => ['required', Rule::in(Period::TYPES)],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
         ]);
+
+        // A period already used to teach something -- an ordinary class or an after-school programme --
+        // cannot be turned into a break/lunch out from under it.
+        if ($validated['type'] !== 'teaching' && ($period->timetableSlots()->exists() || \App\Models\OptionalService::where('period_id', $period->id)->exists())) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['type' => 'This period already has lessons or an after-school programme scheduled in it -- remove them first, or leave it as a teaching period.']);
+        }
 
         $period->update($validated);
 

@@ -7,6 +7,7 @@ use App\Models\SecurityEvent;
 use App\Models\Student;
 use App\Models\User;
 use App\Rules\EthiopianMobileRule;
+use App\Rules\NotBasedOnIdentity;
 use App\Rules\UniqueAccountPhone;
 use App\Security\LoginThrottle;
 use App\Support\PhoneNumber;
@@ -78,6 +79,7 @@ class ParentController extends Controller
             ->map(fn (User $p) => [
                 'id' => $p->id,
                 'name' => $p->name,
+                'photo_url' => $p->profile_photo_url,
                 'email' => $p->email,
                 'phone' => $p->phone,
                 'phone_display' => $p->phone ? PhoneNumber::display($p->phone) : null,
@@ -130,13 +132,8 @@ class ParentController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50', new EthiopianMobileRule, new UniqueAccountPhone],
-            'phone_confirmation' => ['required', 'string', function ($attribute, $value, $fail) use ($request) {
-                if (PhoneNumber::normalizeMobile((string) $value) !== PhoneNumber::normalizeMobile((string) $request->input('phone'))) {
-                    $fail('The two phone numbers are not the same. Check them and type the number again.');
-                }
-            }],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
-            'temporary_password' => ['nullable', 'string', 'max:72', Password::min(8)->letters()->numbers()],
+            'temporary_password' => ['nullable', 'string', 'max:72', Password::min(8)->letters()->mixedCase()->numbers(), new NotBasedOnIdentity($request->input('name'), $request->input('phone'))],
             'student_ids' => ['array', 'max:20'],
             'student_ids.*' => ['integer', 'distinct'],
             'relationships' => ['array'],

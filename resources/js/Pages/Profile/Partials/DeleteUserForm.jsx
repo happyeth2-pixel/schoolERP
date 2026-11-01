@@ -50,11 +50,11 @@ export default function DeleteUserForm({ className = '' }) {
     return (
         <section className={`space-y-6 ${className}`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                     {t('profile.deactivate_title')}
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                     {t('profile.deactivate_desc')}
                 </p>
             </header>
@@ -65,11 +65,11 @@ export default function DeleteUserForm({ className = '' }) {
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                         {t('profile.deactivate_confirm_title')}
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                         {t('profile.deactivate_confirm_desc')}
                     </p>
 

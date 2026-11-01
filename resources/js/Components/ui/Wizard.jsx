@@ -71,14 +71,14 @@ export function WizardProgress({ steps, current }) {
 
     return (
         <div className="mb-6" role="group" aria-label={label}>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
+            <p className="text-sm font-medium text-stone-600 dark:text-stone-400">{label}</p>
             <div className="mt-2 flex gap-1.5" aria-hidden="true">
                 {steps.map((step, i) => (
-                    <div key={step.key} className={`h-2.5 flex-1 rounded-full ${i <= current ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                    <div key={step.key} className={`h-2.5 flex-1 rounded-full ${i <= current ? 'bg-brand-600' : 'bg-stone-200 dark:bg-stone-700'}`} />
                 ))}
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">{steps[current].label}</h3>
-            {steps[current].description && <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{steps[current].description}</p>}
+            <h3 className="mt-4 text-xl font-semibold text-stone-900 dark:text-stone-100">{steps[current].label}</h3>
+            {steps[current].description && <p className="mt-1 text-base text-stone-600 dark:text-stone-400">{steps[current].description}</p>}
         </div>
     );
 }
@@ -114,7 +114,7 @@ export function WizardButtons({ onBack, onNext, nextLabel, nextDisabled = false,
                     {isFinal ? finalLabel : nextLabel ?? t('wizard.next')}
                 </Button>
             </div>
-            {nextDisabled && whyBlocked && <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 sm:text-right">{whyBlocked}</p>}
+            {nextDisabled && whyBlocked && <p className="mt-3 text-sm text-stone-600 dark:text-stone-400 sm:text-right">{whyBlocked}</p>}
         </div>
     );
 }
@@ -148,12 +148,12 @@ export function ReviewList({ rows, onEdit }) {
     const { t } = useTranslation();
 
     return (
-        <dl className="divide-y divide-gray-200 rounded-xl border-2 border-gray-200 text-base dark:divide-gray-700 dark:border-gray-700">
+        <dl className="divide-y divide-stone-200 rounded-xl border-2 border-stone-200 text-base dark:divide-stone-700 dark:border-stone-700">
             {rows.map((row) => (
                 <div key={row.label} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                    <dt className="text-gray-600 dark:text-gray-400">{row.label}</dt>
+                    <dt className="text-stone-600 dark:text-stone-400">{row.label}</dt>
                     <dd className="flex items-center gap-3 sm:justify-end">
-                        <span className="break-words font-semibold text-gray-900 dark:text-gray-100">{row.value}</span>
+                        <span className="break-words font-semibold text-stone-900 dark:text-stone-100">{row.value}</span>
                         {onEdit && row.step !== undefined && (
                             <Button size="md" variant="quiet" onClick={() => onEdit(row.step)}>{t('wizard.change')}</Button>
                         )}

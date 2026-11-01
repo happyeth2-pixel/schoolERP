@@ -8,13 +8,19 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Sign-in security events (failed tries, cool-downs, locks, resets), for people who may read the audit log. */
+/**
+ * Sign-in security events (failed tries, cool-downs, locks, resets). Deliberately gated on its own
+ * `view-security-log` permission (added 2026-10-28), separate from `view-audit-log` -- someone given the
+ * ordinary audit trail for day-to-day record-keeping has no particular need to also see
+ * authentication-abuse telemetry. See the migration that split it off for how existing accounts were
+ * grandfathered.
+ */
 class SecurityLogController extends Controller
 {
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $user->can('view-audit-log') || abort(403);
+        $user->can('view-security-log') || abort(403);
 
         // this school's events, plus the ones that belong to no school (numbers that are nobody's, and network addresses)
         $base = SecurityEvent::query()->where(fn ($q) => $q->where('school_id', $user->school_id)->orWhereNull('school_id'));

@@ -1,8 +1,8 @@
-import { Button, Card, EmptyState, Field, FlashMessages, Input, Page, Select, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Field, FlashMessages, Input, Page, Select, StatusBadge } from '@/Components/ui';
 import Modal from '@/Components/Modal';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BanknotesIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -24,9 +24,9 @@ function GenerateDialog({ open, branches, fixedBranch, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="payroll-generate-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('payroll.generate_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('payroll.generate_title')}</h2>
                     {fixedBranch ? (
-                        <p className="text-base text-gray-800 dark:text-gray-200" data-testid="fixed-branch">{fixedBranch.name}</p>
+                        <p className="text-base text-stone-800 dark:text-stone-200" data-testid="fixed-branch">{fixedBranch.name}</p>
                     ) : (
                         <Field id="run_branch" label={t('payroll.branch_label')} error={errors.branch_id}>
                             <Select id="run_branch" value={data.branch_id} onChange={(e) => setData('branch_id', e.target.value)}>
@@ -49,13 +49,15 @@ function GenerateDialog({ open, branches, fixedBranch, onClose }) {
 
 export default function Index({ runs, canManage, branches, fixedBranch }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(false);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('payroll.runs_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('payroll.runs_title')}</h2>}>
             <Page
                 title={t('payroll.runs_title')}
                 description={t('payroll.runs_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog(true)}>{t('payroll.generate_button')}</Button>}
             >
                 <FlashMessages />
@@ -64,13 +66,13 @@ export default function Index({ runs, canManage, branches, fixedBranch }) {
                     <Card><EmptyState icon={BanknotesIcon} title={t('payroll.no_runs')} /></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="payroll-run-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="payroll-run-list">
                             {runs.map((r) => (
                                 <li key={r.id} className="py-3" data-testid="payroll-run-row">
                                     <Link href={route('payroll-runs.show', r.id)} className="flex flex-wrap items-center justify-between gap-2 hover:underline">
-                                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{r.branch} &middot; {r.label}</span>
+                                        <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{r.branch} &middot; {r.label}</span>
                                         <span className="flex items-center gap-2">
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">{r.payslips_count}</span>
+                                            <span className="text-sm text-stone-600 dark:text-stone-400">{r.payslips_count}</span>
                                             <StatusBadge tone={STATUS_TONE[r.status]} label={t(`payroll.status_${r.status}`)} />
                                         </span>
                                     </Link>

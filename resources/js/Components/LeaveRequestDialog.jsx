@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import DateInput from '@/Components/DateInput';
 import { Button, Field, Input, Select, TextArea } from '@/Components/ui';
 import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
@@ -40,7 +41,7 @@ export default function LeaveRequestDialog({ open, employeeId, leaveTypes, reque
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form className="space-y-6 p-6" data-testid="leave-request-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{editing ? t('leave.edit_title') : t('leave.request_title')}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{editing ? t('leave.edit_title') : t('leave.request_title')}</h2>
 
                     <Field id="leave_type" label={t('leave.leave_type')} error={errors.leave_type_id}>
                         <Select id="leave_type" value={data.leave_type_id} onChange={(e) => setData('leave_type_id', e.target.value)}>
@@ -48,12 +49,12 @@ export default function LeaveRequestDialog({ open, employeeId, leaveTypes, reque
                         </Select>
                     </Field>
                     <Field id="leave_start" label={t('leave.start_date')} error={errors.start_date}>
-                        <Input type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                        <DateInput value={data.start_date} onChange={(v) => setData('start_date', v)} />
                     </Field>
                     <Field id="leave_end" label={t('leave.end_date')} error={errors.end_date}>
-                        <Input type="date" value={data.end_date} onChange={(e) => setData('end_date', e.target.value)} />
+                        <DateInput value={data.end_date} onChange={(v) => setData('end_date', v)} />
                     </Field>
-                    {days !== null && <p className="text-base text-gray-700 dark:text-gray-300" data-testid="leave-day-count">{t('leave.days_x', { count: days })}</p>}
+                    {days !== null && <p className="text-base text-stone-700 dark:text-stone-300" data-testid="leave-day-count">{t('leave.days_x', { count: days })}</p>}
                     <Field id="leave_reason" label={t('leave.reason')} error={errors.reason}>
                         <TextArea value={data.reason} onChange={(e) => setData('reason', e.target.value)} rows={3} maxLength={1000} />
                     </Field>

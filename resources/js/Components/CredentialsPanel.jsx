@@ -1,5 +1,5 @@
 import { Alert, Button, PrintArea, PrintButton } from '@/Components/ui';
-import { CheckIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, CheckIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -22,17 +22,18 @@ export default function CredentialsPanel({ credentials, tone = 'panel' }) {
         credentials.children?.length > 0 && { k: 'children', label: t('cred.children'), value: credentials.children.join(', ') },
     ].filter(Boolean);
 
+    const asText = () => [
+        `${t('cred.name')}: ${credentials.name}`,
+        ...rows.filter((r) => r.k !== 'name').map((r) => `${r.label}: ${r.value}`),
+        `${t('cred.login')}: ${login}`,
+        `${t('cred.password')}: ${credentials.password}`,
+        '',
+        t('cred.give_warning'),
+    ].join('\n');
+
     const copy = async () => {
-        const lines = [
-            `${t('cred.name')}: ${credentials.name}`,
-            ...rows.filter((r) => r.k !== 'name').map((r) => `${r.label}: ${r.value}`),
-            `${t('cred.login')}: ${login}`,
-            `${t('cred.password')}: ${credentials.password}`,
-            '',
-            t('cred.give_warning'),
-        ];
         try {
-            await navigator.clipboard.writeText(lines.join('\n'));
+            await navigator.clipboard.writeText(asText());
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         } catch {
@@ -40,23 +41,39 @@ export default function CredentialsPanel({ credentials, tone = 'panel' }) {
         }
     };
 
+    // A plain text file, built from exactly what's already shown on screen -- nothing new is stored
+    // anywhere to make this possible (the password still only ever exists, in the clear, right here, right
+    // now); it just gives the admin somewhere of THEIR OWN choosing to keep this one-time view before it's
+    // gone, same as "Print" already does via a browser's own "Save as PDF".
+    const download = () => {
+        const blob = new Blob([asText()], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${credentials.name.trim().replace(/\s+/g, '-') || 'account'}-login-details.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
     return (
-        <div className={`space-y-4 rounded-2xl border-2 p-5 ${tone === 'panel' ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/25' : 'border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-900/20'}`} data-testid="credentials">
-            <PrintArea className="space-y-4 bg-white p-6 text-gray-900 print:w-full">
+        <div className={`space-y-4 rounded-2xl border-2 p-5 ${tone === 'panel' ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/25' : 'border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/20'}`} data-testid="credentials">
+            <PrintArea className="space-y-4 bg-white p-6 text-stone-900 print:w-full">
                 <h3 className={`text-xl font-semibold ${reset ? '' : 'hidden print:block'}`} data-testid="cred-title">{reset ? t('cred.reset_title', { name: credentials.name }) : t('cred.created_title')}</h3>
                 <dl className="space-y-3 text-base">
                     {rows.map((r) => (
                         <div key={r.k}>
-                            <dt className="text-gray-700">{r.label}</dt>
+                            <dt className="text-stone-700">{r.label}</dt>
                             <dd className="text-lg font-semibold" data-testid={`cred-${r.k}`}>{r.value}</dd>
                         </div>
                     ))}
                     <div>
-                        <dt className="text-gray-700">{t('cred.login')}</dt>
+                        <dt className="text-stone-700">{t('cred.login')}</dt>
                         <dd className="text-2xl font-bold" data-testid="cred-who">{login}</dd>
                     </div>
                     <div>
-                        <dt className="text-gray-700">{t('cred.password')}</dt>
+                        <dt className="text-stone-700">{t('cred.password')}</dt>
                         <dd className="select-all break-all font-mono text-2xl font-bold tracking-wider" data-testid="cred-password">{credentials.password}</dd>
                     </div>
                 </dl>
@@ -65,6 +82,7 @@ export default function CredentialsPanel({ credentials, tone = 'panel' }) {
             <Alert tone="warning" title={t('cred.once_title')}>{t('cred.note_once')}</Alert>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 <Button icon={copied ? CheckIcon : ClipboardDocumentIcon} onClick={copy}>{copied ? t('cred.copied') : t('cred.copy')}</Button>
+                <Button variant="secondary" icon={ArrowDownTrayIcon} onClick={download}>{t('cred.download')}</Button>
                 <PrintButton label={t('cred.print')} />
             </div>
         </div>

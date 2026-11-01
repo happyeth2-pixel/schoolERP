@@ -11,8 +11,12 @@ use App\Models\Mark;
 use App\Models\MarkBatch;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Models\User;
+use App\Notifications\MarkBatchPublished;
+use App\Notifications\MarkBatchSubmitted;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -175,6 +179,8 @@ class MarkBatchController extends Controller
             AuditLog::record($request->user(), 'mark_batch.submitted', $locked, ['status' => 'draft'], ['status' => 'submitted']);
         });
 
+        $this->notifyApprovers($markBatch->refresh());
+
         return back()->with('success', 'Submitted for approval.');
     }
 
@@ -259,6 +265,8 @@ class MarkBatchController extends Controller
             return $publication;
         });
 
+        $this->notifyGuardians($markBatch->refresh());
+
         return back()->with('success', 'Results published — visible to parents and students now.');
     }
 
@@ -297,6 +305,40 @@ class MarkBatchController extends Controller
         return back()->with('success', 'Reopened for correction. The published version stays on record and this is logged in the audit trail.');
     }
 
+    /** Whoever holds approve-results in the batch's own branch (plus org-wide holders) -- the same
+     * "scope then filter by actual permission" shape ComplaintController::recipientsFor() uses. */
+    private function notifyApprovers(MarkBatch $batch): void
+    {
+        $batch->loadMissing('section', 'subject', 'exam', 'teacher');
+        $branchId = $batch->section->branch_id;
+
+        $recipients = User::where('school_id', $batch->exam->school_id)
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('branch_id')->orWhere('branch_id', $branchId))
+            ->get()
+            ->filter(fn ($u) => $u->can('approve-results'));
+
+        Notification::send($recipients, new MarkBatchSubmitted($batch));
+    }
+
+    /** One instance per enrolled student, to that student's own guardians -- the same shape
+     * Assignment::notifyGuardians() already uses, so each guardian's own link lands on the right child
+     * even though the batch itself covers a whole section. */
+    private function notifyGuardians(MarkBatch $batch): void
+    {
+        $batch->loadMissing('section');
+        $enrollments = $batch->section->enrollments()->active()->with('student.guardians')->get();
+
+        foreach ($enrollments as $enrollment) {
+            $guardians = $enrollment->student->guardians;
+            if ($guardians->isEmpty()) {
+                continue;
+            }
+
+            Notification::send($guardians, new MarkBatchPublished($batch, $enrollment->student));
+        }
+    }
+
     private function assertAssignedTeacher($user, Section $section, Subject $subject): void
     {
         abort_unless(
@@ -314,5 +356,47 @@ class MarkBatchController extends Controller
         if (! $user->isOrgWide()) {
             abort_unless($user->branch_id === $markBatch->section->branch_id, 403);
         }
+    }
+
+    /**
+     * The approver's own look at a batch's actual marks before they approve/reject it -- a branch_admin
+     * holding approve-results/publish-results but NOT enter-marks could previously only see the batch's
+     * metadata (section/subject/teacher/status) on the Approvals queue, never the scores themselves,
+     * and had no route that would let them in to look (MarkBatchController::show() is hard-gated to
+     * enter-marks). This reuses the exact same read-only rendering Marks/Enter.jsx already shows a
+     * TEACHER once their own batch leaves draft (status badge, "what happens next", a plain list of
+     * name + score) -- never the editable form, regardless of the batch's actual status, and never a
+     * route that can save anything: no store()/submit() equivalent exists here.
+     */
+    public function viewForApproval(Request $request, MarkBatch $markBatch): Response
+    {
+        $user = $request->user();
+        ($user->can('approve-results') || $user->can('publish-results')) || abort(403);
+        $this->assertBranchInScope($user, $markBatch);
+
+        $markBatch->load(['exam', 'section.grade', 'subject']);
+        $enrollments = $markBatch->section->enrollments()->active()->with('student')->get()->sortBy(fn ($e) => $e->student->first_name)->values();
+        $marks = $markBatch->marks()->get()->keyBy('enrollment_id');
+
+        return Inertia::render('Marks/Enter', [
+            'readOnly' => true,
+            'backTo' => ['route' => 'mark-batches.approvals'],
+            'batch' => [
+                'id' => $markBatch->id,
+                'status' => $markBatch->status,
+                'max_score' => (float) ($markBatch->marks()->orderBy('id')->value('max_score') ?? 100),
+            ],
+            'missing_mark_policy' => $user->school->missing_mark_policy ?? 'exclude',
+            'exam' => ['id' => $markBatch->exam->id, 'name' => $markBatch->exam->name],
+            'section' => ['id' => $markBatch->section->id, 'label' => "{$markBatch->section->grade->name} {$markBatch->section->name}"],
+            'subject' => ['id' => $markBatch->subject->id, 'name' => $markBatch->subject->name],
+            'roster' => $enrollments->map(fn ($e) => [
+                'enrollment_id' => $e->id,
+                'student_name' => $e->student->fullName(),
+                'student_id_number' => $e->student->student_id_number,
+                'score' => $marks->get($e->id)?->score,
+                'max_score' => $marks->get($e->id)?->max_score ?? 100,
+            ]),
+        ]);
     }
 }

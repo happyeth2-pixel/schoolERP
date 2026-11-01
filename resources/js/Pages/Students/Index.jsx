@@ -1,8 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import Avatar from '@/Components/Avatar';
+import CredentialsPanel from '@/Components/CredentialsPanel';
 import Pagination from '@/Components/Pagination';
-import { Alert, Button, Card, EmptyState, FlashMessages, Input, Page, StatusBadge, SuccessPanel } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, EmptyState, FlashMessages, Input, Page, StatusBadge, SuccessPanel } from '@/Components/ui';
 import { ArrowDownTrayIcon, BanknotesIcon, IdentificationIcon, MagnifyingGlassIcon, UserPlusIcon, UsersIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,22 +25,25 @@ function ResultCard({ s, contact, task, canManage }) {
     const phones = guardians ? guardians.filter((g) => g.phone) : [];
 
     return (
-        <Card className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" data-testid="student-result" data-student-id={s.id}>
-            <div className="min-w-0 space-y-1">
-                <p className="text-xl font-semibold text-gray-900 dark:text-gray-100" data-testid="result-name">{s.name}</p>
-                <p className="text-base text-gray-800 dark:text-gray-200" data-testid="result-class">
-                    {s.grade ? t('find.class_line', { grade: s.grade, section: s.section_name }) : t('find.no_class')} · {t('find.id_number', { id: s.student_id_number })}
-                </p>
-                <p className={`text-base ${s.guardians.length ? 'text-gray-700 dark:text-gray-300' : 'font-medium text-amber-700 dark:text-amber-400'}`} data-testid="result-parent">
-                    {s.guardians.length ? t('find.parents', { names: s.guardians.join(', ') }) : t('find.no_parent')}
-                </p>
-                {canManage && phones.length > 0 && (
-                    <p className="text-base text-gray-700 dark:text-gray-300" data-testid="result-phone">{t('find.phone_line', { phones: phones.map((g) => g.phone).join(' · ') })}</p>
-                )}
-                {canManage && guardians && s.guardians.length > 0 && phones.length === 0 && (
-                    <p className="text-base text-gray-600 dark:text-gray-400" data-testid="result-phone">{t('find.no_phone')}</p>
-                )}
-                <p><StatusBadge status={s.status} label={s.status.charAt(0).toUpperCase() + s.status.slice(1)} /></p>
+        <Card className="!p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between" data-testid="student-result" data-student-id={s.id}>
+            <div className="flex min-w-0 items-start gap-3">
+                <Avatar src={s.photo_url} name={s.name} size={48} shape="rounded" fallback="icon" />
+                <div className="min-w-0 space-y-1">
+                    <p className="text-xl font-semibold text-stone-900 dark:text-stone-100" data-testid="result-name">{s.name}</p>
+                    <p className="text-base text-stone-800 dark:text-stone-200" data-testid="result-class">
+                        {s.grade ? t('find.class_line', { grade: s.grade, section: s.section_name }) : t('find.no_class')} · {t('find.id_number', { id: s.student_id_number })}
+                    </p>
+                    <p className={`text-base ${s.guardians.length ? 'text-stone-700 dark:text-stone-300' : 'font-medium text-amber-700 dark:text-amber-400'}`} data-testid="result-parent">
+                        {s.guardians.length ? t('find.parents', { names: s.guardians.join(', ') }) : t('find.no_parent')}
+                    </p>
+                    {canManage && phones.length > 0 && (
+                        <p className="text-base text-stone-700 dark:text-stone-300" data-testid="result-phone">{t('find.phone_line', { phones: phones.map((g) => g.phone).join(' · ') })}</p>
+                    )}
+                    {canManage && guardians && s.guardians.length > 0 && phones.length === 0 && (
+                        <p className="text-base text-stone-600 dark:text-stone-400" data-testid="result-phone">{t('find.no_phone')}</p>
+                    )}
+                    <p><StatusBadge status={s.status} label={s.status.charAt(0).toUpperCase() + s.status.slice(1)} /></p>
+                </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
                 <Button as={Link} href={route('students.desk', s.id)} variant="primary" data-testid="open-student" data-result-link>{t('find.open_student')}</Button>
@@ -51,6 +56,9 @@ function ResultCard({ s, contact, task, canManage }) {
 
 export default function Index({ students, studentsMeta, q: initialQ, justRegistered, canManage }) {
     const { t } = useTranslation();
+    const { auth, flash } = usePage().props;
+    const credentials = flash?.credentials;
+    const [hiddenPassword, setHiddenPassword] = useState(null);
     const [q, setQ] = useState(initialQ ?? '');
     const [contacts, setContacts] = useState({});   // student id -> [{ name, relationship, phone }], only for results that were on screen
     const inputRef = useRef(null);
@@ -126,14 +134,22 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{t('find.title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{t('find.title')}</h2>}>
             <Page
                 title={t('find.title')}
                 width="wide"
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button as={Link} href={route('students.create')} icon={UserPlusIcon}>{t('find.register')}</Button>}
             >
                 {/* the panel below says it better; a warning (e.g. a phone number already used) still shows */}
                 <FlashMessages skip={justRegistered ? ['success'] : []} />
+
+                {credentials && hiddenPassword !== credentials.password && (
+                    <div data-testid="guardian-credentials">
+                        <CredentialsPanel credentials={credentials} />
+                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHiddenPassword(credentials.password)}>{t('cred.hide')}</Button></div>
+                    </div>
+                )}
 
                 {justRegistered && (
                     <SuccessPanel
@@ -156,10 +172,10 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
 
                 {activeTask && <div data-testid="task-banner"><Alert tone="info">{t(`find.task_${activeTask}`)}</Alert></div>}
 
-                <div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-4 sm:p-6 dark:border-indigo-700 dark:bg-indigo-900/20" data-testid="quick-find">
-                    <label htmlFor="student-search" className="mb-3 block text-2xl font-bold text-gray-900 dark:text-gray-100">{t('find.label')}</label>
+                <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-4 sm:p-6 dark:border-brand-700 dark:bg-brand-900/20" data-testid="quick-find">
+                    <label htmlFor="student-search" className="mb-3 block text-2xl font-bold text-stone-900 dark:text-stone-100">{t('find.label')}</label>
                     <div className="relative">
-                        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-7 w-7 -translate-y-1/2 text-gray-500" aria-hidden="true" />
+                        <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-7 w-7 -translate-y-1/2 text-stone-500" aria-hidden="true" />
                         <Input
                             id="student-search"
                             ref={inputRef}
@@ -175,13 +191,13 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
                             className="min-h-[68px] pl-14 pr-14 text-xl"
                         />
                         {q && (
-                            <button type="button" onClick={clear} aria-label={t('find.clear')} title={t('find.clear')} className="absolute right-1 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                            <button type="button" onClick={clear} aria-label={t('find.clear')} title={t('find.clear')} className="absolute right-1 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-stone-300 dark:hover:bg-stone-700">
                                 <XMarkIcon className="h-7 w-7" aria-hidden="true" />
                             </button>
                         )}
                     </div>
-                    <p className="mt-3 text-base text-gray-700 dark:text-gray-300">{t('find.hint')}</p>
-                    <p className="mt-1 hidden text-sm text-gray-600 sm:block dark:text-gray-400" data-testid="keyboard-hint">{t('find.keyboard_hint')}</p>
+                    <p className="mt-3 text-base text-stone-700 dark:text-stone-300">{t('find.hint')}</p>
+                    <p className="mt-1 hidden text-sm text-stone-600 sm:block dark:text-stone-400" data-testid="keyboard-hint">{t('find.keyboard_hint')}</p>
                 </div>
 
                 {studentsMeta.total === 0 && !typed ? (
@@ -192,7 +208,7 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
                     </Card>
                 ) : (
                     <section aria-live="polite">
-                        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100" data-testid="results-heading">
+                        <h2 className="mb-3 text-lg font-semibold text-stone-900 dark:text-stone-100" data-testid="results-heading">
                             {typed ? t('find.found_count', { count: studentsMeta.total }) : t('find.recent', { total: studentsMeta.total })}
                         </h2>
 
@@ -214,7 +230,7 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
                             </Card>
                         ) : (
                             <div className="space-y-3">
-                                <div className="space-y-3" ref={listRef} onKeyDown={onListKey}>
+                                <div className="space-y-2" ref={listRef} onKeyDown={onListKey}>
                                     {students.map((s) => <ResultCard key={s.id} s={s} contact={contacts[s.id]} task={activeTask} canManage={canManage} />)}
                                 </div>
                                 <Pagination meta={studentsMeta} onPageChange={goToPage} />

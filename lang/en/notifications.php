@@ -9,7 +9,12 @@
  */
 return [
 
-    'student_marked_absent' => [
+    'student_marked_absent_male' => [
+        'title' => 'Absence recorded',
+        'body' => ':student was marked absent on :date. If this is a mistake, the school may correct it and you will be notified.',
+    ],
+
+    'student_marked_absent_female' => [
         'title' => 'Absence recorded',
         'body' => ':student was marked absent on :date. If this is a mistake, the school may correct it and you will be notified.',
     ],
@@ -22,6 +27,11 @@ return [
     'complaint_submitted' => [
         'title' => 'New complaint',
         'body' => '":subject" from :name',
+    ],
+
+    'contact_inquiry_received' => [
+        'title' => 'New contact message',
+        'body' => 'From :name (:phone)',
     ],
 
     'announcement_published' => [
@@ -190,6 +200,31 @@ return [
     'assignment_due_soon' => [
         'title' => 'Assignment due tomorrow',
         'body' => ':subject assignment ":title" is due tomorrow.',
+    ],
+
+    'new_parent_message' => [
+        'title' => 'New message',
+        'body' => ':sender sent a message about :student.',
+    ],
+
+    'section_capacity_exceeded' => [
+        'title' => 'Class over capacity',
+        'body' => ':section now has :occupied students, over its usual :capacity.',
+    ],
+
+    'invoice_overdue' => [
+        'title' => 'Invoice overdue',
+        'body' => ':student\'s invoice:period (:balance ETB still owed) was due :date. Follow up with the family.',
+    ],
+
+    'mark_batch_submitted' => [
+        'title' => 'Results awaiting approval',
+        'body' => ':teacher submitted :subject results for :section (:exam) for approval.',
+    ],
+
+    'mark_batch_published' => [
+        'title' => 'New exam result published',
+        'body' => ':student\'s :subject result for :exam is now published.',
     ],
 
 ];

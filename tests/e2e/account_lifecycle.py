@@ -72,7 +72,6 @@ with sync_playwright() as p:
     op.locator("form").get_by_role("button", name="Next").click(); op.wait_for_selector("text=Step 2 of 3")
     op.get_by_role("radio", name=re.compile("^Teacher")).click()
     op.locator("form").get_by_role("button", name="Next").click(); op.wait_for_selector("text=Step 3 of 3")
-    op.fill("#staff_phone_confirmation", "0977 11 22 33")
     op.get_by_role("button", name="Create Account").click(); op.wait_for_selector("[data-testid=credentials]")
     op.get_by_role("button", name="Add another staff member").click()
     uid = q("select id from users where name=?", NAME)[0][0]

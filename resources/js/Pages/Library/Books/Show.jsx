@@ -39,7 +39,7 @@ export default function Show({ book, copies, branches, canManage, canPostSchoolW
     const restore = (copy) => router.post(route('library-books.copies.restore', [book.id, copy.id]), {}, { preserveScroll: true });
 
     return (
-        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-gray-800 dark:text-gray-200">{book.title}</h2>}>
+        <AuthenticatedLayout header={<h2 className="truncate text-lg font-semibold text-stone-800 dark:text-stone-200">{book.title}</h2>}>
             <Page
                 title={book.title}
                 description={book.author}
@@ -57,10 +57,10 @@ export default function Show({ book, copies, branches, canManage, canPostSchoolW
                             <Card key={c.id} data-testid="copy-row">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('library.copy_number_x', { number: c.copy_number })}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{c.branch_name}</p>
+                                        <p className="text-base font-semibold text-stone-900 dark:text-stone-100">{t('library.copy_number_x', { number: c.copy_number })}</p>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">{c.branch_name}</p>
                                         {c.active_loan && (
-                                            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                                            <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">
                                                 {t('library.on_loan_to', { name: c.active_loan.borrower_name })} · <DateText value={c.active_loan.due_date} />
                                             </p>
                                         )}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Support\AttachmentUpload;
 use App\Support\SchoolCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class AnnouncementController extends Controller
         $today = SchoolCalendar::today()->toDateString();
 
         $announcements = Announcement::visibleTo($user)
-            ->with(['branch:id,name', 'author:id,name'])
+            ->with(['branch:id,name', 'author:id,name,profile_photo_path', 'attachments'])
             ->orderByDesc('publish_on')->orderByDesc('id')
             ->paginate(15)
             ->through(fn (Announcement $a) => [
@@ -35,6 +36,8 @@ class AnnouncementController extends Controller
                 'publish_on' => $a->publish_on->toDateString(),
                 'scheduled' => $a->publish_on->toDateString() > $today,
                 'author' => $a->author?->name,
+                'author_photo_url' => $a->author?->profile_photo_url,
+                'images' => $a->attachments->map(fn ($x) => $x->url())->values(),
                 'editable' => $manages && $this->inManagerScope($user, $a),
             ]);
 
@@ -76,11 +79,13 @@ class AnnouncementController extends Controller
 
         $data = $this->validated($request, creating: true);
         $data['branch_id'] = $this->resolveBranch($user, $data['branch_id'] ?? null);
+        $request->validate(AttachmentUpload::rules());
 
         $announcement = Announcement::create($data + [
             'school_id' => $user->school_id,
             'created_by' => $user->id,
         ]);
+        AttachmentUpload::attach($request->file('images', []), $announcement, $user, 'announcements');
 
         $scheduled = $data['publish_on'] > SchoolCalendar::today()->toDateString();
 

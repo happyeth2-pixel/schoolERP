@@ -1,13 +1,14 @@
 import PerformanceCycleDialog from '@/Components/PerformanceCycleDialog';
-import { Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, FlashMessages, Page, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { CalendarIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function Index({ cycles, canManage }) {
     const { t } = useTranslation();
+    const { auth } = usePage().props;
     const [dialog, setDialog] = useState(null); // null | 'new' | a cycle object
     const [ask, confirmDialog] = useConfirm();
 
@@ -23,10 +24,11 @@ export default function Index({ cycles, canManage }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('performance.cycles_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('performance.cycles_title')}</h2>}>
             <Page
                 title={t('performance.cycles_title')}
                 description={t('performance.cycles_desc')}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
                 actions={canManage && <Button icon={PlusIcon} onClick={() => setDialog('new')}>{t('performance.add_cycle_button')}</Button>}
             >
                 <FlashMessages errorKeys={['name']} />
@@ -35,12 +37,12 @@ export default function Index({ cycles, canManage }) {
                     <Card><EmptyState icon={CalendarIcon} title={t('performance.empty_cycles_title')}>{t('performance.empty_cycles_body')}</EmptyState></Card>
                 ) : (
                     <Card>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="performance-cycle-list">
+                        <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="performance-cycle-list">
                             {cycles.map((c) => (
                                 <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3" data-testid="performance-cycle-row">
                                     <div>
-                                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{c.name}</span>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{c.name}</span>
+                                        <p className="text-sm text-stone-600 dark:text-stone-400">
                                             {c.start_date} &ndash; {c.end_date} &middot; {t('performance.reviews_count_x', { count: c.reviews_count })}
                                         </p>
                                     </div>

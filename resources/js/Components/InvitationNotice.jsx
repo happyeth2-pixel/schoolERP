@@ -34,24 +34,24 @@ export default function InvitationNotice() {
     return (
         <div className="mx-auto mt-4 max-w-4xl px-4 sm:px-6 lg:px-8">
             {(warning || blocked) && <WarningBanner text={blocked || warning} inline />}
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm dark:border-indigo-800 dark:bg-indigo-900/20">
+            <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm dark:border-brand-800 dark:bg-brand-900/20">
                 <div className="flex items-start justify-between gap-3">
-                    <p className="font-semibold text-indigo-900 dark:text-indigo-200">
+                    <p className="font-semibold text-brand-900 dark:text-brand-200">
                         Invitation link for {invitation.name} ({invitation.email})
                     </p>
-                    <button onClick={() => setDismissed(invitation.url)} className="text-indigo-400 hover:text-indigo-600" aria-label="Dismiss">
+                    <button onClick={() => setDismissed(invitation.url)} className="text-brand-400 hover:text-brand-600" aria-label="Dismiss">
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
-                <p className="mt-1 text-indigo-800 dark:text-indigo-300">
+                <p className="mt-1 text-brand-800 dark:text-brand-300">
                     {invitation.emailed
                         ? 'We also emailed this link to them. '
                         : 'Email delivery is not set up, so send this link to them yourself (in person, WhatsApp or SMS). '}
                     It works <strong>once</strong> and expires {invitation.expires_at}. You will not see it again — you can create a new one from the list.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input readOnly value={invitation.url} onFocus={(e) => e.target.select()} className="min-w-0 flex-1 rounded-md border-indigo-200 bg-white text-xs text-gray-700 dark:border-indigo-800 dark:bg-gray-900 dark:text-gray-200" />
-                    <button onClick={copy} className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">
+                    <input readOnly value={invitation.url} onFocus={(e) => e.target.select()} className="min-w-0 flex-1 rounded-md border-brand-200 bg-white text-xs text-stone-700 dark:border-brand-800 dark:bg-stone-900 dark:text-stone-200" />
+                    <button onClick={copy} className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
                         {copied ? <CheckIcon className="h-4 w-4" /> : <ClipboardDocumentIcon className="h-4 w-4" />}
                         {copied ? 'Copied' : 'Copy link'}
                     </button>

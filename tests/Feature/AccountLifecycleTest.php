@@ -326,10 +326,10 @@ class AccountLifecycleTest extends TestCase
 
     public function test_account_created_is_audited(): void
     {
-        $this->actingAs($this->admin)->post('/staff', ['name' => 'New Teacher', 'phone' => '0911000333', 'phone_confirmation' => '0911000333', 'role' => 'teacher'])->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post('/staff', ['name' => 'New Teacher', 'phone' => '0911000333', 'role' => 'teacher'])->assertSessionHasNoErrors();
         $this->assertNotNull(AuditLog::where('action', 'staff.role_assigned')->first());
 
-        $this->actingAs($this->admin)->post('/parents', ['name' => 'New Parent', 'phone' => '0911000444', 'phone_confirmation' => '0911000444'])->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post('/parents', ['name' => 'New Parent', 'phone' => '0911000444'])->assertSessionHasNoErrors();
         $this->assertNotNull(AuditLog::where('action', 'parent.account_created')->first());
     }
 

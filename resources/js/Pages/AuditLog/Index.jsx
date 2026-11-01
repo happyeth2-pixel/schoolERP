@@ -1,8 +1,8 @@
 import DateInput from '@/Components/DateInput';
-import { Button, Card, EmptyState, Input, Page, Select } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Input, Page, Select } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +51,7 @@ function Changes({ before, after, limit = 4 }) {
     const keys = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])];
     const line = (k) => (
         <li key={k} data-testid="change">
-            <span className="font-semibold text-gray-900 dark:text-gray-100">{humanise(k)}</span>
+            <span className="font-semibold text-stone-900 dark:text-stone-100">{humanise(k)}</span>
             {': '}
             {before && k in before && after && k in after && <>{t('audit.was')} <span className="rounded bg-red-50 px-1 text-red-800 dark:bg-red-900/30 dark:text-red-200">{value(before[k])}</span>, {t('audit.now')} <span className="rounded bg-green-50 px-1 text-green-800 dark:bg-green-900/30 dark:text-green-200">{value(after[k])}</span></>}
             {before && k in before && !(after && k in after) && <>{t('audit.was')} <span className="rounded bg-red-50 px-1 text-red-800 dark:bg-red-900/30 dark:text-red-200">{value(before[k])}</span></>}
@@ -64,19 +64,20 @@ function Changes({ before, after, limit = 4 }) {
 
     return (
         <div>
-            <ul className="space-y-1 text-base text-gray-700 dark:text-gray-300">{shown.map(line)}</ul>
+            <ul className="space-y-1 text-base text-stone-700 dark:text-stone-300">{shown.map(line)}</ul>
             {rest.length > 0 && (
                 <details className="mt-2" data-testid="more-changes">
-                    <summary className="cursor-pointer text-base font-medium text-indigo-700 dark:text-indigo-300">{t('audit.show_more', { count: rest.length })}</summary>
-                    <ul className="mt-2 space-y-1 text-base text-gray-700 dark:text-gray-300">{rest.map(line)}</ul>
+                    <summary className="cursor-pointer text-base font-medium text-brand-700 dark:text-brand-300">{t('audit.show_more', { count: rest.length })}</summary>
+                    <ul className="mt-2 space-y-1 text-base text-stone-700 dark:text-stone-300">{rest.map(line)}</ul>
                 </details>
             )}
         </div>
     );
 }
 
-export default function Index({ logs, filters, entities, actions, actors }) {
+export default function Index({ logs, filters, entities, actions, actors, canViewSecurityLog }) {
     const { t, action, noun } = useAuditWords();
+    const { auth } = usePage().props;
     const [q, setQ] = useState(filters.q ?? '');
 
     const apply = (next) => {
@@ -89,50 +90,51 @@ export default function Index({ logs, filters, entities, actions, actors }) {
     const hasFilters = Object.values(filters).some(Boolean);
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{t('audit.page_title')}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('audit.page_title')}</h2>}>
             <Page
                 title={t('audit.page_title')}
                 description={t('audit.page_desc')}
                 width="full"
-                actions={<><Button as={Link} href={route('security-log.index')} variant="secondary">{t('audit.security_link')}</Button><Button as="a" href={exportUrl} variant="secondary" icon={ArrowDownTrayIcon}>{t('audit.export')}</Button></>}
+                back={<BackLink big={auth.role === 'teacher'} href={route('dashboard')}>{t('common.back')}</BackLink>}
+                actions={<>{canViewSecurityLog && <Button as={Link} href={route('security-log.index')} variant="secondary">{t('audit.security_link')}</Button>}<Button as="a" href={exportUrl} variant="secondary" icon={ArrowDownTrayIcon}>{t('audit.export')}</Button></>}
             >
                 <Card data-testid="filters">
-                    <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('audit.filter_title')}</h2>
+                    <h2 className="mb-4 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('audit.filter_title')}</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <form onSubmit={(e) => { e.preventDefault(); apply({ q }); }} className="sm:col-span-2 lg:col-span-3">
-                            <label htmlFor="audit-search" className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_search')}</label>
+                            <label htmlFor="audit-search" className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_search')}</label>
                             <div className="flex flex-col gap-2 sm:flex-row">
                                 <Input id="audit-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('audit.f_search_hint')} autoComplete="off" />
                                 <Button type="submit" variant="secondary" className="sm:min-w-[140px]">{t('audit.search')}</Button>
                             </div>
                         </form>
                         <div>
-                            <label htmlFor="audit-entity" className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_record')}</label>
+                            <label htmlFor="audit-entity" className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_record')}</label>
                             <Select id="audit-entity" value={filters.entity ?? ''} onChange={(e) => apply({ entity: e.target.value })}>
                                 <option value="">{t('audit.all_records')}</option>
                                 {entities.map((e) => <option key={e} value={e}>{noun(e).replace(/^./, (c) => c.toUpperCase())}</option>)}
                             </Select>
                         </div>
                         <div>
-                            <label htmlFor="audit-action" className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_action')}</label>
+                            <label htmlFor="audit-action" className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_action')}</label>
                             <Select id="audit-action" value={filters.action ?? ''} onChange={(e) => apply({ action: e.target.value })}>
                                 <option value="">{t('audit.all_actions')}</option>
                                 {actions.map((a) => <option key={a} value={a}>{action(a)} ({a})</option>)}
                             </Select>
                         </div>
                         <div>
-                            <label htmlFor="audit-who" className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_who')}</label>
+                            <label htmlFor="audit-who" className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_who')}</label>
                             <Select id="audit-who" value={filters.user_id ?? ''} onChange={(e) => apply({ user_id: e.target.value })}>
                                 <option value="">{t('audit.anyone')}</option>
                                 {actors.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </Select>
                         </div>
                         <div>
-                            <span className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_from')}</span>
+                            <span className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_from')}</span>
                             <DateInput value={filters.from ?? ''} onChange={(v) => apply({ from: v })} />
                         </div>
                         <div>
-                            <span className="mb-1 block text-base font-medium text-gray-900 dark:text-gray-100">{t('audit.f_to')}</span>
+                            <span className="mb-1 block text-base font-medium text-stone-900 dark:text-stone-100">{t('audit.f_to')}</span>
                             <DateInput value={filters.to ?? ''} onChange={(v) => apply({ to: v })} />
                         </div>
                     </div>
@@ -143,21 +145,21 @@ export default function Index({ logs, filters, entities, actions, actors }) {
                     )}
                 </Card>
 
-                <p className="text-base text-gray-700 dark:text-gray-300" data-testid="count">{logs.total === 0 ? '' : t('audit.count', { count: logs.total })}</p>
+                <p className="text-base text-stone-700 dark:text-stone-300" data-testid="count">{logs.total === 0 ? '' : t('audit.count', { count: logs.total })}</p>
 
                 {logs.data.length === 0 ? (
                     <EmptyState title={hasFilters ? t('audit.no_match') : t('audit.none_yet')}>{hasFilters ? t('audit.no_match_hint') : t('audit.none_yet_hint')}</EmptyState>
                 ) : (
                     <ul className="space-y-3" data-testid="entries">
                         {logs.data.map((log) => (
-                            <li key={log.id} data-testid="entry" className="rounded-2xl border-2 border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                            <li key={log.id} data-testid="entry" className="rounded-2xl border-2 border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-800">
                                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1">
-                                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100" data-testid="entry-action">{action(log.action)}</p>
-                                    <p className="text-base text-gray-600 dark:text-gray-400">{log.created_at}</p>
+                                    <p className="text-lg font-bold text-stone-900 dark:text-stone-100" data-testid="entry-action">{action(log.action)}</p>
+                                    <p className="text-base text-stone-600 dark:text-stone-400">{log.created_at}</p>
                                 </div>
-                                <p className="mt-1 text-base text-gray-900 dark:text-gray-100">
+                                <p className="mt-1 text-base text-stone-900 dark:text-stone-100">
                                     <span className="font-medium">{t('audit.by')}</span> {log.actor}
-                                    <span className="mx-2 text-gray-400" aria-hidden="true">·</span>
+                                    <span className="mx-2 text-stone-400" aria-hidden="true">·</span>
                                     <span className="font-medium">{t('audit.record')}</span> {noun(log.auditable_type).replace(/^./, (c) => c.toUpperCase())} #{log.auditable_id}{log.subject_label ? ` — ${log.subject_label}` : ''}
                                 </p>
                                 {log.note && (
@@ -166,8 +168,8 @@ export default function Index({ logs, filters, entities, actions, actors }) {
                                 {(log.before || log.after) && (
                                     <div className="mt-3"><Changes before={log.before} after={log.after} /></div>
                                 )}
-                                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                                    {t('audit.code')}: <code className="rounded bg-gray-100 px-1 dark:bg-gray-700">{log.action}</code>
+                                <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">
+                                    {t('audit.code')}: <code className="rounded bg-stone-100 px-1 dark:bg-stone-700">{log.action}</code>
                                     {log.ip_address && <> · {t('audit.ip')}: {log.ip_address}</>}
                                 </p>
                             </li>
@@ -178,7 +180,7 @@ export default function Index({ logs, filters, entities, actions, actors }) {
                 {logs.last_page > 1 && (
                     <nav className="flex flex-wrap items-center justify-between gap-3" aria-label={t('audit.pages')}>
                         {logs.prev_page_url ? <Button as={Link} href={logs.prev_page_url} variant="secondary">{t('audit.newer')}</Button> : <span />}
-                        <p className="text-base text-gray-700 dark:text-gray-300">{t('audit.page_of', { page: logs.current_page, total: logs.last_page })}</p>
+                        <p className="text-base text-stone-700 dark:text-stone-300">{t('audit.page_of', { page: logs.current_page, total: logs.last_page })}</p>
                         {logs.next_page_url ? <Button as={Link} href={logs.next_page_url} variant="secondary">{t('audit.older')}</Button> : <span />}
                     </nav>
                 )}

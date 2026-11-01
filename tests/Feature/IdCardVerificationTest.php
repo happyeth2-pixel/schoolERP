@@ -286,6 +286,6 @@ class IdCardVerificationTest extends TestCase
     {
         $props = $response->original->getData()['page']['props'];
 
-        return array_diff_key($props, array_flip(['errors', 'locale', 'auth', 'flash', 'notifications', 'monitoringUserPseudonym', 'today']));
+        return array_diff_key($props, array_flip(['errors', 'locale', 'auth', 'flash', 'notifications', 'monitoringUserPseudonym', 'today', 'parentChildren']));
     }
 }

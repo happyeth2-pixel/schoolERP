@@ -21,8 +21,8 @@ export default function SupplierPaymentReversalDialog({ open, payment, kinds, on
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && payment && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="supplier-payment-reversal-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('supplier_payment.reverse_title')}</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('supplier_payment.reverse_desc', { amount: payment.reversible })}</p>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('supplier_payment.reverse_title')}</h2>
+                    <p className="text-sm text-stone-600 dark:text-stone-400">{t('supplier_payment.reverse_desc', { amount: payment.reversible })}</p>
                     <Field id="spr_kind" label={t('supplier_payment.kind')} error={errors.kind}>
                         <Select value={data.kind} onChange={(e) => setData('kind', e.target.value)}>
                             {Object.entries(kinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}

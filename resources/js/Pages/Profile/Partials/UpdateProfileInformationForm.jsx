@@ -29,11 +29,11 @@ export default function UpdateProfileInformation({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">
                     {t('profile.info_title')}
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
                     {t('profile.info_desc')}
                 </p>
             </header>
@@ -72,13 +72,13 @@ export default function UpdateProfileInformation({
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <p className="mt-2 text-sm text-gray-800 dark:text-gray-200">
+                        <p className="mt-2 text-sm text-stone-800 dark:text-stone-200">
                             {t('profile.unverified_notice')}
                             <Link
                                 href={route('verification.send')}
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                                className="rounded-md text-sm text-stone-600 underline hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:text-stone-400 dark:hover:text-stone-100 dark:focus:ring-offset-stone-800"
                             >
                                 {t('profile.resend_link')}
                             </Link>
@@ -102,7 +102,7 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-stone-600 dark:text-stone-400">
                             {t('profile.saved')}
                         </p>
                     </Transition>

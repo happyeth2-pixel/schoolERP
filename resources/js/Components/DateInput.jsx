@@ -2,9 +2,9 @@ import { daysInMonth, ethiopianToIso, isoToEthiopian, monthName } from '@/calend
 import { useCalendar } from '@/useCalendar';
 import { useEffect, useMemo, useState } from 'react';
 
-const SELECT = 'rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
+const SELECT = 'rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100';
 // `large` (used by the guided flows): the same field with 56px controls, for people who find small selects hard to hit.
-const SELECT_LARGE = 'min-h-[56px] rounded-xl border-gray-400 text-base shadow-sm focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600 dark:border-gray-500 dark:bg-gray-900 dark:text-gray-100';
+const SELECT_LARGE = 'min-h-[56px] rounded-xl border-stone-400 text-base shadow-sm focus:border-brand-600 focus:ring-2 focus:ring-brand-600 dark:border-stone-500 dark:bg-stone-900 dark:text-stone-100';
 
 /**
  * A date field that follows the school's calendar preference.
@@ -107,7 +107,7 @@ function EthiopianDateInput({ id, value, onChange, min, max, className, preferen
                     {years.map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
             </div>
-            {preference === 'both' && value && <p className="mt-1 text-xs text-gray-400">= {format(value).split('(').pop().replace(')', '')}</p>}
+            {preference === 'both' && value && <p className="mt-1 text-xs text-stone-400">= {format(value).split('(').pop().replace(')', '')}</p>}
             {rangeError && (
                 <p className="mt-1 text-xs text-red-600">
                     Choose a date{min ? ` on or after ${format(min)}` : ''}{min && max ? ' and' : ''}{max ? ` on or before ${format(max)}` : ''}.

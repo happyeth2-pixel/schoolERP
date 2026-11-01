@@ -236,8 +236,9 @@ with sync_playwright() as p:
     pctx, pp = login(browser, "parent@demo.test")
     pp.goto(f"{BASE}/invoices/{INV_A}"); pp.wait_for_selector("[data-testid=payments]")
     check("portal parent: sees the payments taken at the school, with receipt numbers", pp.locator("[data-testid=payments] li").count() >= 2 and "RCT-" in pp.locator("[data-testid=payments]").inner_text())
-    check("portal parent: told they can also pay at the school, and no website is needed", pp.locator("[data-testid=pay-at-school]").count() == 1 and "office" in pp.locator("[data-testid=pay-at-school]").inner_text())
     check("portal parent: the online proof steps are still there", pp.locator("[data-testid=how-to-pay]").count() == 1)
+    pp.locator("[data-testid=how-to-pay]").get_by_role("radio", name=re.compile("Cash")).click()
+    check("portal parent: picking 'Cash' says they can also pay at the school, and no website is needed", pp.locator("[data-testid=pay-at-school]").count() == 1 and "office" in pp.locator("[data-testid=pay-at-school]").inner_text())
     check("portal parent: cannot open the staff help page or the record form", status_of(pctx, f"/students/{STU_A}/help") == 403 and status_of(pctx, f"/invoices/{INV_A}/record-payment") in (403, 404))
     pn = q("select count(*) from notifications where type like '%PaymentVerified' and notifiable_id=(select id from users where email='parent@demo.test')")[0][0]
     check("portal parent: was notified that a payment was received", pn >= 1)

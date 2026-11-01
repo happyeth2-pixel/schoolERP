@@ -20,7 +20,7 @@ function RejectDialog({ open, requisition, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="reject-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('req.reject_title', { number: requisition.number })}</h2>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('req.reject_title', { number: requisition.number })}</h2>
                     <Field id="reject_reason" label={t('req.reject_reason')} error={errors.reason}>
                         <TextArea id="reject_reason" value={data.reason} onChange={(e) => setData('reason', e.target.value)} />
                     </Field>
@@ -47,8 +47,8 @@ function IssueDialog({ open, requisition, line, onClose }) {
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
                 <form onSubmit={submit} className="space-y-6 p-6" data-testid="requisition-issue-form">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('req.issue_title', { name: line?.item_name })}</h2>
-                    <p className="text-base text-gray-700 dark:text-gray-300">{t('req.issue_remaining', { count: line?.remaining, unit: line?.unit })}</p>
+                    <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('req.issue_title', { name: line?.item_name })}</h2>
+                    <p className="text-base text-stone-700 dark:text-stone-300">{t('req.issue_remaining', { count: line?.remaining, unit: line?.unit })}</p>
                     <Field id="issue_qty" label={t('req.issue_quantity')} error={errors.quantity}>
                         <Input inputMode="numeric" value={data.quantity} onChange={(e) => { clearErrors('quantity'); setData('quantity', e.target.value); }} autoComplete="off" />
                     </Field>
@@ -96,15 +96,15 @@ export default function Show({ requisition, canSubmit, canApprove, canIssue }) {
     const submit = () => submitForm.post(route('requisitions.submit', requisition.id), { preserveScroll: true });
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{requisition.number}</h2>}>
+        <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{requisition.number}</h2>}>
             <Page title={requisition.number} back={<BackLink href={route('requisitions.index')}>{t('req.back_to_list')}</BackLink>}>
                 <FlashMessages />
 
                 <Card>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{requisition.purpose}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{requisition.store_name}{requisition.department ? ` · ${requisition.department}` : ''} · {t('req.by_x_on_y', { name: requisition.requester, date: requisition.created_at })}</p>
+                            <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{requisition.purpose}</p>
+                            <p className="text-sm text-stone-600 dark:text-stone-400">{requisition.store_name}{requisition.department ? ` · ${requisition.department}` : ''} · {t('req.by_x_on_y', { name: requisition.requester, date: requisition.created_at })}</p>
                         </div>
                         <StatusBadge tone={STATUS_TONE[requisition.status]} label={t(`req.status_${requisition.status}`)} />
                     </div>
@@ -115,18 +115,18 @@ export default function Show({ requisition, canSubmit, canApprove, canIssue }) {
 
                 <Card>
                     <SectionHeader as="h3" title={t('req.items_title')} />
-                    <ul className="divide-y divide-gray-200 dark:divide-gray-700" data-testid="requisition-items">
+                    <ul className="divide-y divide-stone-200 dark:divide-stone-700" data-testid="requisition-items">
                         {requisition.items.map((i) => (
                             <li key={i.id} className="py-3" data-testid="requisition-item-row">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="text-base font-semibold text-gray-900 dark:text-gray-100">{i.item_name}</span>
-                                    <span className="text-base text-gray-800 dark:text-gray-200">
+                                    <span className="text-base font-semibold text-stone-900 dark:text-stone-100">{i.item_name}</span>
+                                    <span className="text-base text-stone-800 dark:text-stone-200">
                                         {t('req.requested_n', { count: i.quantity_requested, unit: i.unit })}
                                         {i.quantity_approved !== null && ` · ${t('req.approved_n', { count: i.quantity_approved })}`}
                                         {i.quantity_issued > 0 && ` · ${t('req.issued_n', { count: i.quantity_issued })}`}
                                     </span>
                                 </div>
-                                {i.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{i.notes}</p>}
+                                {i.notes && <p className="text-sm text-stone-600 dark:text-stone-400">{i.notes}</p>}
                                 {canIssue && i.remaining > 0 && (
                                     <Button size="md" variant="secondary" className="mt-2" onClick={() => setIssuingLine(i)}>{t('req.issue_line_button')}</Button>
                                 )}

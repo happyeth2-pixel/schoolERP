@@ -4,9 +4,14 @@
 // See resources/js/lang/review-status.json and LOCALIZATION.md.
 return [
 
-    'student_marked_absent' => [
+    'student_marked_absent_male' => [
         'title' => 'የመቅረት ምዝገባ',
         'body' => ':student በ:date ቀሪ ሆኖ ተመዝግቧል። ይህ ስህተት ከሆነ ትምህርት ቤቱ ያስተካክለዋል እናም ይነገርዎታል።',
+    ],
+
+    'student_marked_absent_female' => [
+        'title' => 'የመቅረት ምዝገባ',
+        'body' => ':student በ:date ቀሪ ሆና ተመዝግባለች። ይህ ስህተት ከሆነ ትምህርት ቤቱ ያስተካክለዋል እናም ይነገርዎታል።',
     ],
 
     'attendance_corrected' => [
@@ -22,6 +27,11 @@ return [
     'announcement_published' => [
         'title' => 'አዲስ ማስታወቂያ',
         'body' => 'አዲስ ማስታወቂያ፦ :title',
+    ],
+
+    'contact_inquiry_received' => [
+        'title' => 'አዲስ የመገናኛ መልዕክት',
+        'body' => 'ከ:name (:phone)',
     ],
 
     'complaint_updated' => [
@@ -185,6 +195,31 @@ return [
     'assignment_due_soon' => [
         'title' => 'ምደባ ነገ ይደርሳል',
         'body' => 'የ:subject ምደባ «:title» ነገ ይደርሳል።',
+    ],
+
+    'new_parent_message' => [
+        'title' => 'አዲስ መልዕክት',
+        'body' => ':sender ስለ :student መልዕክት ልኳል።',
+    ],
+
+    'section_capacity_exceeded' => [
+        'title' => 'ክፍል ከአቅም በላይ',
+        'body' => ':section አሁን :occupied ተማሪዎች አሉት፣ ከተለመደው :capacity በላይ።',
+    ],
+
+    'invoice_overdue' => [
+        'title' => 'ደረሰኝ ጊዜው ያለፈበት',
+        'body' => 'የ:student ደረሰኝ:period (:balance ብር ገና ይገባል) :date መጠናቀቂያው ነበር። ከቤተሰቡ ጋር ይከተሉ።',
+    ],
+
+    'mark_batch_submitted' => [
+        'title' => 'ውጤት ማረጋገጫ እየጠበቀ ነው',
+        'body' => ':teacher የ:subject ውጤት ለ:section (:exam) ለማረጋገጫ አስገብቷል።',
+    ],
+
+    'mark_batch_published' => [
+        'title' => 'አዲስ የፈተና ውጤት ታትሟል',
+        'body' => 'የ:student የ:subject ውጤት ለ:exam አሁን ታትሟል።',
     ],
 
 ];
