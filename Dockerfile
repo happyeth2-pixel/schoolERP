@@ -78,6 +78,12 @@ EXPOSE 8080
 # fresh container the way the committed source .ttf files under resources/fonts/ do, so this has
 # to run on every start too, same reasoning as storage:link.
 #
+# trial:seed is a deliberate no-op unless TRIAL_PASSWORD is set in the environment (see
+# App\Console\Commands\SeedTrialAccounts) -- creates one known-password login per actor tier for
+# handing a live trial to real people, without a password ever living in this public repo. Wrapped
+# in `|| true` so any failure in it (e.g. db:seed hasn't created a school yet on a brand-new database)
+# can never take down the main app's own startup.
+#
 # `php artisan serve` is PHP's own built-in development server -- it has NO request queue, connection
 # limits or worker pool of its own by default, so it serves ONE request at a time, full stop (a slow
 # report for one person makes every other person's click wait behind it). PHP 8's PHP_CLI_SERVER_WORKERS
@@ -88,4 +94,4 @@ EXPOSE 8080
 # RATE_LIMITING_AND_ABUSE_PROTECTION.md ("Server-level recommendations") for the real fix (php-fpm
 # behind nginx, or Octane/FrankenPHP) and why it's the one genuinely production-grade option, not a
 # tuning flag here.
-CMD php artisan storage:link && php artisan pdf:install-fonts && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+CMD php artisan storage:link && php artisan pdf:install-fonts && php artisan migrate --force && php artisan permission:cache-reset && php artisan db:seed --force && (php artisan trial:seed || true) && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
