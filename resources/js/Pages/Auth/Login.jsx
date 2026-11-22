@@ -46,12 +46,13 @@ function PreLoginLanguagePicker() {
 // Sign in with a phone number (any everyday form: 0911..., 0711..., +251911...). The server turns it into one
 // canonical number and gives the same answer for a wrong number and a wrong password, so nothing reveals which
 // accounts exist. Forgetting the password is solved at the school office, not by email.
-export default function Login({ status }) {
+export default function Login({ status, audience }) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         phone: '',
         password: '',
         remember: false,
+        audience: audience ?? '',
     });
 
     const submit = (e) => {
@@ -67,6 +68,12 @@ export default function Login({ status }) {
             <Head title={t('auth.log_in')} />
 
             <PreLoginLanguagePicker />
+
+            {audience && (
+                <p className="mb-3 text-center text-sm font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400" data-testid="login-audience-badge">
+                    {audience === 'parent' ? t('signin.parent_door', 'Parent Login') : t('signin.staff_door', 'Staff Login')}
+                </p>
+            )}
 
             <h1 className="mb-5 text-center text-2xl font-bold text-stone-900 dark:text-stone-100">{t('signin.title')}</h1>
 

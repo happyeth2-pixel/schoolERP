@@ -16,11 +16,18 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        // The public site's header offers two doors in ("Parent Login" / "Staff Login", see
+        // MarketingLayout.jsx) that both land on this one form -- `?as=` only changes the heading shown
+        // and which audience LoginRequest::authenticate() checks the signed-in account against. A plain
+        // /login with no `as` (an old bookmark, a deep link) keeps working for anyone, unrestricted.
+        $audience = in_array($request->query('as'), ['parent', 'staff'], true) ? $request->query('as') : null;
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'audience' => $audience,
         ]);
     }
 

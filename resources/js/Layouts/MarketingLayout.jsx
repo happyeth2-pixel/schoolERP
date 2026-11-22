@@ -23,6 +23,56 @@ function LogoBadge({ size = 44 }) {
     );
 }
 
+/** The logged-out header's "Login" becomes two doors -- Parent Login / Staff Login -- that both land on
+    the same form (Auth/Login.jsx) with `?as=` telling it, and the server (LoginRequest::authenticate()),
+    which audience was picked. A signed-in visitor never sees this -- they get the single "Dashboard" link
+    instead, same as before. */
+function LoginMenu() {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+                aria-haspopup="true"
+                className="rounded-full px-3.5 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
+            >
+                Login
+            </button>
+            <AnimatePresence>
+                {open && (
+                    <>
+                        <button
+                            type="button"
+                            aria-hidden="true"
+                            tabIndex={-1}
+                            onClick={() => setOpen(false)}
+                            className="fixed inset-0 z-40 cursor-default"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15 }}
+                            className="ph-glass absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl p-1.5"
+                            style={{ background: 'rgba(14,59,46,0.96)' }}
+                        >
+                            <Link href={`${route('login')}?as=parent`} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-medium text-white/90 hover:bg-white/10">
+                                Parent Login
+                            </Link>
+                            <Link href={`${route('login')}?as=staff`} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-medium text-white/90 hover:bg-white/10">
+                                Staff Login
+                            </Link>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
 function NavAnchor({ href, label, onClick, className }) {
     const isHash = href.includes('#');
 
@@ -89,9 +139,13 @@ export default function MarketingLayout({ children }) {
                     </div>
 
                     <div className="hidden items-center gap-3 lg:flex">
-                        <Link href={auth?.user ? route('dashboard') : route('login')} className="rounded-full px-3.5 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white">
-                            {auth?.user ? 'Dashboard' : 'Login'}
-                        </Link>
+                        {auth?.user ? (
+                            <Link href={route('dashboard')} className="rounded-full px-3.5 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white">
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <LoginMenu />
+                        )}
                         <Link href="/contact" className="ph-btn-gold rounded-full px-5 py-2.5 text-sm font-semibold text-[#2a2008]">
                             Contact Us
                         </Link>
@@ -134,13 +188,32 @@ export default function MarketingLayout({ children }) {
                                     className="rounded-xl px-4 py-3.5 text-base font-medium text-white/90 hover:bg-white/10"
                                 />
                             ))}
-                            <Link
-                                href={auth?.user ? route('dashboard') : route('login')}
-                                onClick={() => setMenuOpen(false)}
-                                className="mt-2 rounded-xl px-4 py-3.5 text-center text-base font-medium text-white/90 hover:bg-white/10"
-                            >
-                                {auth?.user ? 'Dashboard' : 'Login'}
-                            </Link>
+                            {auth?.user ? (
+                                <Link
+                                    href={route('dashboard')}
+                                    onClick={() => setMenuOpen(false)}
+                                    className="mt-2 rounded-xl px-4 py-3.5 text-center text-base font-medium text-white/90 hover:bg-white/10"
+                                >
+                                    Dashboard
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link
+                                        href={`${route('login')}?as=parent`}
+                                        onClick={() => setMenuOpen(false)}
+                                        className="mt-2 rounded-xl px-4 py-3.5 text-center text-base font-medium text-white/90 hover:bg-white/10"
+                                    >
+                                        Parent Login
+                                    </Link>
+                                    <Link
+                                        href={`${route('login')}?as=staff`}
+                                        onClick={() => setMenuOpen(false)}
+                                        className="rounded-xl px-4 py-3.5 text-center text-base font-medium text-white/90 hover:bg-white/10"
+                                    >
+                                        Staff Login
+                                    </Link>
+                                </>
+                            )}
                             <Link
                                 href="/contact"
                                 onClick={() => setMenuOpen(false)}
@@ -173,7 +246,8 @@ export default function MarketingLayout({ children }) {
                             <li><Link href="/" className="hover:text-white">Home</Link></li>
                             <li><Link href="/about" className="hover:text-white">About Us</Link></li>
                             <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-                            <li><Link href={route('login')} className="hover:text-white">Portal Login</Link></li>
+                            <li><Link href={`${route('login')}?as=parent`} className="hover:text-white">Parent Login</Link></li>
+                            <li><Link href={`${route('login')}?as=staff`} className="hover:text-white">Staff Login</Link></li>
                         </ul>
                     </div>
 

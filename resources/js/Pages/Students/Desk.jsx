@@ -15,7 +15,7 @@ const money = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits
 
 function Section({ id, icon: Icon, title, children }) {
     return (
-        <Card as="section" aria-labelledby={`${id}-title`} data-testid={id}>
+        <Card as="section" id={id} className="scroll-mt-20" aria-labelledby={`${id}-title`} data-testid={id}>
             <h2 id={`${id}-title`} className="mb-4 flex items-center gap-3 text-2xl font-bold text-stone-900 dark:text-stone-100">
                 <Icon className="h-8 w-8 text-brand-600 dark:text-brand-400" aria-hidden="true" />
                 {title}

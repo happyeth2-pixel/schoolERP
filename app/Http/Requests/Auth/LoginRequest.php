@@ -30,6 +30,7 @@ class LoginRequest extends FormRequest
         return [
             'phone' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
+            'audience' => ['nullable', 'in:parent,staff'],
         ];
     }
 
@@ -74,6 +75,25 @@ class LoginRequest extends FormRequest
             $throttle->failed($this, $key, $known, $identifier);
 
             throw ValidationException::withMessages(['phone' => trans('auth.failed')]);
+        }
+
+        // The public site's "Parent Login" / "Staff Login" doors (see AuthenticatedSessionController::
+        // create()) each send the chosen audience along with the credentials, so a correct phone+password
+        // for the wrong door is turned away with a pointer to the right one, rather than let in -- same
+        // "refuse outright, don't drop into the wrong area" shape as the student-role check above. A
+        // plain /login with no audience chosen (old bookmark, deep link) skips this entirely.
+        $audience = $this->string('audience')->toString();
+        if ($audience === 'parent' && ! Auth::user()->hasRole('parent')) {
+            Auth::logout();
+            $throttle->failed($this, $key, $known, $identifier);
+
+            throw ValidationException::withMessages(['phone' => trans('auth.wrong_door_staff')]);
+        }
+        if ($audience === 'staff' && Auth::user()->hasRole('parent')) {
+            Auth::logout();
+            $throttle->failed($this, $key, $known, $identifier);
+
+            throw ValidationException::withMessages(['phone' => trans('auth.wrong_door_parent')]);
         }
 
         $throttle->succeeded($this, $key, Auth::user(), $identifier);

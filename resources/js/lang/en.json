@@ -2476,6 +2476,8 @@
     },
     "signin": {
         "title": "Paradise Hills School",
+        "parent_door": "Parent Login",
+        "staff_door": "Staff Login",
         "phone": "Phone number",
         "phone_hint": "For example 0911 22 33 44. You can also type +251 911 22 33 44.",
         "show_password": "Show password",
