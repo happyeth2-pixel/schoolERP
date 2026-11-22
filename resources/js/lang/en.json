@@ -158,6 +158,7 @@
     },
     "dashboard": {
         "welcome": "Welcome, {{name}}",
+        "hero_tagline": "Here's how School of Paradise Hills is doing today.",
         "total_students": "Total Students",
         "student_statistics": "Student Statistics",
         "students_by_gender": "Students by Gender",

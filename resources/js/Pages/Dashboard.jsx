@@ -1,5 +1,8 @@
 import Card3D from '@/Components/Card3D';
 import DonutChart from '@/Components/charts/DonutChart';
+import DashboardHero from '@/Components/DashboardHero';
+import GlassPanel from '@/Components/GlassPanel';
+import GlassStatTile from '@/Components/GlassStatTile';
 import HomeTasks from '@/Components/HomeTasks';
 import TeacherHome from '@/Components/TeacherHome';
 import ParentHome from '@/Components/ParentHome';
@@ -87,10 +90,9 @@ function OrgDashboard({ stats }) {
         <div className="space-y-6">
             {/* Always visible: the handful of numbers that matter every single day, for every org-wide role. */}
             <div className="grid gap-4 sm:grid-cols-2">
-                <GradientStatTile icon={UserGroupIcon} label={t('dashboard.total_students')} value={stats.total_students} color="blue" />
-                <GradientStatTile icon={AcademicCapIcon} label={t('dashboard.total_teachers')} value={stats.total_teachers} color="purple" />
-                <Card3D glow="gray" className="p-5 sm:col-span-2">
-                    <h3 className="mb-3 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.attendance_breakdown')}</h3>
+                <GlassStatTile index={0} icon={UserGroupIcon} label={t('dashboard.total_students')} value={stats.total_students} color="blue" />
+                <GlassStatTile index={1} icon={AcademicCapIcon} label={t('dashboard.total_teachers')} value={stats.total_teachers} color="purple" />
+                <GlassPanel index={2} title={t('dashboard.attendance_breakdown')} className="sm:col-span-2">
                     {stats.today_attendance_breakdown ? (
                         <DonutChart
                             segments={attendanceSegments(stats.today_attendance_breakdown, t)}
@@ -100,24 +102,24 @@ function OrgDashboard({ stats }) {
                     ) : (
                         <Meter bare label={t('dashboard.today_attendance')} value={stats.today_attendance_rate} thresholds={{ good: 90, warning: 75 }} emptyLabel={t('dashboard.not_marked_today')} />
                     )}
-                </Card3D>
+                </GlassPanel>
                 {stats.fees_total !== null && stats.fees_total !== undefined && (
-                <Card3D glow="gray" className="p-5 sm:col-span-2">
-                    <h3 className="mb-3 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.fees_breakdown')}</h3>
+                <GlassPanel index={3} title={t('dashboard.fees_breakdown')} className="sm:col-span-2">
                     <DonutChart
                         segments={feeSegments({ paid: stats.fees_paid, outstanding: stats.outstanding_fees, waived: stats.fees_waived, refunded: stats.fees_refunded }, t)}
                         centerValue={`${stats.fee_collection_rate ?? 0}%`}
                         centerLabel={t('dashboard.fee_collection_rate')}
                         emptyLabel="No invoices yet"
                     />
-                </Card3D>
+                </GlassPanel>
                 )}
                 {stats.pending_payments_count !== null && stats.pending_payments_count !== undefined && (
-                <GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_pending')} value={stats.pending_payments_count} color="amber" />
+                <GlassStatTile index={4} icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_pending')} value={stats.pending_payments_count} color="amber" />
                 )}
                 {stats.medical && (
                     <Link className="block" href={route('medical-records.index')}>
-                        <GradientStatTile
+                        <GlassStatTile
+                            index={5}
                             icon={HeartIcon}
                             label={t('dashboard.medical_on_file')}
                             value={t('dashboard.medical_on_file_value', { onFile: stats.medical.on_file, total: stats.medical.total_enrolled })}
@@ -222,30 +224,28 @@ function AccountantDashboard({ stats }) {
 
     return (
         <div className="grid gap-4 sm:grid-cols-2">
-            <GradientStatTile icon={BanknotesIcon} label={t('dashboard.fees_collected_today')} value={Number(stats.collected_today).toLocaleString()} color="green" />
-            <GradientStatTile icon={CurrencyDollarIcon} label={t('dashboard.fees_collected_month')} value={Number(stats.collected_this_month).toLocaleString()} color="blue" />
-            <Card3D glow="gray" className="p-5 sm:col-span-2">
-                <h3 className="mb-3 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.fees_breakdown')}</h3>
+            <GlassStatTile index={0} icon={BanknotesIcon} label={t('dashboard.fees_collected_today')} value={Number(stats.collected_today).toLocaleString()} color="green" />
+            <GlassStatTile index={1} icon={CurrencyDollarIcon} label={t('dashboard.fees_collected_month')} value={Number(stats.collected_this_month).toLocaleString()} color="blue" />
+            <GlassPanel index={2} title={t('dashboard.fees_breakdown')} className="sm:col-span-2">
                 <DonutChart
                     segments={feeSegments({ paid: stats.fees_paid, outstanding: stats.outstanding_balance, waived: stats.fees_waived }, t)}
                     centerValue={Number(stats.fees_total).toLocaleString()}
                     centerLabel={t('dashboard.school_fees')}
                     emptyLabel="No invoices yet"
                 />
-            </Card3D>
-            <GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_review')} value={stats.pending_payments_count} color="amber" />
+            </GlassPanel>
+            <GlassStatTile index={3} icon={ClipboardDocumentCheckIcon} label={t('dashboard.payment_proofs_review')} value={stats.pending_payments_count} color="amber" />
             {stats.inventory && (
                 <>
-                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ArchiveBoxIcon} label={t('dashboard.inventory_total_items')} value={stats.inventory.total_items} color="blue" /></Link>
-                    <Link className="block" href={route('inventory-items.index')}><GradientStatTile icon={ExclamationTriangleIcon} label={t('dashboard.inventory_low_stock')} value={stats.inventory.low_stock} color={stats.inventory.low_stock > 0 ? 'amber' : 'green'} /></Link>
-                    <Card3D glow="blue" className="p-5 sm:col-span-2">
-                        <h3 className="mb-3 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.inventory_breakdown')}</h3>
+                    <Link className="block" href={route('inventory-items.index')}><GlassStatTile index={4} icon={ArchiveBoxIcon} label={t('dashboard.inventory_total_items')} value={stats.inventory.total_items} color="blue" /></Link>
+                    <Link className="block" href={route('inventory-items.index')}><GlassStatTile index={5} icon={ExclamationTriangleIcon} label={t('dashboard.inventory_low_stock')} value={stats.inventory.low_stock} color={stats.inventory.low_stock > 0 ? 'amber' : 'green'} /></Link>
+                    <GlassPanel index={6} title={t('dashboard.inventory_breakdown')} className="sm:col-span-2">
                         <DonutChart segments={inventorySegments(stats.inventory, t)} centerValue={stats.inventory.total_items} centerLabel={t('dashboard.inventory_total_items')} />
-                    </Card3D>
+                    </GlassPanel>
                 </>
             )}
             {stats.requisitions && stats.requisitions.pending_approvals !== null && (
-                <Link className="block" href={route('requisitions.index', { status: 'submitted' })}><GradientStatTile icon={ClipboardDocumentCheckIcon} label={t('dashboard.pending_approvals')} value={stats.requisitions.pending_approvals} color={stats.requisitions.pending_approvals > 0 ? 'amber' : 'green'} /></Link>
+                <Link className="block" href={route('requisitions.index', { status: 'submitted' })}><GlassStatTile index={7} icon={ClipboardDocumentCheckIcon} label={t('dashboard.pending_approvals')} value={stats.requisitions.pending_approvals} color={stats.requisitions.pending_approvals > 0 ? 'amber' : 'green'} /></Link>
             )}
         </div>
     );
@@ -305,13 +305,15 @@ export default function Dashboard({ stats }) {
         >
             <Head title={t('menu.home')} />
 
-            <div className="py-6 sm:py-8">
-                <div className="mx-auto max-w-5xl space-y-10 px-4 sm:px-6 lg:px-8">
-                    <TodayHeader />
+            <div className="relative py-6 sm:py-8">
+                <div className="dash-ambient" aria-hidden="true">
+                    <span className="dash-ambient-orb dash-orb-1 -left-24 top-40 h-72 w-72 bg-brand-300 dark:bg-brand-500" />
+                    <span className="dash-ambient-orb dash-orb-2 -right-28 top-[32rem] h-96 w-96 bg-emerald-300 dark:bg-emerald-500" />
+                    <span className="dash-ambient-orb dash-orb-3 bottom-0 left-1/4 h-80 w-80 bg-sky-300 dark:bg-sky-500" />
+                </div>
 
-                    <p className="text-lg text-stone-700 dark:text-stone-300">
-                        {t('dashboard.welcome', { name: auth.user.name })}{auth.user.title ? ` — ${auth.user.title}` : ''}
-                    </p>
+                <div className="relative mx-auto max-w-5xl space-y-10 px-4 sm:px-6 lg:px-8">
+                    <DashboardHero stats={stats} />
 
                     {stats.demographics && (
                         <section aria-labelledby="demographics">

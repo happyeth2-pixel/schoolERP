@@ -465,19 +465,37 @@ function Sidebar({ mobileOpen, onClose }) {
                 {/* Mobile: a dense dark text list asks a first-time phone user to read and parse rows of
                     small type -- the same reason Home is giant buttons for a parent or teacher. Every
                     item here is the exact same permission-filtered data as the desktop list below, just
-                    shown as big, colourful, icon-forward tiles instead. Nothing is removed, no accordion
-                    to figure out -- everything open, one longer scroll. */}
-                <div className="space-y-5 lg:hidden">
-                    {filteredSections.filter((section) => section.items.length > 0).map((section, sIndex) => (
-                        <div key={section.id ?? section.label}>
-                            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-stone-500">{section.label}</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                {section.items.map((item) => (
-                                    <MobileNavTile key={item.label} item={item} tintIndex={sIndex} />
-                                ))}
+                    shown as big, colourful, icon-forward tiles instead -- unchanged. The only thing added
+                    is the same colour-coded dropdown header the desktop rail has, so a long menu folds
+                    here too instead of being one long scroll. */}
+                <div className="space-y-3 lg:hidden">
+                    {filteredSections.filter((section) => section.items.length > 0).map((section, sIndex) => {
+                        const open = isOpen(section, sIndex);
+                        const accent = sectionAccent(section.id);
+                        const panelId = `nav-section-mobile-${section.id}`;
+
+                        return (
+                            <div key={section.id ?? section.label}>
+                                <button
+                                    type="button"
+                                    aria-expanded={open}
+                                    aria-controls={panelId}
+                                    onClick={() => save({ ...stored, [section.id]: !open })}
+                                    className={`flex min-h-[44px] w-full items-center justify-between rounded-lg px-1 text-left text-xs font-semibold uppercase tracking-wider transition-colors ${open ? accent.text : 'text-stone-500'} ${accent.hover}`}
+                                >
+                                    {section.label}
+                                    <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+                                </button>
+                                {open && (
+                                    <div id={panelId} className="mt-2 grid grid-cols-2 gap-3">
+                                        {section.items.map((item) => (
+                                            <MobileNavTile key={item.label} item={item} tintIndex={sIndex} />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="hidden lg:block lg:space-y-4">

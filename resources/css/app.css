@@ -142,3 +142,92 @@
 .ph-cut-corner {
     clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
 }
+
+/* Owner/admin Dashboard home only (Dashboard.jsx + Components/DashboardHero.jsx, GlassStatTile.jsx,
+   GlassPanel.jsx). Own namespace, deliberately separate from both the public site's fixed-dark `ph-*`
+   classes above and from Card3D/GradientStatTile (left untouched everywhere else in the app, including
+   every other page that still uses them) -- this follows the app's own light/dark toggle and
+   brand/forest Tailwind tokens, so it only ever changes the one page it's meant for. */
+.dash-hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0e3b2e 0%, #123f31 45%, #1f5c47 100%);
+}
+
+.dash-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(55px);
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+@keyframes dash-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(26px, -22px) scale(1.1); }
+}
+
+.dash-orb-1 { animation: dash-drift 13s ease-in-out infinite; }
+.dash-orb-2 { animation: dash-drift 17s ease-in-out infinite reverse; animation-delay: 1.5s; }
+.dash-orb-3 { animation: dash-drift 21s ease-in-out infinite; animation-delay: 4s; }
+
+.dash-glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.dark .dash-glass {
+    background: rgba(18, 32, 28, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-glass-dark {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.dash-shimmer {
+    background: linear-gradient(100deg, #fff 20%, #e4c878 40%, #fff 60%, #e4c878 80%, #fff 100%);
+    background-size: 250% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: dash-shimmer-move 7s linear infinite;
+}
+
+@keyframes dash-shimmer-move {
+    0% { background-position: 0% 50%; }
+    100% { background-position: -250% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-orb-1, .dash-orb-2, .dash-orb-3 { animation: none; }
+    .dash-shimmer { animation: none; -webkit-background-clip: initial; background-clip: initial; color: #fff; background: none; }
+}
+
+/* A soft, page-length colour backdrop behind the Dashboard home's content (below the hero), so
+   `.dash-glass`'s blur has something to actually pick up -- a frosted panel over a flat stone-50/950
+   page is indistinguishable from a plain card. Sits at z-0 behind the z-10 content column; `.dash-ambient`
+   itself clips its orbs so none of this ever causes horizontal scroll. */
+.dash-ambient {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.dash-ambient-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    opacity: 0.3;
+}
+
+.dark .dash-ambient-orb {
+    opacity: 0.16;
+}

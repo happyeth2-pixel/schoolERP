@@ -1,5 +1,5 @@
-import Card3D from '@/Components/Card3D';
 import DonutChart from '@/Components/charts/DonutChart';
+import GlassPanel from '@/Components/GlassPanel';
 import GroupedBarChart from '@/Components/charts/GroupedBarChart';
 import { useTranslation } from 'react-i18next';
 
@@ -20,16 +20,14 @@ export default function StudentDemographics({ demographics }) {
 
     return (
         <div className="grid gap-4 sm:grid-cols-2">
-            <Card3D glow="blue" className="p-4">
-                <h3 className="mb-2 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.students_by_gender')}</h3>
+            <GlassPanel index={0} title={t('dashboard.students_by_gender')}>
                 <GroupedBarChart data={demographics.by_year_gender} series={genderSeries} xKey="year" emptyLabel={t('dashboard.no_years_yet')} width={280} height={150} />
-            </Card3D>
+            </GlassPanel>
 
             {gradeSegments.length > 0 && (
-                <Card3D glow="purple" className="p-4">
-                    <h3 className="mb-2 text-sm font-semibold text-stone-500 dark:text-stone-400">{t('dashboard.students_by_grade')}</h3>
+                <GlassPanel index={1} title={t('dashboard.students_by_grade')}>
                     <DonutChart segments={gradeSegments} donut={false} size={110} />
-                </Card3D>
+                </GlassPanel>
             )}
         </div>
     );
