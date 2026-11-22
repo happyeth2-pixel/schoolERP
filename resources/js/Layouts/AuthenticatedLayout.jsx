@@ -149,10 +149,10 @@ function sidebarBadgeFor(route_, notifications) {
     return n > 0 ? (n > 9 ? '9+' : n) : null;
 }
 
-function SidebarLink({ item, collapsed }) {
+function SidebarLink({ item, collapsed, accent = ACCENTS.slate }) {
     const { notifications } = usePage().props;
     const Icon = item.icon;
-    const base = `flex min-h-[48px] items-center gap-3 rounded-lg px-3 py-2 text-base transition md:min-h-[40px] md:gap-2.5 md:text-sm ${collapsed ? 'justify-center' : ''}`;
+    const base = `flex min-h-[48px] items-center gap-3 rounded-lg px-3 py-2 text-base transition-colors md:min-h-[40px] md:gap-2.5 md:text-sm ${collapsed ? 'justify-center' : ''}`;
 
     if (!item.enabled) {
         return (
@@ -171,10 +171,10 @@ function SidebarLink({ item, collapsed }) {
             href={route(item.route, item.params)}
             title={collapsed ? item.label : undefined}
             className={`${base} relative ${
-                active ? 'bg-brand-700 font-semibold text-white' : 'text-stone-300 hover:bg-forest-800 hover:text-white'
+                active ? 'bg-brand-700 font-semibold text-white' : `text-stone-300 ${accent.hover}`
             }`}
         >
-            {Icon && <Icon className="h-5 w-5 shrink-0" />}
+            {Icon && <Icon className={`h-5 w-5 shrink-0 ${active ? '' : accent.text}`} />}
             {!collapsed && <span className="flex-1">{item.label}</span>}
             {badge && (
                 <span className={`flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${collapsed ? 'absolute -right-1 -top-1' : ''} ${active ? 'bg-white text-brand-700' : 'bg-red-600 text-white'}`}>
@@ -190,6 +190,60 @@ const MOBILE_NAV_TINTS = [
     'bg-rose-700 text-white', 'bg-indigo-700 text-white', 'bg-teal-700 text-white', 'bg-fuchsia-700 text-white',
     'bg-cyan-700 text-white', 'bg-orange-700 text-white', 'bg-lime-700 text-white', 'bg-pink-700 text-white',
 ];
+
+// Desktop sidebar: each section gets its own colour identity (header hover, chevron, and its items'
+// icons/hover all pick it up) so a long, dropdown-folded menu stays visually sortable at a glance --
+// "Overview is the blue one, Organization is the purple one" -- instead of every section looking the
+// same dark row. Classes are written out in full (never built from a template string) because Tailwind's
+// build only keeps classes it can see literally in the source.
+const ACCENTS = {
+    blue: { hover: 'hover:bg-blue-900/30 hover:text-blue-200', text: 'text-blue-400' },
+    purple: { hover: 'hover:bg-purple-900/30 hover:text-purple-200', text: 'text-purple-400' },
+    slate: { hover: 'hover:bg-slate-700/40 hover:text-slate-200', text: 'text-slate-300' },
+    indigo: { hover: 'hover:bg-indigo-900/30 hover:text-indigo-200', text: 'text-indigo-400' },
+    emerald: { hover: 'hover:bg-emerald-900/30 hover:text-emerald-200', text: 'text-emerald-400' },
+    teal: { hover: 'hover:bg-teal-900/30 hover:text-teal-200', text: 'text-teal-400' },
+    rose: { hover: 'hover:bg-rose-900/30 hover:text-rose-200', text: 'text-rose-400' },
+    pink: { hover: 'hover:bg-pink-900/30 hover:text-pink-200', text: 'text-pink-400' },
+    orange: { hover: 'hover:bg-orange-900/30 hover:text-orange-200', text: 'text-orange-400' },
+    cyan: { hover: 'hover:bg-cyan-900/30 hover:text-cyan-200', text: 'text-cyan-400' },
+    lime: { hover: 'hover:bg-lime-900/30 hover:text-lime-200', text: 'text-lime-300' },
+    fuchsia: { hover: 'hover:bg-fuchsia-900/30 hover:text-fuchsia-200', text: 'text-fuchsia-400' },
+    amber: { hover: 'hover:bg-amber-900/30 hover:text-amber-200', text: 'text-amber-400' },
+    green: { hover: 'hover:bg-green-900/30 hover:text-green-200', text: 'text-green-400' },
+    yellow: { hover: 'hover:bg-yellow-900/30 hover:text-yellow-200', text: 'text-yellow-300' },
+    sky: { hover: 'hover:bg-sky-900/30 hover:text-sky-200', text: 'text-sky-400' },
+    violet: { hover: 'hover:bg-violet-900/30 hover:text-violet-200', text: 'text-violet-400' },
+    red: { hover: 'hover:bg-red-900/30 hover:text-red-200', text: 'text-red-400' },
+    stone: { hover: 'hover:bg-stone-700/40 hover:text-stone-200', text: 'text-stone-300' },
+};
+
+const SECTION_COLOR = {
+    overview: 'blue',
+    organization: 'purple',
+    settings: 'slate',
+    academics: 'indigo',
+    results: 'emerald',
+    people: 'teal',
+    discipline: 'rose',
+    medical: 'pink',
+    assignments: 'orange',
+    attendance: 'cyan',
+    finance: 'lime',
+    communication: 'fuchsia',
+    inventory: 'amber',
+    library: 'green',
+    procurement: 'yellow',
+    accounting: 'sky',
+    hr: 'violet',
+    reports: 'red',
+    oversight: 'stone',
+    my_school: 'teal',
+};
+
+function sectionAccent(id) {
+    return ACCENTS[SECTION_COLOR[id]] ?? ACCENTS.slate;
+}
 
 /** The mobile drawer's version of a nav item: a big, colourful icon tile instead of a thin dark row --
  *  same data, same permissions, same route, just sized and styled for a thumb instead of a mouse. */
@@ -274,11 +328,8 @@ function Sidebar({ mobileOpen, onClose }) {
         t,
     });
 
-    // Progressive disclosure: a long menu (owner, full admins) folds its sections; a short one (teacher,
-    // parent, front desk) is shown whole. Nothing is ever removed -- one tap opens any section, the
-    // section holding the current page opens by itself, and the choice is remembered.
-    const totalItems = sections.reduce((n, section) => n + section.items.length, 0);
-    const collapsible = totalItems > 12;
+    // Every section is a colour-coded dropdown: one tap opens or folds it, the section holding the
+    // current page opens by itself, and the open/closed choice is remembered per section.
     const activeId = sections.find((section) => section.items.some((i) => i.enabled && i.route && route().current(i.route)))?.id;
     const [stored, setStored] = useState(readOpenState);
     // "Collapsed" shrinks the whole rail to icons-only on desktop, to get the screen width back; it never
@@ -317,7 +368,7 @@ function Sidebar({ mobileOpen, onClose }) {
     };
 
     useEffect(() => {
-        if (collapsible && activeId && stored[activeId] === false) {
+        if (activeId && stored[activeId] === false) {
             save({ ...stored, [activeId]: true });
         }
         // only when the page (and so the active section) changes
@@ -347,7 +398,7 @@ function Sidebar({ mobileOpen, onClose }) {
         }
     };
 
-    const isOpen = (section, index) => Boolean(query) || !collapsible || (stored[section.id] ?? (index < 3 || section.id === activeId));
+    const isOpen = (section, index) => Boolean(query) || (stored[section.id] ?? (index < 3 || section.id === activeId));
 
     return (
         <aside
@@ -431,39 +482,37 @@ function Sidebar({ mobileOpen, onClose }) {
 
                 <div className="hidden lg:block lg:space-y-4">
                 {collapsed
-                    ? sections.map((section) => (
-                        <div key={section.id ?? section.label} className="space-y-0.5 border-t border-forest-800 pt-2 first:border-t-0 first:pt-0">
-                            {section.items.map((item) => (
-                                <SidebarLink key={item.label} item={item} collapsed />
-                            ))}
-                        </div>
-                    ))
+                    ? sections.map((section) => {
+                        const accent = sectionAccent(section.id);
+                        return (
+                            <div key={section.id ?? section.label} className="space-y-0.5 border-t border-forest-800 pt-2 first:border-t-0 first:pt-0">
+                                {section.items.map((item) => (
+                                    <SidebarLink key={item.label} item={item} accent={accent} collapsed />
+                                ))}
+                            </div>
+                        );
+                    })
                     : filteredSections.map((section, index) => {
                         const open = isOpen(section, index);
                         const panelId = `nav-section-${section.id}`;
+                        const accent = sectionAccent(section.id);
 
                         return (
                             <div key={section.id ?? section.label}>
-                                {collapsible ? (
-                                    <button
-                                        type="button"
-                                        aria-expanded={open}
-                                        aria-controls={panelId}
-                                        onClick={() => save({ ...stored, [section.id]: !open })}
-                                        className="flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 hover:bg-forest-900 hover:text-stone-300"
-                                    >
-                                        {section.label}
-                                        <ChevronDownIcon className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
-                                    </button>
-                                ) : (
-                                    <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-stone-500">
-                                        {section.label}
-                                    </p>
-                                )}
+                                <button
+                                    type="button"
+                                    aria-expanded={open}
+                                    aria-controls={panelId}
+                                    onClick={() => save({ ...stored, [section.id]: !open })}
+                                    className={`flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors ${open ? accent.text : 'text-stone-500'} ${accent.hover}`}
+                                >
+                                    {section.label}
+                                    <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+                                </button>
                                 {open && (
                                     <div id={panelId} className="mt-0.5 space-y-0.5">
                                         {section.items.map((item) => (
-                                            <SidebarLink key={item.label} item={item} />
+                                            <SidebarLink key={item.label} item={item} accent={accent} />
                                         ))}
                                     </div>
                                 )}
