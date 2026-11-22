@@ -34,7 +34,9 @@ __pycache__/
 # Generated deliverables (manual/proposal/spec PDFs & docx, and their build scratch dir) -- these are
 # outputs handed to the client directly, not source, and don't belong in the app's own history.
 /.manual_build/
+/.doc_diagrams/
 /*.pdf
 /*.docx
 /schoolERP_prj.zip
 /paradise.jpg
+/.owner_guide_build/
