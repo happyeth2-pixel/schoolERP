@@ -125,13 +125,12 @@ class PaymentController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'method' => ['required', 'in:bank_transfer,mobile_money,cash,other'],
             'reference_number' => ['nullable', 'string', 'max:255', 'required_unless:method,cash'],
-            'paid_by_name' => ['required', 'string', 'min:2', 'max:120'],
+            'paid_by_name' => ['nullable', 'string', 'min:2', 'max:120'],
             'note' => ['nullable', 'string', 'max:500', 'required_if:method,other'],
             'confirm_duplicate' => ['nullable', 'boolean'],
             'proof' => ['nullable', 'file', 'max:5120', new SafeUploadRule(['jpg', 'png', 'pdf'])],
         ], [
             'reference_number.required_unless' => 'Type the reference number from the bank or mobile-money slip.',
-            'paid_by_name.required' => 'Write the name of the person who paid.',
             'note.required_if' => 'Write a short note saying what kind of payment this was.',
         ]);
 
@@ -160,43 +159,13 @@ class PaymentController extends Controller
         }
         $path = $request->hasFile('proof') ? SafeUpload::storePrivate($request->file('proof'), 'payment-proofs') : null;
 
-        $result = DB::transaction(function () use ($actor, $invoice, $validated, $amount, $path) {
-            // same lock order as verify(): invoice first, receipt counter last
-            $locked = Invoice::whereKey($invoice->id)->lockForUpdate()->first();
-            $locked->load('items', 'payments');
-
-            if ($locked->is_waived) {
-                return ['error' => 'This bill is waived, so it cannot receive a payment.'];
-            }
-            if ($amount > $locked->balance() + 0.001) {
-                return ['error' => 'This is more than the balance of '.number_format(max(0, $locked->balance()), 2).' ETB. Check the amount.'];
-            }
-
-            $justNow = Payment::where('invoice_id', $locked->id)->where('channel', Payment::CHANNEL_COUNTER)
-                ->where('submitted_by', $actor->id)->where('amount', $amount)->where('method', $validated['method'])
-                ->where('created_at', '>=', now()->subSeconds(60))->exists();
-            if ($justNow) {
-                return ['error' => 'You just recorded this same payment. Look at the payments on the bill before recording it again.'];
-            }
-
-            $payment = Payment::create([
-                'invoice_id' => $locked->id,
-                'amount' => $amount,
-                'method' => $validated['method'],
-                'reference_number' => $validated['reference_number'] ?? null,
-                'proof_path' => $path,
-                'submitted_by' => $actor->id,
-                'status' => 'verified',
-                'channel' => Payment::CHANNEL_COUNTER,
-                'paid_by_name' => trim($validated['paid_by_name']),
-                'note' => filled($validated['note'] ?? null) ? trim($validated['note']) : null,
-                'verified_by' => $actor->id,
-                'verified_at' => now(),
-                'receipt_number' => $this->nextReceiptNumber($actor->school_id),
-            ]);
-
-            return ['payment' => $payment, 'balance_after' => max(0, round($locked->balance() - $amount, 2))];
-        }, 5);
+        $result = app(\App\Services\CounterPayment::class)->attempt($actor, $invoice, $amount, [
+            'method' => $validated['method'],
+            'reference_number' => $validated['reference_number'] ?? null,
+            'paid_by_name' => $validated['paid_by_name'] ?? null,
+            'note' => $validated['note'] ?? null,
+            'proof_path' => $path,
+        ]);
 
         if (isset($result['error'])) {
             return back()->withErrors(['amount' => $result['error']])->withInput();

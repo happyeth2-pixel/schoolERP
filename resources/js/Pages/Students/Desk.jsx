@@ -89,7 +89,12 @@ export default function Desk({ student, can, fees, attendance, reportCard, profi
                                     {fees.owed > 0 && <p className="text-4xl font-bold text-stone-900 dark:text-stone-100" data-testid="owed">{money(fees.owed)} <span className="text-xl font-semibold text-stone-600 dark:text-stone-400">ETB</span></p>}
                                     <p className="mt-2 text-base text-stone-700 dark:text-stone-300" data-testid="paid-total">{t('desk.paid_total')}: <span className="font-bold text-stone-900 dark:text-stone-100">{money(fees.paid_total)} ETB</span></p>
                                 </div>
-                                <Button as="a" href={fees.statement_url} variant="secondary" icon={PrinterIcon} data-testid="print-statement">{t('desk.print_statement')}</Button>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    {fees.owed > 0 && fees.invoices.some((i) => i.record_url) && (
+                                        <Button as={Link} href={route('students.record-payment.create', student.id)} icon={BanknotesIcon} data-testid="bulk-record-payment">{t('desk.record_combined_payment', 'Record a combined payment')}</Button>
+                                    )}
+                                    <Button as="a" href={fees.statement_url} variant="secondary" icon={PrinterIcon} data-testid="print-statement">{t('desk.print_statement')}</Button>
+                                </div>
                             </div>
 
                             {fees.invoices.length === 0 ? (

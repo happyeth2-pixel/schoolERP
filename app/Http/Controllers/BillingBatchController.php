@@ -32,6 +32,14 @@ class BillingBatchController extends Controller
             $query->where('status', $status);
         }
 
+        // Cancelled runs are never deleted (they're part of the money history, same as a cancelled
+        // invoice), but hiding them by default keeps the day-to-day list to what's actually still in
+        // effect -- a "Show cancelled too" toggle still surfaces every one of them on request.
+        $showCancelled = $request->boolean('show_cancelled');
+        if (! $showCancelled) {
+            $query->whereNull('cancelled_at');
+        }
+
         $paginator = $query->paginate($this->perPage($request), ['*'], 'page', $request->query('page', 1));
 
         return Inertia::render('Invoices/Batches', [
@@ -55,7 +63,7 @@ class BillingBatchController extends Controller
                 'can_cancel' => $b->status === 'completed' && $b->cancelled_at === null && $b->generation_batch_id !== null,
             ]),
             'pagination' => $this->paginationMeta($paginator),
-            'filters' => ['status' => $request->query('status')],
+            'filters' => ['status' => $request->query('status'), 'show_cancelled' => $showCancelled],
         ]);
     }
 }

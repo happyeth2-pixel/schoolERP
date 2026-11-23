@@ -1,5 +1,5 @@
 import Pagination from '@/Components/Pagination';
-import { BackLink, Button, Card, EmptyState, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, CheckRow, EmptyState, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ClockIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
 import { Head, Link, router } from '@inertiajs/react';
@@ -10,7 +10,10 @@ const STATUS_LABEL = { completed: 'Completed', no_invoices: 'Nothing new to bill
 // "Which bills were generated, when, for which classes, how much, and did it work" -- every Create Bills
 // run, success or not (see BillingBatchController). A blocked/failed run shows its own explanation instead
 // of just vanishing, which is exactly the thing a registrar most needs to see after something goes wrong.
-export default function Batches({ batches, pagination }) {
+// Cancelled runs are kept forever (same "never delete money history" rule as a cancelled invoice) but
+// hidden by default so re-running "All Classes" after a cancel doesn't bury the list in old entries --
+// the toggle below brings them all back.
+export default function Batches({ batches, pagination, filters }) {
     const [ask, confirmDialog] = useConfirm();
 
     const cancel = async (batch) => {
@@ -36,6 +39,16 @@ export default function Batches({ batches, pagination }) {
                 back={<BackLink href={route('invoices.index')}>Back to Invoices</BackLink>}
                 actions={<Button as={Link} href={route('invoices.wizard')} icon={DocumentPlusIcon}>Create Bills</Button>}
             >
+                <div className="mb-4">
+                    <CheckRow
+                        id="show_cancelled"
+                        label="Show cancelled batches too"
+                        hint="Cancelled runs are kept as permanent history -- they're just hidden here by default."
+                        checked={filters.show_cancelled}
+                        onChange={(checked) => router.get(route('invoices.batches.index'), { ...(filters.status ? { status: filters.status } : {}), show_cancelled: checked ? 1 : 0 }, { preserveScroll: true })}
+                    />
+                </div>
+
                 {batches.length === 0 ? (
                     <Card><EmptyState icon={ClockIcon} title="No bills have been generated yet" description="Use Create Bills to generate the first batch." /></Card>
                 ) : (

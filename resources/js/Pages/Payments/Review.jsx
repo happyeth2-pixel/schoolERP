@@ -170,7 +170,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                             </div>
                         }
                     >
-                        {t('rec.recorded_line', { payer: payment.paid_by_name })}
+                        {payment.paid_by_name ? t('rec.recorded_line', { payer: payment.paid_by_name }) : t('rec.recorded_line_unknown')}
                     </SuccessPanel>
                 )}
 
@@ -195,7 +195,9 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                             </div>
                         }
                     >
-                        {t('verify.received_body', { amount: money(payment.amount), parent: payment.channel === 'counter' ? payment.paid_by_name : payment.submitted_by, student: student.name })}
+                        {payment.channel === 'counter' && !payment.paid_by_name
+                            ? t('verify.received_body_unknown', { amount: money(payment.amount), student: student.name })
+                            : t('verify.received_body', { amount: money(payment.amount), parent: payment.channel === 'counter' ? payment.paid_by_name : payment.submitted_by, student: student.name })}
                     </SuccessPanel>
                 )}
 
@@ -219,7 +221,11 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                         <p className="text-5xl font-bold text-stone-900 dark:text-stone-100" data-testid="amount">{money(payment.amount)} <span className="text-2xl font-semibold text-stone-600 dark:text-stone-400">ETB</span></p>
                         <dl className="mt-3 divide-y divide-stone-200 dark:divide-stone-700">
                             <Row label={t('verify.f_who')}>
-                                {payment.channel === 'counter' && <span className="block text-base font-semibold" data-testid="counter-who">{t('rec.paid_at_school', { payer: payment.paid_by_name, who: payment.submitted_by })}</span>}
+                                {payment.channel === 'counter' && (
+                                    <span className="block text-base font-semibold" data-testid="counter-who">
+                                        {payment.paid_by_name ? t('rec.paid_at_school', { payer: payment.paid_by_name, who: payment.submitted_by }) : t('rec.paid_at_school_unknown', { who: payment.submitted_by })}
+                                    </span>
+                                )}
                                 <span className={`font-semibold ${payment.channel === 'counter' ? 'hidden' : ''}`}>{payment.submitted_by}{payment.submitted_by_relationship ? ` (${payment.submitted_by_relationship})` : ''}</span>
                                 <span className="block text-base text-stone-700 dark:text-stone-300">{t('verify.paying_for')} <strong>{student.name}</strong>{student.class ? ` · ${student.class}` : ''} · {student.student_id_number}</span>
                             </Row>

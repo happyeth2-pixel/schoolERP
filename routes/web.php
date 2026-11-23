@@ -613,6 +613,8 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::post('/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/invoices/{invoice}/record-payment', [PaymentController::class, 'recordForm'])->name('payments.record.create');
     Route::post('/invoices/{invoice}/record-payment', [PaymentController::class, 'record'])->name('payments.record');
+    Route::get('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'create'])->name('students.record-payment.create');
+    Route::post('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'store'])->name('students.record-payment.store');
     Route::get('/payments/pending', [PaymentController::class, 'index'])->name('payments.pending');
     Route::get('/payments/{payment}', [PaymentController::class, 'review'])->whereNumber('payment')->name('payments.review');
     Route::post('/payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');

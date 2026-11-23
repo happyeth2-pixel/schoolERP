@@ -39,7 +39,10 @@ export default function Record({ invoice, student, guardians, waiting }) {
     const referenceOk = cash || data.reference_number.trim() !== '';
     const noteOk = data.method !== 'other' || data.note.trim() !== '';
     const duplicate = errors.duplicate_reference;
-    const payerOk = data.paid_by_name.trim().length >= 2;
+    // Optional: most parents are known to staff by sight, and some payers (an illiterate grandparent, a
+    // neighbour dropping it off) may not want to give a name at all. If something IS typed, it should
+    // still be a real name, not one stray character -- so the 2-character floor only applies when non-empty.
+    const payerOk = data.paid_by_name.trim().length === 0 || data.paid_by_name.trim().length >= 2;
     const left = Math.max(0, Math.round((invoice.balance - amountNum) * 100) / 100);
     const preview = useMemo(() => (data.proof && data.proof.type.startsWith('image/') ? URL.createObjectURL(data.proof) : null), [data.proof]);
 
@@ -179,7 +182,7 @@ export default function Record({ invoice, student, guardians, waiting }) {
                                     onEdit={wizard.goTo}
                                     rows={[
                                         { label: t('rec.r_how'), value: methodLabel(data.method), step: stepOf('how') },
-                                        { label: t('rec.r_payer'), value: data.paid_by_name.trim(), step: stepOf('details') },
+                                        ...(data.paid_by_name.trim() ? [{ label: t('rec.r_payer'), value: data.paid_by_name.trim(), step: stepOf('details') }] : []),
                                         ...(cash ? [] : [{ label: t('rec.r_reference'), value: data.reference_number.trim(), step: stepOf('details') }]),
                                         ...(data.note.trim() ? [{ label: t('rec.r_note'), value: data.note.trim(), step: stepOf('details') }] : []),
                                         { label: t('rec.r_slip'), value: data.proof?.name ?? t('rec.r_none'), step: stepOf('details') },
