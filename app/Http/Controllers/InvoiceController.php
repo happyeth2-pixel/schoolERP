@@ -291,8 +291,8 @@ class InvoiceController extends Controller
 
         $ctx = $this->generationContext($request);
 
-        if ($ctx['fees']->has('termly') && $ctx['terms']->isEmpty()) {
-            $message = 'This grade has a "per term" fee, but no terms are set up for the current academic year yet. Add the terms first (Academic Years & Terms), then generate again. No invoices were created.';
+        if ($ctx['feesByGrade']->contains(fn ($byFreq) => $byFreq->has('termly')) && $ctx['terms']->isEmpty()) {
+            $message = 'One of the classes billed here has a "per term" fee, but no terms are set up for the current academic year yet. Add the terms first (Academic Years & Terms), then generate again. No invoices were created.';
             $this->recordBillingBatch($user, $ctx, 'blocked', null, $message);
 
             return back()->withErrors(['generate' => $message]);
@@ -309,17 +309,22 @@ class InvoiceController extends Controller
 
         $this->recordBillingBatch($user, $ctx, $result['invoices'] > 0 ? 'completed' : 'no_invoices', $result);
 
-        AuditLog::record($user, 'invoices.generated', $ctx['grade'], null, [
+        AuditLog::record($user, 'invoices.generated', $ctx['branch'], null, [
             'branch' => $ctx['branch']->name,
             'academic_year' => $ctx['year']->name,
+            'scope' => $ctx['scopeLabel'],
             'invoices_created' => $result['invoices'],
             'students_considered' => $ctx['enrollments']->count(),
             'periods' => $ctx['selected'] ?? 'all',
         ]);
 
+        // Only when exactly one class was involved does "see the bills" make sense filtered to a grade --
+        // otherwise (several classes, all classes, or hand-picked students) it opens unfiltered.
+        $involvedGradeIds = $ctx['enrollments']->pluck('section.grade_id')->unique();
+
         return back()
             ->with('success', "{$result['invoices']} invoice(s) generated.")
-            ->with('invoice_run', $result + ['branch' => $ctx['branch']->name, 'grade' => $ctx['grade']->name, 'grade_id' => $ctx['grade']->id]);
+            ->with('invoice_run', $result + ['branch' => $ctx['branch']->name, 'grade' => $ctx['scopeLabel'], 'grade_id' => $involvedGradeIds->count() === 1 ? $involvedGradeIds->first() : null]);
     }
 
     /** Logs one "Create Bills" run to the Billing Batches dashboard, success or not -- see the migration's
@@ -332,8 +337,8 @@ class InvoiceController extends Controller
             'academic_year_id' => $ctx['year']->id,
             'initiated_by' => $user->id,
             'generation_batch_id' => $result['batch_id'] ?? null,
-            'scope_type' => 'grade',
-            'scope_label' => $ctx['grade']->name,
+            'scope_type' => $ctx['scopeType'],
+            'scope_label' => $ctx['scopeLabel'],
             'periods' => $ctx['selected'],
             'status' => $status,
             'students_considered' => $ctx['enrollments']->count(),
@@ -355,7 +360,15 @@ class InvoiceController extends Controller
         $user = $request->user();
 
         $ctx = $this->generationContext($request);
-        $fees = $ctx['fees']->flatten(1);
+        // Several classes can be in scope at once now, each possibly with its own fee amounts -- the grade
+        // name is attached to each fee only when more than one grade is actually involved, so a single-class
+        // run's preview reads exactly as it always did.
+        $multiGrade = $ctx['feesByGrade']->keys()->count() > 1;
+        $gradeNames = $multiGrade ? Grade::whereIn('id', $ctx['feesByGrade']->keys())->pluck('name', 'id') : collect();
+        $fees = $ctx['feesByGrade']->flatMap(fn ($byFreq, $gradeId) => $byFreq->flatten(1)->map(fn ($f) => [
+            'name' => $f->name, 'amount' => (float) $f->amount, 'frequency' => $f->frequency,
+            'grade' => $multiGrade ? ($gradeNames[$gradeId] ?? null) : null,
+        ]));
         $servicesStudents = $ctx['enrollments']->filter(fn ($e) => $e->student->optionalServices
             ->where('branch_id', $ctx['branch']->id)->where('academic_year_id', $ctx['year']->id)->isNotEmpty())->count();
 
@@ -364,7 +377,7 @@ class InvoiceController extends Controller
             $blocked = 'no_students';
         } elseif ($fees->isEmpty() && $servicesStudents === 0) {
             $blocked = 'no_fees';
-        } elseif ($ctx['fees']->has('termly') && $ctx['terms']->isEmpty()) {
+        } elseif ($ctx['feesByGrade']->contains(fn ($byFreq) => $byFreq->has('termly')) && $ctx['terms']->isEmpty()) {
             $blocked = 'no_terms';
         }
 
@@ -375,10 +388,10 @@ class InvoiceController extends Controller
 
         return response()->json([
             'branch' => $ctx['branch']->name,
-            'grade' => $ctx['grade']->name,
+            'grade' => $ctx['scopeLabel'],
             'academic_year' => $ctx['year']->name,
             'students' => $ctx['enrollments']->count(),
-            'fees' => $fees->map(fn ($f) => ['name' => $f->name, 'amount' => (float) $f->amount, 'frequency' => $f->frequency])->values(),
+            'fees' => $fees->values(),
             'services_students' => $servicesStudents,
             'terms' => $ctx['terms']->count(),
             'blocked' => $blocked,
@@ -387,17 +400,36 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Everything a run depends on, validated and scoped to the user: the branch and grade, the current year, the
-     * grade's fees, its terms and the students. `periods` (optional) narrows the run to some billing periods --
-     * `annual`, `term:<id>`, `month:<first day>`; leaving it out means every period, exactly as before.
+     * Everything a run depends on, validated and scoped to the user: the branch, who is being billed (every
+     * class, specific classes, or specific students), the current year, fees per grade involved, terms, and
+     * the students in scope. `periods` (optional) narrows the run to some billing periods -- `annual`,
+     * `term:<id>`, `month:<first day>`; leaving it out means every period, exactly as before.
+     *
+     * Targeting (`scope_type`): 'all' (every class in the branch), 'grades' (`grade_ids[]`, one or more --
+     * this is also what a lone `grade_id` is normalized to below, for compatibility with every existing
+     * caller of this endpoint), or 'students' (`student_ids[]`, specific students regardless of class).
+     * Fees are resolved PER GRADE (`feesByGrade`, keyed by grade id) rather than once for the whole run,
+     * since different grades can have different fee structures -- runGeneration() looks each student's own
+     * grade up in it.
      */
     private function generationContext(Request $request): array
     {
         $user = $request->user();
 
+        // Backward compatible: a lone `grade_id` (the only shape this endpoint accepted before multi-class/
+        // individual-student targeting existed) is just scope_type=grades with one grade -- nothing that
+        // already posts this shape (including the automated test suite) needs to change.
+        if (! $request->filled('scope_type') && $request->filled('grade_id')) {
+            $request->merge(['scope_type' => 'grades', 'grade_ids' => [$request->input('grade_id')]]);
+        }
+
         $validated = $request->validate([
             'branch_id' => ['required', 'integer'],
-            'grade_id' => ['required', 'integer'],
+            'scope_type' => ['required', 'in:all,grades,students'],
+            'grade_ids' => ['required_if:scope_type,grades', 'array', 'min:1'],
+            'grade_ids.*' => ['integer'],
+            'student_ids' => ['required_if:scope_type,students', 'array', 'min:1'],
+            'student_ids.*' => ['integer'],
             'periods' => ['nullable', 'array', 'min:1'],
             'periods.*' => ['string', 'max:40'],
         ]);
@@ -407,26 +439,42 @@ class InvoiceController extends Controller
             abort_unless($user->branch_id === $branch->id, 403);
         }
 
-        $grade = Grade::whereKey($validated['grade_id'])->where('school_id', $user->school_id)->firstOrFail();
         $year = $user->school->academicYears()->where('is_current', true)->firstOrFail();
+        $scopeType = $validated['scope_type'];
 
-        $fees = FeeStructure::where('branch_id', $branch->id)
-            ->where('grade_id', $grade->id)
-            ->where('academic_year_id', $year->id)
-            ->get()
-            ->groupBy('frequency');
-
-        $terms = Term::where('academic_year_id', $year->id)->orderBy('start_date')->get();
-
-        // Active students, plus students withdrawn this year (their periods up to the effective date may still be unbilled).
-        $enrollments = Enrollment::where(function ($q) {
+        // Active students, plus students withdrawn this year (their periods up to the effective date may
+        // still be unbilled) -- same rule as before, now shared across all three targeting modes.
+        $baseEnrollments = fn () => Enrollment::where(function ($q) {
             $q->active()->orWhere(fn ($w) => $w->where('enrollments.status', 'withdrawn')
                 ->whereHas('student', fn ($s) => $s->where('status', 'withdrawn')->whereNotNull('withdrawn_on')));
-        })
-            ->whereHas('section', fn ($q) => $q->where('branch_id', $branch->id)->where('grade_id', $grade->id)->where('academic_year_id', $year->id))
-            ->with('student.optionalServices', 'student.guardians')
-            ->get();
+        })->whereHas('section', fn ($q) => $q->where('branch_id', $branch->id)->where('academic_year_id', $year->id))
+            ->with('student.optionalServices', 'student.guardians', 'section.grade');
 
+        if ($scopeType === 'all') {
+            $enrollments = $baseEnrollments()->get();
+            $scopeLabel = 'All Classes';
+        } elseif ($scopeType === 'grades') {
+            $grades = Grade::whereIn('id', $validated['grade_ids'])->where('school_id', $user->school_id)->get();
+            abort_if($grades->isEmpty(), 404);
+            $enrollments = $baseEnrollments()->whereHas('section', fn ($q) => $q->whereIn('grade_id', $grades->pluck('id')))->get();
+            $scopeLabel = $grades->count() === 1 ? $grades->first()->name : "{$grades->count()} classes: ".$grades->pluck('name')->implode(', ');
+        } else { // students
+            $students = Student::whereIn('id', $validated['student_ids'])->where('school_id', $user->school_id)->get();
+            abort_if($students->isEmpty(), 404);
+            $enrollments = $baseEnrollments()->whereIn('student_id', $students->pluck('id'))->get();
+            $scopeLabel = $students->count() === 1 ? $students->first()->fullName() : "{$students->count()} students: ".$students->map->fullName()->implode(', ');
+        }
+
+        $gradeIds = $enrollments->pluck('section.grade_id')->unique()->values();
+
+        $feesByGrade = FeeStructure::where('branch_id', $branch->id)
+            ->whereIn('grade_id', $gradeIds)
+            ->where('academic_year_id', $year->id)
+            ->get()
+            ->groupBy('grade_id')
+            ->map(fn ($rows) => $rows->groupBy('frequency'));
+
+        $terms = Term::where('academic_year_id', $year->id)->orderBy('start_date')->get();
         $months = $this->monthlyPeriods($year, $user->school);
 
         $selected = $validated['periods'] ?? null;
@@ -437,7 +485,7 @@ class InvoiceController extends Controller
             }
         }
 
-        return compact('branch', 'grade', 'year', 'fees', 'terms', 'enrollments', 'months', 'selected');
+        return compact('branch', 'year', 'feesByGrade', 'terms', 'enrollments', 'months', 'selected', 'scopeType', 'scopeLabel');
     }
 
     /**
@@ -449,7 +497,7 @@ class InvoiceController extends Controller
      */
     private function runGeneration($user, array $ctx, bool $dryRun): array
     {
-        ['year' => $year, 'branch' => $branch, 'fees' => $fees, 'terms' => $terms, 'enrollments' => $enrollments, 'months' => $months, 'selected' => $selected] = $ctx;
+        ['year' => $year, 'branch' => $branch, 'feesByGrade' => $feesByGrade, 'terms' => $terms, 'enrollments' => $enrollments, 'months' => $months, 'selected' => $selected] = $ctx;
 
         // Every invoice this run creates is tagged with this one id, so the result screen can offer to
         // undo the WHOLE run in one tap (InvoiceController::cancelBatch) -- a dry run previews only, so it
@@ -464,6 +512,9 @@ class InvoiceController extends Controller
 
         foreach ($enrollments as $enrollment) {
             $student = $enrollment->student;
+            // Each student is billed from their OWN class's fees -- several classes (or "all classes") can
+            // be in one run now, and different grades can have different fee amounts.
+            $fees = $feesByGrade->get($enrollment->section->grade_id, collect());
 
             // Optional services (tutoring, transportation, ...) only bill
             // students who actually opted in -- never the whole grade.
@@ -565,13 +616,49 @@ class InvoiceController extends Controller
                 ->mapWithKeys(fn ($r) => ["{$r->b}-{$r->g}" => (int) $r->n])
             : collect();
 
+        // Per-branch total, for the "All Classes" choice's own student count -- the same figure one would
+        // get by adding up every one of that branch's rows in $counts above.
+        $allCounts = collect();
+        foreach ($counts as $key => $n) {
+            [$b] = explode('-', $key, 2);
+            $allCounts[$b] = ($allCounts[$b] ?? 0) + $n;
+        }
+
         return Inertia::render('Invoices/Generate', [
             'branches' => $branches,
             'grades' => $user->school->grades()->orderBy('sort_order')->get(['id', 'name']),
             'academicYear' => $year?->name,
             'studentCounts' => $counts,
+            'allClassesCounts' => $allCounts,
             'run' => $request->session()->get('invoice_run'),
         ]);
+    }
+
+    /** Search-as-you-type for the "Individual Student(s)" targeting mode -- same shape Discipline/Medical
+     *  Records already use for their own "who is this for?" searches. */
+    public function studentSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $user->can('manage-invoices') || abort(403);
+
+        $term = $request->string('q')->toString();
+        abort_unless(strlen($term) >= 2, 422);
+
+        $branchIds = $user->isOrgWide() ? $user->school->branches()->pluck('id') : collect([$user->branch_id]);
+
+        $students = Student::whereIn('branch_id', $branchIds)
+            ->where(fn ($q) => $q->where('first_name', 'like', "%{$term}%")->orWhere('father_name', 'like', "%{$term}%")->orWhere('student_id_number', 'like', "%{$term}%"))
+            ->whereIn('status', Student::ENROLLED_STATUSES)
+            ->with('currentEnrollment.section.grade')
+            ->limit(10)->get()
+            ->map(fn (Student $s) => [
+                'id' => $s->id,
+                'name' => $s->fullName(),
+                'detail' => $s->currentEnrollment ? "{$s->currentEnrollment->section->grade->name} {$s->currentEnrollment->section->name}" : null,
+                'branch_id' => $s->branch_id,
+            ]);
+
+        return response()->json($students);
     }
 
     /**

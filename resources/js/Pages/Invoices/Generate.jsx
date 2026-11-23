@@ -15,18 +15,18 @@ import { useTranslation } from 'react-i18next';
 const money = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const FREQ = { annual: 'student.freq_annual', termly: 'student.freq_termly', monthly: 'student.freq_monthly' };
 
-function usePreview(branchId, gradeId, periods, enabled) {
+function usePreview(branchId, scopeParams, periods, enabled) {
     const [state, setState] = useState({ status: 'idle', data: null });
-    const key = JSON.stringify([branchId, gradeId, periods]);
+    const key = JSON.stringify([branchId, scopeParams, periods]);
 
     useEffect(() => {
-        if (!enabled || !branchId || !gradeId) {
+        if (!enabled || !branchId || !scopeParams) {
             setState({ status: 'idle', data: null });
             return undefined;
         }
         let cancelled = false;
         setState({ status: 'loading', data: null });
-        fetch(route('invoices.generate.preview', { branch_id: branchId, grade_id: gradeId, ...(periods ? { periods } : {}) }), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        fetch(route('invoices.generate.preview', { branch_id: branchId, ...scopeParams, ...(periods ? { periods } : {}) }), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
             .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
             .then((data) => { if (!cancelled) setState({ status: 'ready', data }); })
             .catch(() => { if (!cancelled) setState({ status: 'error', data: null }); });
@@ -35,6 +35,79 @@ function usePreview(branchId, gradeId, periods, enabled) {
     }, [key, enabled]);
 
     return state;
+}
+
+/** Search-as-you-type for "Individual Student(s)" -- the same shape Discipline/Medical Records already
+ *  use, extended to ADD several students to a list instead of navigating away on the first pick. */
+function StudentPicker({ branchId, selected, onAdd, onRemove }) {
+    const { t } = useTranslation();
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [searching, setSearching] = useState(false);
+
+    useEffect(() => {
+        if (query.trim().length < 2) { setResults([]); return undefined; }
+        setSearching(true);
+        const handle = setTimeout(() => {
+            fetch(route('invoices.student-search', { q: query.trim() }), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+                .then((r) => (r.ok ? r.json() : []))
+                .then(setResults)
+                .finally(() => setSearching(false));
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [query]);
+
+    const alreadyIn = (id) => selected.some((s) => s.id === id);
+
+    return (
+        <div className="space-y-4">
+            <div>
+                <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('gen.student_search_label', 'Search for a student by name or ID')}</p>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    autoComplete="off"
+                    placeholder={t('gen.student_search_placeholder', 'Type a name…')}
+                    className="block w-full rounded-lg border-2 border-stone-300 px-4 py-3 text-base text-stone-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100"
+                />
+                {query.trim().length >= 2 && (
+                    <ul className="mt-2 divide-y divide-stone-200 rounded-xl border-2 border-stone-200 dark:divide-stone-700 dark:border-stone-700">
+                        {searching && <li className="p-3 text-sm text-stone-600 dark:text-stone-400">{t('common.searching')}</li>}
+                        {!searching && results.length === 0 && <li className="p-3 text-sm text-stone-600 dark:text-stone-400">{t('gen.no_students_found', 'No students found.')}</li>}
+                        {results.filter((r) => String(r.branch_id) === String(branchId)).map((r) => (
+                            <li key={r.id} className="flex items-center justify-between gap-3 p-3">
+                                <span>
+                                    <span className="block font-medium text-stone-900 dark:text-stone-100">{r.name}</span>
+                                    <span className="block text-sm text-stone-600 dark:text-stone-400">{r.detail}</span>
+                                </span>
+                                <Button size="md" variant="secondary" disabled={alreadyIn(r.id)} onClick={() => { onAdd(r); setQuery(''); setResults([]); }}>
+                                    {alreadyIn(r.id) ? t('gen.student_added', 'Added') : t('gen.student_add', 'Add')}
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            {selected.length > 0 && (
+                <div>
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-600 dark:text-stone-400">{t('gen.students_chosen', 'Chosen students')}</p>
+                    <ul className="space-y-2">
+                        {selected.map((s) => (
+                            <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border-2 border-brand-300 bg-brand-50 px-4 py-2.5 dark:border-brand-700 dark:bg-brand-900/20">
+                                <span>
+                                    <span className="block font-semibold text-stone-900 dark:text-stone-100">{s.name}</span>
+                                    <span className="block text-sm text-stone-600 dark:text-stone-400">{s.detail}</span>
+                                </span>
+                                <Button size="md" variant="quiet" onClick={() => onRemove(s.id)}>{t('common.remove', 'Remove')}</Button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
 }
 
 function useLabels() {
@@ -127,34 +200,48 @@ function ResultScreen({ run, onAnother }) {
     );
 }
 
-export default function Generate({ branches, grades, academicYear, studentCounts, run }) {
+export default function Generate({ branches, grades, academicYear, studentCounts, allClassesCounts, run }) {
     const { t } = useTranslation();
     const { errors } = usePage().props;
     const label = useLabels();
 
     const [branchId, setBranchId] = useState(branches.length === 1 ? String(branches[0].id) : '');
-    const [gradeId, setGradeId] = useState('');
+    // '' | 'all' | 'grades' | 'students' -- who the bills are for. 'grades' covers both "one class" (the
+    // original single-grade workflow) and "several specific classes": the same multi-select either way.
+    const [scopeType, setScopeType] = useState('');
+    const [gradeIds, setGradeIds] = useState([]);
+    const [students, setStudents] = useState([]); // [{id, name, detail}]
     const [mode, setMode] = useState('');               // '' | 'year' | 'some'
     const [periods, setPeriods] = useState([]);
     const [processing, setProcessing] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
-    const grade = grades.find((g) => String(g.id) === String(gradeId));
     const branch = branches.find((b) => String(b.id) === String(branchId));
     const countOf = (g) => studentCounts?.[`${branchId}-${g.id}`] ?? 0;
+    const toggleGrade = (id) => setGradeIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+    const addStudent = (s) => setStudents((list) => (list.some((x) => x.id === s.id) ? list : [...list, s]));
+    const removeStudent = (id) => setStudents((list) => list.filter((s) => s.id !== id));
 
-    const all = usePreview(branchId, gradeId, null, Boolean(academicYear));
+    // What is sent to the preview/generate endpoints, built from whichever targeting mode is active.
+    // `null` while incomplete so usePreview() knows not to fetch yet.
+    const scopeParams = scopeType === 'all' ? { scope_type: 'all' }
+        : scopeType === 'grades' && gradeIds.length > 0 ? { scope_type: 'grades', grade_ids: gradeIds }
+            : scopeType === 'students' && students.length > 0 ? { scope_type: 'students', student_ids: students.map((s) => s.id) }
+                : null;
+    const scopeReady = Boolean(scopeParams);
+
+    const all = usePreview(branchId, scopeParams, null, Boolean(academicYear));
     const chosen = mode === 'some' ? periods : null;
-    const sel = usePreview(branchId, gradeId, chosen, Boolean(academicYear) && mode === 'some' && periods.length > 0);
+    const sel = usePreview(branchId, scopeParams, chosen, Boolean(academicYear) && mode === 'some' && periods.length > 0);
     const final = mode === 'year' ? all : sel;
     const allData = all.status === 'ready' ? all.data : null;
     const finalResult = final.status === 'ready' ? final.data.result : null;
     const toggle = (key) => setPeriods((p) => (p.includes(key) ? p.filter((k) => k !== key) : [...p, key]));
 
     const steps = [
-        { key: 'who', label: t('gen.step_who'), description: t('gen.step_who_desc'), fields: ['branch_id', 'grade_id'], isValid: () => Boolean(branchId && gradeId), whyBlocked: t('gen.why_who') },
+        { key: 'who', label: t('gen.step_who'), description: t('gen.step_who_desc'), fields: ['branch_id', 'scope_type'], isValid: () => Boolean(branchId && scopeReady), whyBlocked: t('gen.why_who') },
         {
-            key: 'what', label: t('gen.step_what', { grade: grade?.name ?? '' }), description: t('gen.step_what_desc'), fields: ['periods', 'generate'],
+            key: 'what', label: t('gen.step_what', { grade: allData?.grade ?? '' }), description: t('gen.step_what_desc'), fields: ['periods', 'generate'],
             isValid: () => all.status === 'ready' && !allData?.blocked && (mode === 'year' || (mode === 'some' && periods.length > 0)),
             whyBlocked: allData?.blocked ? t('gen.why_blocked') : mode === '' ? t('gen.why_mode') : t('gen.why_periods'),
         },
@@ -166,12 +253,12 @@ export default function Generate({ branches, grades, academicYear, studentCounts
         errors,
         onSubmit: () => {
             setProcessing(true);
-            router.post(route('invoices.generate'), { branch_id: branchId, grade_id: gradeId, ...(mode === 'some' ? { periods } : {}) }, { onFinish: () => setProcessing(false) });
+            router.post(route('invoices.generate'), { branch_id: branchId, ...scopeParams, ...(mode === 'some' ? { periods } : {}) }, { onFinish: () => setProcessing(false) });
         },
     });
     const key = wizard.step.key;
 
-    const another = () => { setDismissed(true); setGradeId(''); setMode(''); setPeriods([]); wizard.reset(); };
+    const another = () => { setDismissed(true); setScopeType(''); setGradeIds([]); setStudents([]); setMode(''); setPeriods([]); wizard.reset(); };
     useEffect(() => { if (run) setDismissed(false); }, [run]);
 
     const layoutHeader = <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('gen.title')}</h2>;
@@ -197,10 +284,10 @@ export default function Generate({ branches, grades, academicYear, studentCounts
             action={
                 allData.blocked === 'no_fees' ? <Button as={Link} href={route('fee-structures.index')} variant="secondary">{t('gen.open_fees')}</Button>
                     : allData.blocked === 'no_terms' ? <Button as={Link} href={route('academic-years.index')} variant="secondary">{t('gen.open_years')}</Button>
-                        : allData.blocked === 'nothing_new' ? <Button as={Link} href={route('invoices.index', { grade_id: gradeId })} variant="secondary">{t('gen.see_bills')}</Button> : null
+                        : allData.blocked === 'nothing_new' ? <Button as={Link} href={route('invoices.index', scopeType === 'grades' && gradeIds.length === 1 ? { grade_id: gradeIds[0] } : {})} variant="secondary">{t('gen.see_bills')}</Button> : null
             }
         >
-            <span data-testid="blocked">{t(`gen.blocked_${allData.blocked}_body`, { grade: grade?.name, branch: branch?.name })}</span>
+            <span data-testid="blocked">{t(`gen.blocked_${allData.blocked}_body`, { grade: allData?.grade, branch: branch?.name })}</span>
         </Alert>
     );
 
@@ -215,23 +302,43 @@ export default function Generate({ branches, grades, academicYear, studentCounts
                         {key === 'who' && (
                             <div className="space-y-6">
                                 {branches.length > 1 && (
-                                    <ChoiceGroup label={t('gen.branch')} value={branchId} onChange={(v) => { setBranchId(v); setGradeId(''); setMode(''); setPeriods([]); }} options={branches.map((b) => ({ value: String(b.id), label: b.name }))} />
+                                    <ChoiceGroup
+                                        label={t('gen.branch')}
+                                        value={branchId}
+                                        onChange={(v) => { setBranchId(v); setScopeType(''); setGradeIds([]); setStudents([]); setMode(''); setPeriods([]); }}
+                                        options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
+                                    />
                                 )}
                                 {branchId && (
                                     <div>
+                                        <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('gen.who_label')}</p>
+                                        <ChoiceGroup
+                                            label={t('gen.who_label')}
+                                            value={scopeType}
+                                            onChange={(v) => { setScopeType(v); setGradeIds([]); setStudents([]); setMode(''); setPeriods([]); }}
+                                            options={[
+                                                { value: 'all', label: t('gen.scope_all'), hint: t('gen.scope_all_hint', { count: allClassesCounts?.[branchId] ?? 0 }) },
+                                                { value: 'grades', label: t('gen.scope_grades'), hint: t('gen.scope_grades_hint') },
+                                                { value: 'students', label: t('gen.scope_students'), hint: t('gen.scope_students_hint') },
+                                            ]}
+                                        />
+                                    </div>
+                                )}
+                                {branchId && scopeType === 'grades' && (
+                                    <div>
                                         <p className="mb-2 text-lg font-semibold text-stone-900 dark:text-stone-100">{t('gen.grade')}</p>
-                                        <div role="radiogroup" aria-label={t('gen.grade')} className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="grade-grid">
+                                        <div role="group" aria-label={t('gen.grade')} className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="grade-grid">
                                             {grades.map((g) => {
                                                 const n = countOf(g);
-                                                const selected = String(g.id) === String(gradeId);
+                                                const selected = gradeIds.includes(g.id);
                                                 return (
                                                     <button
                                                         key={g.id}
                                                         type="button"
-                                                        role="radio"
+                                                        role="checkbox"
                                                         aria-checked={selected}
                                                         disabled={n === 0}
-                                                        onClick={() => { setGradeId(String(g.id)); setMode(''); setPeriods([]); }}
+                                                        onClick={() => { toggleGrade(g.id); setMode(''); setPeriods([]); }}
                                                         className={`flex min-h-[72px] flex-col items-center justify-center rounded-xl border-2 px-3 py-2 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-900 hover:border-brand-400 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100'} ${n === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
                                                     >
                                                         <span className="text-lg font-bold">{g.name}</span>
@@ -242,6 +349,9 @@ export default function Generate({ branches, grades, academicYear, studentCounts
                                         </div>
                                         <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">{t('gen.grade_note')}</p>
                                     </div>
+                                )}
+                                {branchId && scopeType === 'students' && (
+                                    <StudentPicker branchId={branchId} selected={students} onAdd={(s) => { addStudent(s); setMode(''); setPeriods([]); }} onRemove={(id) => { removeStudent(id); setMode(''); setPeriods([]); }} />
                                 )}
                             </div>
                         )}
@@ -256,7 +366,7 @@ export default function Generate({ branches, grades, academicYear, studentCounts
                                             <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('gen.fees_title', { grade: allData.grade, count: allData.students })}</p>
                                             {allData.fees.length > 0 ? (
                                                 <ul className="mt-2 space-y-1 text-base text-stone-800 dark:text-stone-200">
-                                                    {allData.fees.map((f, i) => <li key={i} className="flex justify-between gap-3"><span>{f.name}</span><span>{money(f.amount)} ETB {t(FREQ[f.frequency] ?? FREQ.annual)}</span></li>)}
+                                                    {allData.fees.map((f, i) => <li key={i} className="flex justify-between gap-3"><span>{f.name}{f.grade ? ` (${f.grade})` : ''}</span><span>{money(f.amount)} ETB {t(FREQ[f.frequency] ?? FREQ.annual)}</span></li>)}
                                                 </ul>
                                             ) : <p className="mt-1 text-base text-stone-700 dark:text-stone-300">{t('gen.no_fees_listed')}</p>}
                                             {allData.services_students > 0 && <p className="mt-2 text-base text-stone-700 dark:text-stone-300">{t('gen.services_note', { count: allData.services_students })}</p>}
