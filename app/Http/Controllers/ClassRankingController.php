@@ -55,6 +55,10 @@ class ClassRankingController extends Controller
             'canPublish' => $user->can('publish-results'),
             'canExport' => $user->can('approve-results') || $user->can('publish-results') || $user->hasRole('owner'),
             'classCodesUrl' => route('sections.class-codes', $section),
+            // A homeroom teacher reaching their own section from their home page has no Classes list to go
+            // "back" to (it needs manage-classes, which a plain teacher never holds) -- send them home
+            // instead of into a 403.
+            'backUrl' => $user->can('manage-classes') ? route('academic-structure.index') : route('dashboard'),
         ]);
     }
 

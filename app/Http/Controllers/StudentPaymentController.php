@@ -70,13 +70,12 @@ class StudentPaymentController extends Controller
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'method' => ['required', 'in:bank_transfer,mobile_money,cash,other'],
-            'reference_number' => ['nullable', 'string', 'max:255', 'required_unless:method,cash'],
+            'reference_number' => ['nullable', 'string', 'max:255'],
             'paid_by_name' => ['nullable', 'string', 'min:2', 'max:120'],
             'note' => ['nullable', 'string', 'max:500', 'required_if:method,other'],
             'confirm_duplicate' => ['nullable', 'boolean'],
             'proof' => ['nullable', 'file', 'max:5120', new SafeUploadRule(['jpg', 'png', 'pdf'])],
         ], [
-            'reference_number.required_unless' => 'Type the reference number from the bank or mobile-money slip.',
             'note.required_if' => 'Write a short note saying what kind of payment this was.',
         ]);
 

@@ -42,7 +42,6 @@ export default function BulkRecord({ student, guardians, invoices, totalOwed }) 
     const amountOk = AMOUNT.test(norm(data.amount)) && Number(norm(data.amount)) > 0;
     const amountNum = amountOk ? Number(norm(data.amount)) : 0;
     const over = amountOk && amountNum > totalOwed + 0.001;
-    const referenceOk = cash || data.reference_number.trim() !== '';
     const noteOk = data.method !== 'other' || data.note.trim() !== '';
     const duplicate = errors.duplicate_reference;
     const payerOk = data.paid_by_name.trim().length === 0 || data.paid_by_name.trim().length >= 2;
@@ -54,8 +53,8 @@ export default function BulkRecord({ student, guardians, invoices, totalOwed }) 
         { key: 'how', label: 'How was it paid?', description: 'Choose how the money came in.', fields: ['method'], isValid: () => METHODS.includes(data.method), whyBlocked: 'Choose how it was paid.' },
         {
             key: 'details', label: 'How much, and by whom?', description: 'Check the amount, then who handed it over.', fields: ['amount', 'paid_by_name', 'reference_number', 'proof'],
-            isValid: () => amountOk && !over && payerOk && referenceOk && noteOk && fileError === null,
-            whyBlocked: !amountOk ? 'Type the amount received.' : over ? `This is more than everything owed (${money(totalOwed)} ETB).` : !payerOk ? 'Write a name, or leave it blank.' : !referenceOk ? 'Type the reference number.' : !noteOk ? 'Write a short note.' : 'Check the file.',
+            isValid: () => amountOk && !over && payerOk && noteOk && fileError === null,
+            whyBlocked: !amountOk ? 'Type the amount received.' : over ? `This is more than everything owed (${money(totalOwed)} ETB).` : !payerOk ? 'Write a name, or leave it blank.' : !noteOk ? 'Write a short note.' : 'Check the file.',
         },
         { key: 'review', label: 'Check, then record', description: 'This is exactly what will be recorded.', isValid: () => !duplicate || data.confirm_duplicate, whyBlocked: 'Confirm the reference number is a different payment.' },
     ];
@@ -137,7 +136,7 @@ export default function BulkRecord({ student, guardians, invoices, totalOwed }) 
                                 </div>
 
                                 {!cash && (
-                                    <Field id="bulk_reference" label="Reference number" hint="From the bank or mobile-money slip." error={errors.reference_number}>
+                                    <Field id="bulk_reference" label="Reference number (optional)" hint="From the bank or mobile-money slip, if you have it. You can leave this blank." error={errors.reference_number}>
                                         <Input value={data.reference_number} onChange={(e) => { clearErrors('duplicate_reference'); setData((d) => ({ ...d, confirm_duplicate: false })); set('reference_number')(e.target.value); }} autoComplete="off" maxLength={255} />
                                     </Field>
                                 )}
@@ -188,7 +187,7 @@ export default function BulkRecord({ student, guardians, invoices, totalOwed }) 
                                     rows={[
                                         { label: 'How', value: methodLabel(data.method), step: stepOf('how') },
                                         ...(data.paid_by_name.trim() ? [{ label: 'Who paid', value: data.paid_by_name.trim(), step: stepOf('details') }] : []),
-                                        ...(cash ? [] : [{ label: 'Reference', value: data.reference_number.trim(), step: stepOf('details') }]),
+                                        ...(data.reference_number.trim() ? [{ label: 'Reference', value: data.reference_number.trim(), step: stepOf('details') }] : []),
                                         ...(data.note.trim() ? [{ label: 'Note', value: data.note.trim(), step: stepOf('details') }] : []),
                                         { label: 'Receipt / slip', value: data.proof?.name ?? 'None', step: stepOf('details') },
                                     ]}

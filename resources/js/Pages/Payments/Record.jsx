@@ -36,7 +36,6 @@ export default function Record({ invoice, student, guardians, waiting }) {
     const amountOk = AMOUNT.test(norm(data.amount)) && Number(norm(data.amount)) > 0;
     const amountNum = amountOk ? Number(norm(data.amount)) : 0;
     const over = amountOk && amountNum > invoice.balance + 0.001;
-    const referenceOk = cash || data.reference_number.trim() !== '';
     const noteOk = data.method !== 'other' || data.note.trim() !== '';
     const duplicate = errors.duplicate_reference;
     // Optional: most parents are known to staff by sight, and some payers (an illiterate grandparent, a
@@ -50,8 +49,8 @@ export default function Record({ invoice, student, guardians, waiting }) {
         { key: 'how', label: t('rec.step_how'), description: t('rec.step_how_desc'), fields: ['method'], isValid: () => METHODS.includes(data.method), whyBlocked: t('rec.why_how') },
         {
             key: 'details', label: t('rec.step_details'), description: t('rec.step_details_desc'), fields: ['amount', 'paid_by_name', 'reference_number', 'proof'],
-            isValid: () => amountOk && !over && payerOk && referenceOk && noteOk && fileError === null,
-            whyBlocked: !amountOk ? t('rec.why_amount') : over ? t('rec.err_over', { balance: money(invoice.balance) }) : !payerOk ? t('rec.why_payer') : !referenceOk ? t('rec.why_reference') : !noteOk ? t('rec.note_required') : t('rec.file_error'),
+            isValid: () => amountOk && !over && payerOk && noteOk && fileError === null,
+            whyBlocked: !amountOk ? t('rec.why_amount') : over ? t('rec.err_over', { balance: money(invoice.balance) }) : !payerOk ? t('rec.why_payer') : !noteOk ? t('rec.note_required') : t('rec.file_error'),
         },
         // a reference that was used before must be confirmed as a different payment before it can be recorded
         { key: 'review', label: t('rec.step_review'), description: t('rec.step_review_desc'), isValid: () => !duplicate || data.confirm_duplicate, whyBlocked: t('rec.dup_why') },
@@ -183,7 +182,7 @@ export default function Record({ invoice, student, guardians, waiting }) {
                                     rows={[
                                         { label: t('rec.r_how'), value: methodLabel(data.method), step: stepOf('how') },
                                         ...(data.paid_by_name.trim() ? [{ label: t('rec.r_payer'), value: data.paid_by_name.trim(), step: stepOf('details') }] : []),
-                                        ...(cash ? [] : [{ label: t('rec.r_reference'), value: data.reference_number.trim(), step: stepOf('details') }]),
+                                        ...(data.reference_number.trim() ? [{ label: t('rec.r_reference'), value: data.reference_number.trim(), step: stepOf('details') }] : []),
                                         ...(data.note.trim() ? [{ label: t('rec.r_note'), value: data.note.trim(), step: stepOf('details') }] : []),
                                         { label: t('rec.r_slip'), value: data.proof?.name ?? t('rec.r_none'), step: stepOf('details') },
                                         { label: t('rec.r_left'), value: left === 0 ? t('rec.r_paid_off') : `${money(left)} ETB`, step: undefined },

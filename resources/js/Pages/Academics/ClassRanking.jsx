@@ -7,7 +7,7 @@ import { useState } from 'react';
 // The homeroom teacher's and the principal's shared screen: pick which subjects count toward this class's
 // ranking, then see exactly who is complete (ranked, with an average) and who isn't yet, and why -- the
 // same ReportCardCalculator rules every individual report card already uses, just all of the class at once.
-export default function ClassRanking({ section, roster, requiredSubjects, allSubjects, canManageRequiredSubjects, canExport, classCodesUrl }) {
+export default function ClassRanking({ section, roster, requiredSubjects, allSubjects, canManageRequiredSubjects, canExport, classCodesUrl, backUrl }) {
     const [editingSubjects, setEditingSubjects] = useState(false);
     const { data, setData, post, processing } = useForm({
         subject_ids: requiredSubjects.map((s) => s.id),
@@ -30,7 +30,7 @@ export default function ClassRanking({ section, roster, requiredSubjects, allSub
             <Page
                 title={`Class Ranking — ${section.name}`}
                 description={`${section.academic_year}${section.class_teacher ? ` · Homeroom teacher: ${section.class_teacher}` : ''}`}
-                back={<BackLink href={route('academic-structure.index')}>Back to Classes</BackLink>}
+                back={<BackLink href={backUrl}>{backUrl === route('dashboard') ? 'Back to Home' : 'Back to Classes'}</BackLink>}
                 actions={(
                     <div className="flex flex-wrap gap-2">
                         <Button variant="secondary" as={Link} href={classCodesUrl} icon={IdentificationIcon}>Report card codes</Button>
