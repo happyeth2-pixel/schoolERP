@@ -80,7 +80,9 @@ class ReportCardController extends Controller
      *  Each subject reports how many assessments were counted out of how many
      *  were published, so a partial average is visible, never silent.
      */
-    private function computeReportCard(Student $student): array
+    /** Shared with ReportCardLookupController (the public, no-login QR/code route) so both show exactly
+     *  the same numbers from exactly the same rules -- never a second, drifting copy of this math. */
+    public function computeReportCard(Student $student): array
     {
         $enrollment = Enrollment::where('student_id', $student->id)
             ->active()
@@ -116,8 +118,10 @@ class ReportCardController extends Controller
         $calc = new ReportCardCalculator();
 
         $subjectAverages = $calc->subjectAverages($calc->publishedMarks([$enrollment->id], $section->id, $badTerms), $policy);
-        $overall = $calc->overallOf($subjectAverages);
         $ranking = $calc->ranking($section, $enrollment->id, $policy, $badTerms);
+        // Eligibility-gated: a student missing even one required subject gets neither a rank NOR an
+        // average shown (ReportCardCalculator::ranking()'s R3) -- never a partial picture to compare.
+        $overall = $ranking['overall'];
 
         return [
             'student' => ['id' => $student->id, 'name' => $student->fullName(), 'student_id_number' => $student->student_id_number],

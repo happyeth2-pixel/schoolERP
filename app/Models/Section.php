@@ -7,6 +7,7 @@ use App\Models\Concerns\GuardsDeletion;
 use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Section extends Model
@@ -47,6 +48,24 @@ class Section extends Model
     public function teachingAssignments(): HasMany
     {
         return $this->hasMany(TeachingAssignment::class);
+    }
+
+    /** Subjects the homeroom teacher (or an admin) has explicitly picked as required for this section's
+     *  class ranking. Empty means "not configured yet" -- ReportCardCalculator then falls back to its old
+     *  auto-detect behaviour (see §R2 there) so existing sections keep working unchanged. */
+    public function requiredSubjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'section_required_subjects')->withTimestamps();
+    }
+
+    /** Only the homeroom (class) teacher of this exact section, or an admin, may set its required
+     *  subjects -- the same "homeroom teacher of THIS section" scoping §15.5's parent-messaging already
+     *  uses, not a blanket permission every teacher holds. */
+    public function canManageRequiredSubjectsBy(User $user): bool
+    {
+        return $user->id === $this->class_teacher_id
+            || $user->hasRole('owner')
+            || $user->hasPermissionTo('manage-classes');
     }
 
     public function timetableSlots(): HasMany

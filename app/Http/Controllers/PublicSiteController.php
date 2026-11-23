@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ContactInquiry;
 use App\Models\GalleryImage;
 use App\Models\SiteAnnouncement;
+use App\Models\TopStudentHighlight;
 use App\Models\User;
 use App\Notifications\NewContactInquiry;
 use App\Support\PhoneNumber;
@@ -37,6 +38,15 @@ class PublicSiteController extends Controller
                 'url' => $i->url,
                 'caption' => $i->caption,
             ]),
+            'topStudents' => TopStudentHighlight::whereNotNull('published_at')
+                ->with(['student:id,first_name,father_name,grandfather_name,photo_path', 'section.grade:id,name', 'academicYear:id,name'])
+                ->orderBy('rank')->get()->map(fn (TopStudentHighlight $h) => [
+                    'name' => $h->student->publicName(),
+                    'photo_url' => $h->student->photo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($h->student->photo_path) : null,
+                    'section' => $h->section->grade->name.' '.$h->section->name,
+                    'rank' => $h->rank,
+                    'academic_year' => $h->academicYear->name,
+                ]),
         ]);
     }
 

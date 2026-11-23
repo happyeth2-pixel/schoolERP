@@ -155,6 +155,9 @@ export default function Index({ grades, canManage, canAssignTeachers, canPrintId
                                                         <Button size="md" variant="secondary" as={Link} href={route('id-card.batch', s.id)} icon={IdentificationIcon}>{t('struct.print_id_cards')}</Button>
                                                     )}
                                                     {canManage && (
+                                                        <Button size="md" variant="secondary" as={Link} href={route('sections.ranking', s.id)}>{t('struct.class_ranking', 'Class Ranking')}</Button>
+                                                    )}
+                                                    {canManage && (
                                                         <>
                                                             <Button size="md" variant="secondary" onClick={() => setEditing({ grade, section: s })}>{t('struct.change_section')}</Button>
                                                             <Button size="md" variant="quiet" onClick={() => removeSection(grade, s)}>{t('struct.remove')}</Button>

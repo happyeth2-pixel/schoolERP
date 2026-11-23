@@ -55,6 +55,7 @@ class Student extends Model
         'withdrawn_on',
         'withdrawal_reason',
         'id_card_token',
+        'report_card_token',
     ];
 
     protected function casts(): array
@@ -78,6 +79,39 @@ class Student extends Model
         } while (static::where('id_card_token', $token)->exists());
 
         return $token;
+    }
+
+    /**
+     * A new report-card lookup code: short enough for a family to type on a phone (unlike the 40-character
+     * ID-card token, which only ever travels inside a QR code), but still drawn from a 32-symbol alphabet
+     * with the easily-confused characters (0/O, 1/I/L) removed -- 32^10 possibilities, and
+     * ReportCardLookupController rate-limits guesses the same way id-card.verify does, so it can't
+     * realistically be brute-forced despite being short enough to read aloud or write on a slip of paper.
+     */
+    public static function newReportCardToken(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+        do {
+            $token = '';
+            for ($i = 0; $i < 10; $i++) {
+                $token .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+        } while (static::where('report_card_token', $token)->exists());
+
+        return $token;
+    }
+
+    /** "ABCD123456" -> "ABCD1-23456": only for display/printing. Lookup normalizes the other way. */
+    public static function formatReportCardToken(string $token): string
+    {
+        return substr($token, 0, 5).'-'.substr($token, 5);
+    }
+
+    /** Whatever a person typed ("abcd1 23456", "ABCD1-23456", ...) -> the bare stored form. */
+    public static function normalizeReportCardToken(string $input): string
+    {
+        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $input));
     }
 
     /**

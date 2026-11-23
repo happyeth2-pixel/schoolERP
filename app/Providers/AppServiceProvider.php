@@ -67,6 +67,14 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(300)->by($request->ip()),
         ]);
 
+        // Public report-card code lookup: this route-level limit is the coarse, generous layer (a family
+        // mistyping their code a few times); ReportCardLookupController adds a much tighter per-IP miss
+        // counter on top of this, the same two-layer shape id-verify uses above.
+        RateLimiter::for('report-card-lookup', fn (Request $request) => [
+            Limit::perMinute(20)->by($request->ip()),
+            Limit::perHour(200)->by($request->ip()),
+        ]);
+
         // A password set through the emailed "forgot password" link proves control of the account: record it, and forget
         // any failures counted against it.
         Event::listen(\Illuminate\Auth\Events\PasswordReset::class, function ($event) {

@@ -76,6 +76,15 @@ export default function TeacherHome({ stats }) {
                 {has('mark-attendance') && (
                     <ActionTile icon={ClockIcon} title={t('nav.period_attendance')} href={route('period-attendance.index')} tint="bg-cyan-700 text-white" />
                 )}
+                {homerooms.map((h) => (
+                    <ActionTile
+                        key={`rank-${h.id}`}
+                        icon={AcademicCapIcon}
+                        title={`${t('nav.class_ranking', 'Class Ranking')} — ${h.label}`}
+                        href={route('sections.ranking', h.id)}
+                        tint="bg-emerald-800 text-white"
+                    />
+                ))}
                 {has('enter-marks') && (
                     <ActionTile icon={PencilIcon} title={t('nav.enter_marks')} href={route('marks.index')} tint="bg-violet-700 text-white" />
                 )}

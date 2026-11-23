@@ -121,13 +121,15 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
         });
     }
 
-    if (has('enter-marks') || has('approve-results') || has('publish-results')) {
+    if (has('enter-marks') || has('approve-results') || has('publish-results') || isAuditor) {
+        const seesTopStudents = has('publish-results') || role === 'owner' || isAuditor;
         sections.push({
             id: 'results',
             label: s('results', 'Results'),
             items: [
                 { label: n('enter_marks', 'Enter Marks'), route: 'marks.index', enabled: has('enter-marks'), show: has('enter-marks'), icon: PencilIcon },
                 { label: m('approve_results', 'Approve Results'), route: 'mark-batches.approvals', enabled: has('approve-results') || has('publish-results'), show: has('approve-results') || has('publish-results'), icon: CheckBadgeIcon },
+                { label: n('top_students', 'Top Students'), route: 'top-students.index', enabled: seesTopStudents, show: seesTopStudents, icon: StarIcon },
             ].filter((i) => i.show !== false),
         });
     }

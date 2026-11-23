@@ -18,16 +18,21 @@ use Illuminate\Support\Collection;
  *      section, for this academic year. A student who transferred OUT or
  *      withdrew is not in the class; a student who transferred IN is, from
  *      the day they joined.
- *  R2  REQUIRED SUBJECTS. Every subject that has at least one published
- *      result batch for this section. (Only published results count; results
- *      still in draft/submitted/approved, and terms whose exam weights don't
- *      total 100%, are ignored.)
+ *  R2  REQUIRED SUBJECTS. Whatever the homeroom teacher (or an admin) has
+ *      explicitly picked for this section (`Section::requiredSubjects()`). If
+ *      nothing has been picked yet, falls back to the original rule — every
+ *      subject with at least one published result batch for this section —
+ *      so a section nobody has configured keeps behaving exactly as before.
+ *      A required subject with NO published batch at all yet is a problem for
+ *      EVERY student in the class, not just one: the class isn't graded on it
+ *      yet, so nobody can be ranked against it.
  *  R3  ELIGIBILITY. A student is ranked only with complete published results:
  *      a score for EVERY published exam of EVERY required subject. So a student
  *      who joined after some exams were held, or who has an exam with no score
- *      recorded, is shown their average but is NOT ranked — they are never
- *      compared against classmates on fewer or different exams. The reason is
- *      printed on their report card.
+ *      recorded, or whose class has a required subject not graded at all yet,
+ *      is shown NEITHER an average NOR a rank — never compared against
+ *      classmates on fewer or different exams, and never partially graded.
+ *      The reason is printed on their report card.
  *  R4  ORDER. Ranked students are ordered by overall average (the plain mean of
  *      their subject averages, 2 decimals). Ties share a rank and the next rank
  *      is skipped (1, 2, 2, 4).
@@ -36,7 +41,7 @@ use Illuminate\Support\Collection;
  */
 class ReportCardCalculator
 {
-    public const RANK_RULES_VERSION = 1;
+    public const RANK_RULES_VERSION = 2;
 
     /** Enrollment statuses that count as "in the class" for ranking (R1). */
     public const CLASS_STATUSES = ['active', 'completed'];
@@ -115,12 +120,18 @@ class ReportCardCalculator
         // R1: the class
         $pool = Enrollment::where('section_id', $section->id)->whereIn('status', self::CLASS_STATUSES)->pluck('id');
 
-        // R2: required subjects = subjects with published batches, and how many exams each has
+        // R2: required subjects. An explicit pick by the homeroom teacher/admin wins; otherwise fall back
+        // to the original "whatever has a published batch" auto-detect, so an unconfigured section's
+        // report cards don't change.
         $batches = MarkBatch::where('section_id', $section->id)->where('status', 'published')
             ->whereHas('exam', fn ($e) => $e->whereNotIn('term_id', $excludedTermIds))
             ->with('subject')->get();
         $publishedPerSubject = $batches->groupBy('subject_id')->map->count();
-        $subjectNames = $batches->mapWithKeys(fn ($b) => [$b->subject_id => $b->subject->name]);
+
+        $picked = $section->requiredSubjects()->get(['subjects.id', 'subjects.name']);
+        $requiredSubjects = $picked->isNotEmpty()
+            ? $picked->mapWithKeys(fn ($s) => [$s->id => $s->name])
+            : $batches->groupBy('subject_id')->map(fn ($g) => $g->first()->subject->name);
 
         $marksByEnrollment = $this->publishedMarks($pool, $section->id, $excludedTermIds)->groupBy('enrollment_id');
 
@@ -131,22 +142,30 @@ class ReportCardCalculator
 
             // R3: complete published results in every required subject
             $problems = [];
-            foreach ($publishedPerSubject as $subjectId => $published) {
+            foreach ($requiredSubjects as $subjectId => $subjectName) {
+                $published = $publishedPerSubject[$subjectId] ?? 0;
+
+                if ($published === 0) {
+                    $problems[] = "{$subjectName}: not graded yet — no results have been published for this subject in this class.";
+
+                    continue;
+                }
+
                 $rows = $marks->filter(fn ($m) => $m->batch->subject_id === $subjectId);
                 $notHeld = $published - $rows->count();
                 $noScore = $rows->filter(fn ($m) => $m->score === null)->count();
 
                 if ($notHeld > 0) {
-                    $problems[] = "{$subjectNames[$subjectId]}: no result for {$notHeld} of {$published} published exam(s) — held before the student joined this class.";
+                    $problems[] = "{$subjectName}: {$notHeld} of {$published} published exam(s) have no result recorded for this student — not filled in, or held before they joined this class.";
                 }
                 if ($noScore > 0) {
-                    $problems[] = "{$subjectNames[$subjectId]}: {$noScore} of {$published} published exam(s) have no score.";
+                    $problems[] = "{$subjectName}: {$noScore} of {$published} published exam(s) have no score — not filled in.";
                 }
             }
 
             $entries[$id] = [
                 'overall' => $overall,
-                'eligible' => $publishedPerSubject->isNotEmpty() && empty($problems) && $overall !== null,
+                'eligible' => $requiredSubjects->isNotEmpty() && empty($problems) && $overall !== null,
                 'problems' => $problems,
             ];
         }
@@ -160,25 +179,65 @@ class ReportCardCalculator
             : null;
 
         $reasons = $mine['problems'];
-        if ($publishedPerSubject->isEmpty()) {
-            $reasons = ['No results have been published for this class yet.'];
+        if ($requiredSubjects->isEmpty()) {
+            $reasons = ['No required subjects have been set for this class yet, and no results have been published either.'];
         }
 
         return [
             'rank' => $rank,
+            // Not ranked also means no average shown -- a student missing even one required subject is
+            // never compared against classmates on an incomplete picture, in either direction.
+            'overall' => $mine['eligible'] ? $mine['overall'] : null,
             'ranked_count' => $ranked->count(),
             'pool_size' => $pool->count(),
             'not_ranked_reasons' => $rank === null ? $reasons : [],
+            'incomplete_students' => $pool->count() - $ranked->count(),
             'basis' => [
                 'rules_version' => self::RANK_RULES_VERSION,
                 'class' => 'Students with an active or completed enrollment in this section this academic year (students who transferred out or withdrew are not counted).',
-                'required_subjects' => $subjectNames->values()->all(),
-                'eligibility' => 'Ranked only with a score for every published exam of every subject listed above. Students with missing scores, or who joined after some exams were held, show their average but are not ranked.',
+                'required_subjects' => $requiredSubjects->values()->all(),
+                'required_subjects_source' => $picked->isNotEmpty() ? 'picked' : 'auto',
+                'eligibility' => 'Ranked (with an average shown) only with a score for every published exam of every required subject above. A student missing even one gets neither a rank nor an average — only a list of what is still missing.',
                 'ordering' => 'Highest overall average first (mean of the subject averages, 2 decimals). Ties share a rank and the next rank is skipped (1, 2, 2, 4).',
                 'class_size' => $pool->count(),
                 'ranked_count' => $ranked->count(),
                 'not_ranked_count' => $pool->count() - $ranked->count(),
             ],
+        ];
+    }
+
+    /**
+     * Every student in the section with their rank/average/completeness, for the homeroom teacher's own
+     * review before submitting and the principal's review before publishing -- the same ranking() rules
+     * run once for the whole class instead of once per student, plus each student's name/problems so
+     * incomplete students are obvious at a glance instead of discovered one report card at a time.
+     */
+    public function classRoster(Section $section, string $policy, array $excludedTermIds = []): array
+    {
+        $enrollments = Enrollment::where('section_id', $section->id)->whereIn('status', self::CLASS_STATUSES)
+            ->with('student:id,first_name,father_name,grandfather_name,student_id_number')->get();
+
+        $rows = $enrollments->map(function ($e) use ($section, $policy, $excludedTermIds) {
+            $r = $this->ranking($section, $e->id, $policy, $excludedTermIds);
+
+            return [
+                'enrollment_id' => $e->id,
+                'student_id' => $e->student_id,
+                'name' => $e->student->fullName(),
+                'student_id_number' => $e->student->student_id_number,
+                'overall_average' => $r['overall'],
+                'rank' => $r['rank'],
+                'complete' => $r['rank'] !== null,
+                'problems' => $r['not_ranked_reasons'],
+            ];
+        })->sortBy([
+            fn ($a, $b) => ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX),
+        ])->values()->all();
+
+        return [
+            'students' => $rows,
+            'complete_count' => collect($rows)->where('complete', true)->count(),
+            'incomplete_count' => collect($rows)->where('complete', false)->count(),
         ];
     }
 }

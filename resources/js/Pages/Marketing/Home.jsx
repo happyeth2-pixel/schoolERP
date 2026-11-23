@@ -4,10 +4,12 @@ import {
     BookOpenIcon,
     ChatBubbleLeftRightIcon,
     HeartIcon,
+    MagnifyingGlassIcon,
     MapPinIcon,
     PhoneIcon,
     ShieldCheckIcon,
     SparklesIcon,
+    TrophyIcon,
     UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { Head, Link } from '@inertiajs/react';
@@ -263,14 +265,69 @@ function ContactCta({ content }) {
     );
 }
 
-export default function Home({ gallery, content }) {
+function TopStudents({ students }) {
+    if (!students?.length) return null;
+
+    return (
+        <section className="px-4 py-24 sm:px-6 lg:px-8" style={{ background: 'var(--ph-beige)' }}>
+            <div className="mx-auto max-w-6xl">
+                <FadeUp className="max-w-xl">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ph-forest)]">Celebrating Excellence</p>
+                    <h2 className="mt-3 font-display text-3xl font-semibold text-[var(--ph-ink)] sm:text-4xl">Top Students</h2>
+                </FadeUp>
+
+                <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {students.map((s, i) => (
+                        <FadeUp key={`${s.name}-${s.section}`} delay={i * 0.06} className="ph-cut-corner rounded-2xl p-6 text-center" style={{ background: 'linear-gradient(160deg, #ffffff 0%, var(--ph-ivory) 100%)' }}>
+                            <div className="mx-auto h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--ph-gold)]">
+                                {s.photo_url ? (
+                                    <img src={s.photo_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-[var(--ph-beige)] text-[var(--ph-forest)]"><AcademicCapIcon className="h-9 w-9" /></div>
+                                )}
+                            </div>
+                            <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--ph-gold)]/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#7d621d]">
+                                <TrophyIcon className="h-4 w-4" /> Rank {s.rank}
+                            </p>
+                            <h3 className="mt-3 font-display text-lg font-semibold text-[var(--ph-ink)]">{s.name}</h3>
+                            <p className="text-sm text-[var(--ph-ink)]/60">{s.section} · {s.academic_year}</p>
+                        </FadeUp>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function ReportCardLookupCta() {
+    return (
+        <section className="relative overflow-hidden px-4 py-20 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(135deg, var(--ph-navy) 0%, var(--ph-forest) 100%)' }}>
+            <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
+                <span className="ph-glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-wide text-white/85">
+                    <MagnifyingGlassIcon className="h-4 w-4" /> For Students &amp; Families
+                </span>
+                <h2 className="font-display text-3xl font-semibold text-white sm:text-4xl">Check a Report Card</h2>
+                <p className="max-w-xl text-base text-white/70">
+                    Have a code from your class's report-card sheet? Enter it to see a student's results — no account needed.
+                </p>
+                <Link href={route('report-card.lookup')} className="ph-btn-gold rounded-full px-7 py-3.5 text-base font-semibold text-[#2a2008]">
+                    Enter Your Code
+                </Link>
+            </div>
+        </section>
+    );
+}
+
+export default function Home({ gallery, content, topStudents }) {
     return (
         <MarketingLayout>
             <Head title="Paradise Hills School" />
             <Hero content={content} />
             <AboutPreview content={content} />
             <Pillars content={content} />
+            <TopStudents students={topStudents} />
             <Gallery images={gallery} />
+            <ReportCardLookupCta />
             <ContactCta content={content} />
         </MarketingLayout>
     );

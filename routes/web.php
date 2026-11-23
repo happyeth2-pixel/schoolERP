@@ -103,6 +103,16 @@ Route::get('/verify/{token}', [IdCardController::class, 'verify'])
     ->middleware(['throttle:id-verify', 'privacy'])
     ->name('id-card.verify');
 
+// Public, no-login report-card lookup -- a class's printed code/QR sheet, and the public homepage's
+// "Enter your code" box, both point here. Outside the auth group for the same reason id-card.verify is.
+Route::get('/report-card/lookup', [\App\Http\Controllers\ReportCardLookupController::class, 'form'])
+    ->middleware(['throttle:web', 'privacy'])
+    ->name('report-card.lookup');
+Route::get('/report-card/lookup/{code}', [\App\Http\Controllers\ReportCardLookupController::class, 'show'])
+    ->where('code', '[A-Za-z0-9-]{1,16}')
+    ->middleware(['throttle:report-card-lookup', 'privacy'])
+    ->name('report-card.lookup.show');
+
 // One-time "set your password" invitation links (new staff and guardians).
 Route::middleware(['guest', 'throttle:invitation', 'privacy'])->group(function () {
     Route::get('/invitation/{token}', [\App\Http\Controllers\Auth\InvitationController::class, 'show'])
@@ -308,6 +318,18 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
 
     Route::get('/students/{student}/report-card', [ReportCardController::class, 'show'])->name('report-card.show');
     Route::get('/students/{student}/report-card.pdf', [ReportCardController::class, 'pdf'])->middleware('throttle:pdf')->name('report-card.pdf');
+
+    Route::get('/sections/{section}/ranking', [\App\Http\Controllers\ClassRankingController::class, 'show'])->name('sections.ranking');
+    Route::post('/sections/{section}/required-subjects', [\App\Http\Controllers\ClassRankingController::class, 'setRequiredSubjects'])->name('sections.required-subjects');
+    Route::get('/sections/{section}/ranking.xlsx', [\App\Http\Controllers\ClassRankingController::class, 'exportExcel'])->name('sections.ranking.export');
+    Route::get('/sections/{section}/class-codes', [\App\Http\Controllers\ClassRankingController::class, 'classCodes'])->name('sections.class-codes');
+    Route::get('/sections/{section}/certificates.pdf', [\App\Http\Controllers\CertificateController::class, 'forSection'])->middleware('throttle:pdf')->name('sections.certificates');
+    Route::get('/students/{student}/certificate.pdf', [\App\Http\Controllers\CertificateController::class, 'forStudent'])->middleware('throttle:pdf')->name('students.certificate');
+
+    Route::get('/reports/top-students', [\App\Http\Controllers\TopStudentsController::class, 'index'])->name('top-students.index');
+    Route::get('/reports/top-students.xlsx', [\App\Http\Controllers\TopStudentsController::class, 'exportExcel'])->name('top-students.export');
+    Route::post('/top-student-highlights', [\App\Http\Controllers\TopStudentsController::class, 'post'])->name('top-student-highlights.post');
+    Route::post('/top-student-highlights/{highlight}/unpublish', [\App\Http\Controllers\TopStudentsController::class, 'unpublish'])->name('top-student-highlights.unpublish');
 
     Route::get('/my/attendance', [FamilyController::class, 'attendance'])->name('family.attendance');
     Route::get('/my/report-cards', [FamilyController::class, 'reportCards'])->name('family.report-cards');
