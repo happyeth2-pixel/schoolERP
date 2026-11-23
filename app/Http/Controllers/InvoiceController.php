@@ -292,10 +292,22 @@ class InvoiceController extends Controller
         $ctx = $this->generationContext($request);
 
         if ($ctx['fees']->has('termly') && $ctx['terms']->isEmpty()) {
-            return back()->withErrors(['generate' => 'This grade has a "per term" fee, but no terms are set up for the current academic year yet. Add the terms first (Academic Years & Terms), then generate again. No invoices were created.']);
+            $message = 'This grade has a "per term" fee, but no terms are set up for the current academic year yet. Add the terms first (Academic Years & Terms), then generate again. No invoices were created.';
+            $this->recordBillingBatch($user, $ctx, 'blocked', null, $message);
+
+            return back()->withErrors(['generate' => $message]);
         }
 
-        $result = $this->runGeneration($user, $ctx, false);
+        try {
+            $result = $this->runGeneration($user, $ctx, false);
+        } catch (\Throwable $e) {
+            $this->recordBillingBatch($user, $ctx, 'failed', null, $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Billing: Create Bills run failed', ['error' => $e->getMessage()]);
+
+            return back()->withErrors(['generate' => 'Something went wrong partway through and the run was stopped. Nothing was double-charged -- any bill already created is safe. Please try again, or ask for help if it keeps happening.']);
+        }
+
+        $this->recordBillingBatch($user, $ctx, $result['invoices'] > 0 ? 'completed' : 'no_invoices', $result);
 
         AuditLog::record($user, 'invoices.generated', $ctx['grade'], null, [
             'branch' => $ctx['branch']->name,
@@ -308,6 +320,28 @@ class InvoiceController extends Controller
         return back()
             ->with('success', "{$result['invoices']} invoice(s) generated.")
             ->with('invoice_run', $result + ['branch' => $ctx['branch']->name, 'grade' => $ctx['grade']->name, 'grade_id' => $ctx['grade']->id]);
+    }
+
+    /** Logs one "Create Bills" run to the Billing Batches dashboard, success or not -- see the migration's
+     *  docblock for why a run that created nothing still needs a visible trace. */
+    private function recordBillingBatch($user, array $ctx, string $status, ?array $result, ?string $message = null): \App\Models\BillingBatch
+    {
+        return \App\Models\BillingBatch::create([
+            'school_id' => $user->school_id,
+            'branch_id' => $ctx['branch']->id,
+            'academic_year_id' => $ctx['year']->id,
+            'initiated_by' => $user->id,
+            'generation_batch_id' => $result['batch_id'] ?? null,
+            'scope_type' => 'grade',
+            'scope_label' => $ctx['grade']->name,
+            'periods' => $ctx['selected'],
+            'status' => $status,
+            'students_considered' => $ctx['enrollments']->count(),
+            'students_billed' => $result['students_billed'] ?? 0,
+            'invoices_created' => $result['invoices'] ?? 0,
+            'total_amount' => $result['amount'] ?? 0,
+            'message' => $message,
+        ]);
     }
 
     /**
@@ -866,6 +900,11 @@ class InvoiceController extends Controller
         $gradeId = $invoices->first()->student->currentEnrollment?->section?->grade_id;
 
         [$deleted, $blocked] = $this->deleteSafely($invoices, $user, 'invoices.batch_cancelled', ['batch_id' => $batchId]);
+
+        if ($blocked === 0) {
+            \App\Models\BillingBatch::where('generation_batch_id', $batchId)
+                ->update(['cancelled_at' => now(), 'cancelled_by' => $user->id]);
+        }
 
         $message = "{$deleted} bill(s) cancelled.";
         if ($blocked > 0) {

@@ -136,7 +136,10 @@ export default function Index({ invoices, invoicesMeta, totals, grades, branches
                                 <p className="text-lg font-semibold text-stone-900 dark:text-stone-100">{t('gen.index_title')}</p>
                                 <p className="text-base text-stone-700 dark:text-stone-300">{t('gen.index_desc')}</p>
                             </div>
-                            <Button as={Link} href={route('invoices.wizard')} icon={PlusIcon}>{t('gen.index_button')}</Button>
+                            <div className="flex flex-wrap gap-2">
+                                <Button as={Link} href={route('invoices.wizard')} icon={PlusIcon}>{t('gen.index_button')}</Button>
+                                <Button as={Link} href={route('invoices.batches.index')} variant="secondary">Billing Batches</Button>
+                            </div>
                         </div>
                     )}
 

@@ -599,6 +599,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('throttle:search')->name('invoices.index');
     Route::get('/invoices/export', [InvoiceController::class, 'export'])->middleware('throttle:export')->name('invoices.export');
     Route::get('/invoices/new', [InvoiceController::class, 'wizard'])->name('invoices.wizard');
+    Route::get('/invoices/batches', [\App\Http\Controllers\BillingBatchController::class, 'index'])->name('invoices.batches.index');
     Route::get('/invoices/generate/preview', [InvoiceController::class, 'generatePreview'])->middleware('throttle:bulk')->name('invoices.generate.preview');
     Route::post('/invoices/generate', [InvoiceController::class, 'generate'])->middleware('throttle:bulk')->name('invoices.generate');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
