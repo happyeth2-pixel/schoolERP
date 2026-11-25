@@ -36,7 +36,9 @@ class CertificateController extends Controller
             'logo' => $this->crestDataUri($user->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('certificates-'.str_replace(' ', '-', strtolower("{$section->grade->name}-{$section->name}")).'.pdf');
+        $filename = 'certificates-'.str_replace(' ', '-', strtolower("{$section->grade->name}-{$section->name}")).'.pdf';
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     public function forStudent(Request $request, Student $student)
@@ -61,7 +63,9 @@ class CertificateController extends Controller
             'logo' => $this->crestDataUri($student->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('certificate-'.$student->student_id_number.'.pdf');
+        $filename = 'certificate-'.$student->student_id_number.'.pdf';
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     private function crestDataUri($school): ?string

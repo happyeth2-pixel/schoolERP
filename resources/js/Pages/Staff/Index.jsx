@@ -1,5 +1,5 @@
 import Avatar from '@/Components/Avatar';
-import CredentialsPanel from '@/Components/CredentialsPanel';
+import { CredentialsModal } from '@/Components/CredentialsPanel';
 import { CannotManageNote, PermissionPicker, PermissionSummary, ROLE_ORDER, TitleVersusAccess } from '@/Components/StaffParts';
 import Modal from '@/Components/Modal';
 import Pagination from '@/Components/Pagination';
@@ -248,12 +248,13 @@ export default function Index({ staff, staffMeta, search: initialSearch, assigna
                 }
             >
                 <FlashMessages errorKeys={['reset', 'status']} />
-                {credentials && hidden !== credentials.password && (
-                    <div data-testid="reset-result">
-                        <CredentialsPanel credentials={credentials} tone="notice" />
-                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHidden(credentials.password)}>{t('cred.hide')}</Button></div>
-                    </div>
-                )}
+                <div data-testid="reset-result">
+                    <CredentialsModal
+                        credentials={credentials && hidden !== credentials.password ? credentials : null}
+                        tone="notice"
+                        onClose={() => setHidden(credentials.password)}
+                    />
+                </div>
 
                 <div className="max-w-md">
                     <SearchInput value={search} onChange={setSearch} placeholder={t('staff.search')} />

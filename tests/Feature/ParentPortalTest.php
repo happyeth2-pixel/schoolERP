@@ -344,4 +344,38 @@ class ParentPortalTest extends TestCase
 
         $this->assertSame([], $page['terms']);
     }
+
+    // ------------------------------------------------------------------ extra services & prices
+
+    public function test_a_parent_sees_services_for_their_own_childrens_branch_and_who_is_enrolled(): void
+    {
+        $service = \App\Models\OptionalService::create([
+            'branch_id' => $this->branchA->id,
+            'academic_year_id' => $this->year->id,
+            'name' => 'Morning Bus',
+            'category' => 'transport',
+            'amount' => 150,
+            'frequency' => 'monthly',
+        ]);
+        $this->studentA->optionalServices()->attach($service->id, ['enrolled_on' => now(), 'custom_amount' => null]);
+
+        $otherBranchService = \App\Models\OptionalService::create([
+            'branch_id' => $this->branchB->id,
+            'academic_year_id' => $this->year->id,
+            'name' => 'East Branch Club',
+            'category' => 'asp',
+            'amount' => 100,
+            'frequency' => 'termly',
+        ]);
+
+        $page = json_decode(json_encode($this->props($this->actingAs($this->parent)->get('/my/services')->assertOk())), true);
+
+        $this->assertSame([$service->id], array_column($page['services'], 'id'), 'only the own branch service, never one from a branch none of their children are in');
+        $this->assertSame([$this->studentA->fullName()], $page['services'][0]['enrolled_children']);
+    }
+
+    public function test_only_a_parent_can_see_the_services_page(): void
+    {
+        $this->actingAs($this->owner)->get('/my/services')->assertForbidden();
+    }
 }

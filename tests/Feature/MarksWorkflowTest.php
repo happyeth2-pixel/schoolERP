@@ -253,23 +253,119 @@ class MarksWorkflowTest extends TestCase
         $this->saveAll($b, [85, 70, 60])->assertSessionHasNoErrors();
     }
 
-    // ------------------------------------------------------------------ the list
+    // ------------------------------------------------------------------ the class list and its class page
 
-    public function test_the_list_reports_progress_per_exam_and_class(): void
+    public function test_the_class_list_reports_one_card_per_class_with_its_subject_count_and_progress(): void
     {
         $b = $this->batch();
         $this->saveAll($b, [80, null, 60]);
 
-        $row = collect($this->props($this->actingAs($this->teacher)->get('/marks'))['rows'])->first();
+        $classes = $this->props($this->actingAs($this->teacher)->get('/marks'))['classes'];
+        $this->assertCount(1, $classes);
+        $this->assertSame(
+            [$this->sectionA->id, 1, 3, false],
+            [$classes[0]['section_id'], $classes[0]['subjects'], $classes[0]['students'], $classes[0]['is_homeroom']]
+        );
+        $this->assertSame(0, $classes[0]['done'], 'still a draft -- not counted as done yet');
 
-        $this->assertSame([3, 2, 'draft'], [$row['students'], $row['entered'], $row['status']]);
+        $this->actingAs($this->teacher)->post("/mark-batches/{$b->id}/submit");
+        $classes = $this->props($this->actingAs($this->teacher)->get('/marks'))['classes'];
+        $this->assertSame(1, $classes[0]['done'], 'submitted now counts toward done');
     }
 
-    public function test_the_list_shows_only_the_teachers_own_assignments(): void
+    public function test_the_class_list_shows_only_the_teachers_own_classes(): void
     {
         $other = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
 
-        $this->assertSame([], $this->props($this->actingAs($other)->get('/marks'))['rows']);
+        $this->assertSame([], $this->props($this->actingAs($other)->get('/marks'))['classes']);
+    }
+
+    public function test_the_class_page_lists_each_subject_with_an_exam_row_per_exam(): void
+    {
+        $b = $this->batch();
+        $this->saveAll($b, [80, null, 60]);
+
+        $page = $this->props($this->actingAs($this->teacher)->get("/marks/section/{$this->sectionA->id}")->assertOk());
+        $this->assertFalse($page['isHomeroom']);
+        $this->assertSame('Math', $page['subjects'][0]['subject_name']);
+        $row = $page['subjects'][0]['exams'][0];
+        $this->assertSame([3, 2, 'draft'], [$row['students'], $row['entered'], $row['status']]);
+    }
+
+    public function test_the_class_page_is_forbidden_to_someone_with_no_reason_to_be_in_this_class(): void
+    {
+        $stranger = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
+
+        $this->actingAs($stranger)->get("/marks/section/{$this->sectionA->id}")->assertForbidden();
+    }
+
+    // ------------------------------------------------------------------ homeroom teachers covering a colleague
+
+    public function test_the_homeroom_teacher_sees_and_may_enter_every_subject_of_their_own_class_even_unassigned_ones(): void
+    {
+        $homeroom = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
+        $this->sectionA->update(['class_teacher_id' => $homeroom->id]);
+
+        $classes = $this->props($this->actingAs($homeroom)->get('/marks'))['classes'];
+        $this->assertSame([$this->sectionA->id, 1, true], [$classes[0]['section_id'], $classes[0]['subjects'], $classes[0]['is_homeroom']]);
+
+        $page = $this->props($this->actingAs($homeroom)->get("/marks/section/{$this->sectionA->id}")->assertOk());
+        $this->assertSame('Math', $page['subjects'][0]['subject_name']);
+
+        // not the assigned teacher, but the homeroom teacher of this exact class -- may open and save
+        $this->actingAs($homeroom)->get($this->url())->assertOk();
+        $this->saveAll($this->batch(), [90, 85, 75], 100, $homeroom)->assertSessionHasNoErrors();
+        $this->assertEquals(90, Mark::where('enrollment_id', $this->eA->id)->first()->score);
+    }
+
+    /** The exact gap a real school hit: a principal picks a class's curriculum (Section::subjects())
+     *  before any teacher is actually assigned to any of it -- the homeroom teacher must still see and
+     *  be able to fill in every one of those subjects, not just ones that happen to already have a
+     *  TeachingAssignment row (to someone, anyone) sitting underneath them. */
+    public function test_the_homeroom_teacher_sees_curriculum_subjects_that_have_no_teacher_assigned_at_all(): void
+    {
+        $science = Subject::create(['school_id' => $this->school->id, 'name' => 'Science']);
+        $this->sectionA->subjects()->sync([$this->math->id, $science->id]); // Math already has $this->teacher; Science has NOBODY
+        $homeroom = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
+        $this->sectionA->update(['class_teacher_id' => $homeroom->id]);
+
+        $classes = $this->props($this->actingAs($homeroom)->get('/marks'))['classes'];
+        $this->assertSame(2, $classes[0]['subjects'], 'both Math and the teacher-less Science should show');
+
+        $page = $this->props($this->actingAs($homeroom)->get("/marks/section/{$this->sectionA->id}")->assertOk());
+        $this->assertEqualsCanonicalizing(['Math', 'Science'], collect($page['subjects'])->pluck('subject_name')->all());
+
+        // and the homeroom teacher can actually open and save Science, which nobody was ever assigned to teach
+        $this->actingAs($homeroom)->get("/marks/{$this->exam->id}/{$this->sectionA->id}/{$science->id}")->assertOk();
+        $batch = MarkBatch::where('subject_id', $science->id)->firstOrFail();
+        $this->assertSame($homeroom->id, $batch->teacher_id, 'opening it for the first time makes the homeroom teacher its owner');
+    }
+
+    public function test_a_homeroom_teacher_covering_a_draft_becomes_its_acting_teacher_and_it_is_audited(): void
+    {
+        $homeroom = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
+        $this->sectionA->update(['class_teacher_id' => $homeroom->id]);
+        $b = $this->batch(); // created owned by $this->teacher, the regularly assigned subject teacher
+
+        $this->saveAll($b, [90, 85, 75], 100, $homeroom)->assertSessionHasNoErrors();
+
+        $this->assertSame($homeroom->id, $b->refresh()->teacher_id);
+        $covered = AuditLog::where('action', 'mark_batch.covered')->first();
+        $this->assertNotNull($covered);
+        $this->assertSame($homeroom->id, $covered->user_id);
+    }
+
+    public function test_a_homeroom_teacher_of_a_different_class_may_not_cover_this_one(): void
+    {
+        $otherSection = \App\Models\Section::create(['branch_id' => $this->branchA->id, 'grade_id' => $this->grade->id, 'academic_year_id' => $this->year->id, 'name' => 'C']);
+        $otherHomeroom = $this->makeUser('teacher', $this->branchA->id, ['enter-marks']);
+        $otherSection->update(['class_teacher_id' => $otherHomeroom->id]);
+
+        $this->actingAs($otherHomeroom)->get($this->url())->assertForbidden();
+        // their OWN class (curriculum unconfigured, so it permissively falls back to every school
+        // subject) is fine to see -- what must never happen is seeing $this->sectionA among them
+        $classes = $this->props($this->actingAs($otherHomeroom)->get('/marks'))['classes'];
+        $this->assertNotContains($this->sectionA->id, array_column($classes, 'section_id'));
     }
 
     // ------------------------------------------------------------------ access

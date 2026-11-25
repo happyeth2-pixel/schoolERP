@@ -1,5 +1,5 @@
 import Avatar from '@/Components/Avatar';
-import CredentialsPanel from '@/Components/CredentialsPanel';
+import { CredentialsModal } from '@/Components/CredentialsPanel';
 import DateInput from '@/Components/DateInput';
 import DateText from '@/Components/DateText';
 import StudentPhotoField from '@/Components/StudentPhotoField';
@@ -418,12 +418,12 @@ export default function Edit({ student, guardianRelationships, canOverrideCapaci
             >
                 <FlashMessages errorKeys={['locked', 'delete', 'optional_service_id']} />
 
-                {credentials && hiddenPassword !== credentials.password && (
-                    <div data-testid="guardian-credentials">
-                        <CredentialsPanel credentials={credentials} />
-                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHiddenPassword(credentials.password)}>{t('cred.hide')}</Button></div>
-                    </div>
-                )}
+                <div data-testid="guardian-credentials">
+                    <CredentialsModal
+                        credentials={credentials && hiddenPassword !== credentials.password ? credentials : null}
+                        onClose={() => setHiddenPassword(credentials.password)}
+                    />
+                </div>
 
                 {!canManage && <Alert tone="info">{t('student.read_only')}</Alert>}
 

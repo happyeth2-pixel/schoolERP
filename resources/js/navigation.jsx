@@ -68,6 +68,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             items: [
                 { label: m('home', 'Home'), route: 'dashboard', enabled: true, icon: HomeIcon },
                 { label: n('family_invoices', 'Fees & Payments'), route: 'family.invoices', enabled: true, show: role === 'parent', icon: BanknotesIcon },
+                { label: n('family_services', 'Extra Services & Prices'), route: 'family.services', enabled: true, show: role === 'parent', icon: TruckIcon },
                 { label: n('notifications', 'Notifications'), route: 'notifications.index', enabled: true, icon: BellIcon },
                 { label: n('help', 'Help'), route: 'help.index', enabled: true, icon: QuestionMarkCircleIcon },
                 { label: n('my_leave', 'My Leave'), route: 'leave-requests.mine', enabled: has('leave-request') || has('leave-approve'), show: has('leave-request') || has('leave-approve'), icon: CalendarIcon },
@@ -201,6 +202,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             items: [
                 { label: n('invoices', 'Invoices'), route: 'invoices.index', enabled: has('manage-invoices') || has('view-financial-reports'), show: has('manage-invoices') || has('view-financial-reports'), icon: DocumentTextIcon },
                 { label: m('check_payments', 'Check Payments'), route: 'payments.pending', enabled: has('verify-payments'), show: has('verify-payments'), icon: BanknotesIcon },
+                { label: m('collect_by_class', 'Collect Payments by Class'), route: 'payments.collect', enabled: has('verify-payments'), show: has('verify-payments'), icon: BanknotesIcon },
                 { label: m('school_fees', 'School Fees'), route: 'fee-structures.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: CurrencyDollarIcon },
                 { label: m('extra_services', 'Extra Services'), route: 'optional-services.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: TruckIcon },
                 { label: n('books', 'Books'), route: 'books.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: BookOpenIcon },

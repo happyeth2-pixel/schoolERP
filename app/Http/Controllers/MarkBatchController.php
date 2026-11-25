@@ -6,14 +6,17 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 use App\Models\AuditLog;
+use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\Mark;
 use App\Models\MarkBatch;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Models\TeachingAssignment;
 use App\Models\User;
 use App\Notifications\MarkBatchPublished;
 use App\Notifications\MarkBatchSubmitted;
+use App\Policies\MarkBatchPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -23,52 +26,139 @@ use Inertia\Response;
 class MarkBatchController extends Controller
 {
     /**
-     * Teacher's own "what do I need to enter" list: every teaching
-     * assignment they hold, crossed with every exam in the current
-     * academic year, showing the batch status for that combination
-     * (or "Not started" if no batch exists yet).
+     * "What do I need to enter?", one card per CLASS instead of one row per class+subject+exam -- with
+     * many classes/subjects that flat list became the thing teachers complained was hard to manage.
+     * A class is in this list because the person holds a teaching assignment in it, OR because they are
+     * its homeroom (class) teacher -- in which case the card covers every subject taught there, not just
+     * their own, so a homeroom teacher can cover a colleague who cannot use the system. See forSection()
+     * for what opening a card actually shows.
      */
     public function index(Request $request): Response
     {
-        $request->user()->can('enter-marks') || abort(403);
         $user = $request->user();
+        $user->can('enter-marks') || abort(403);
 
-        $assignments = $user->teachingAssignments()->with(['section.grade', 'subject'])->get();
+        $assignedSectionIds = $user->teachingAssignments()->pluck('section_id')->unique();
+        $homeroomSectionIds = Section::where('class_teacher_id', $user->id)->pluck('id');
+        $sectionIds = $assignedSectionIds->merge($homeroomSectionIds)->unique()->values();
+
+        $sections = Section::whereIn('id', $sectionIds)->with(['grade', 'subjects'])->get()->keyBy('id');
+
         $exams = Exam::where('school_id', $user->school_id)
             ->whereHas('term.academicYear', fn ($q) => $q->where('is_current', true))
-            ->with('term')
-            ->orderBy('id')
             ->get();
+        $examCount = max($exams->count(), 1);
 
-        $existingBatches = MarkBatch::where('teacher_id', $user->id)
-            ->withCount(['marks as entered_count' => fn ($q) => $q->whereNotNull('score')])
-            ->get()->keyBy(fn ($b) => "{$b->exam_id}-{$b->section_id}-{$b->subject_id}");
+        $assignmentsBySection = TeachingAssignment::whereIn('section_id', $sectionIds)->get()->groupBy('section_id');
 
-        // class sizes, so each row can say "12 of 30 students have a mark"
-        $classSizes = \App\Models\Enrollment::active()
-            ->whereIn('section_id', $assignments->pluck('section_id')->unique())
+        // What a homeroom teacher covers is the class's own CURRICULUM (Section::subjects()), not just
+        // whatever already happens to have a teacher assigned -- a subject nobody has been given yet
+        // still needs marks, and the homeroom teacher is exactly who covers that. Falls back to every
+        // subject the school has while that section's curriculum is still unconfigured.
+        $allSchoolSubjectIds = $user->school->subjects()->pluck('id');
+
+        $publishedOrFurther = MarkBatch::whereIn('section_id', $sectionIds)
+            ->whereIn('status', ['submitted', 'approved', 'published'])
+            ->get(['section_id', 'subject_id', 'exam_id'])
+            ->map(fn ($b) => "{$b->section_id}-{$b->subject_id}-{$b->exam_id}")
+            ->flip();
+
+        $classSizes = Enrollment::active()->whereIn('section_id', $sectionIds)
             ->selectRaw('section_id, COUNT(*) as n')->groupBy('section_id')->pluck('n', 'section_id');
 
-        $rows = [];
-        foreach ($assignments as $a) {
-            foreach ($exams as $exam) {
-                $key = "{$exam->id}-{$a->section_id}-{$a->subject_id}";
-                $batch = $existingBatches->get($key);
-                $rows[] = [
-                    'exam_id' => $exam->id,
-                    'exam_name' => $exam->name,
-                    'section_id' => $a->section_id,
-                    'section_label' => "{$a->section->grade->name} {$a->section->name}",
-                    'subject_id' => $a->subject_id,
-                    'subject_name' => $a->subject->name,
-                    'status' => $batch?->status ?? 'not_started',
-                    'students' => (int) ($classSizes[$a->section_id] ?? 0),
-                    'entered' => (int) ($batch?->entered_count ?? 0),
-                ];
+        $classes = $sectionIds->map(function ($sectionId) use ($user, $homeroomSectionIds, $sections, $assignmentsBySection, $exams, $examCount, $publishedOrFurther, $classSizes, $allSchoolSubjectIds) {
+            $isHomeroom = $homeroomSectionIds->contains($sectionId);
+            $section = $sections->get($sectionId);
+
+            if ($isHomeroom) {
+                $subjectIds = $section->subjects->isNotEmpty() ? $section->subjects->pluck('id') : $allSchoolSubjectIds;
+            } else {
+                $subjectIds = $assignmentsBySection->get($sectionId, collect())->where('teacher_id', $user->id)->pluck('subject_id')->unique();
             }
+
+            $done = 0;
+            foreach ($subjectIds as $subjectId) {
+                foreach ($exams as $exam) {
+                    if ($publishedOrFurther->has("{$sectionId}-{$subjectId}-{$exam->id}")) {
+                        $done++;
+                    }
+                }
+            }
+
+            return [
+                'section_id' => $sectionId,
+                'label' => "{$section->grade->name} {$section->name}",
+                'is_homeroom' => $isHomeroom,
+                'subjects' => $subjectIds->count(),
+                'students' => (int) ($classSizes[$sectionId] ?? 0),
+                'done' => $done,
+                'total' => $subjectIds->count() * $examCount,
+            ];
+        })
+            ->filter(fn ($c) => $c['subjects'] > 0) // nothing taught here yet -- nothing to enter
+            ->sortBy('label')->values();
+
+        return Inertia::render('Marks/Index', ['classes' => $classes]);
+    }
+
+    /**
+     * One class, opened from its card: every subject the person may enter marks for in it (their own
+     * assignment, or -- as the homeroom teacher -- every subject taught here), each as its own card with
+     * one row per exam and where its marks stand.
+     */
+    public function forSection(Request $request, Section $section): Response
+    {
+        $user = $request->user();
+        $user->can('enter-marks') || abort(403);
+        $this->assertInScope($user, $section);
+
+        $isHomeroom = MarkBatchPolicy::mayCoverAsHomeroom($user, $section);
+
+        if ($isHomeroom) {
+            // Every subject this class actually teaches (or, while that is still unconfigured, every
+            // subject the school has) -- the homeroom teacher may cover any of them, whether or not
+            // anyone has been assigned to teach it yet.
+            $section->loadMissing('subjects');
+            $subjects = $section->subjects->isNotEmpty() ? $section->subjects : $user->school->subjects()->get();
+        } else {
+            // only the subjects THIS person is actually assigned to teach here.
+            $subjectIds = TeachingAssignment::where('section_id', $section->id)->where('teacher_id', $user->id)->pluck('subject_id');
+            $subjects = Subject::whereIn('id', $subjectIds)->get();
         }
 
-        return Inertia::render('Marks/Index', ['rows' => $rows]);
+        abort_if($subjects->isEmpty(), 403, 'You are not assigned to teach any subject in this class.');
+
+        $exams = Exam::where('school_id', $user->school_id)
+            ->whereHas('term.academicYear', fn ($q) => $q->where('is_current', true))
+            ->orderBy('id')->get();
+
+        $existingBatches = MarkBatch::where('section_id', $section->id)->whereIn('subject_id', $subjects->pluck('id'))
+            ->withCount(['marks as entered_count' => fn ($q) => $q->whereNotNull('score')])
+            ->get()->keyBy(fn ($b) => "{$b->exam_id}-{$b->subject_id}");
+
+        $classSize = Enrollment::active()->where('section_id', $section->id)->count();
+
+        $subjects = $subjects->sortBy('name')->values()->map(fn (Subject $subj) => [
+            'subject_id' => $subj->id,
+            'subject_name' => $subj->name,
+            'exams' => $exams->map(function ($exam) use ($subj, $existingBatches, $classSize) {
+                $batch = $existingBatches->get("{$exam->id}-{$subj->id}");
+
+                return [
+                    'exam_id' => $exam->id,
+                    'exam_name' => $exam->name,
+                    'status' => $batch?->status ?? 'not_started',
+                    'students' => $classSize,
+                    'entered' => (int) ($batch?->entered_count ?? 0),
+                ];
+            })->values(),
+        ]);
+
+        return Inertia::render('Marks/Section', [
+            'section' => ['id' => $section->id, 'label' => "{$section->grade->name} {$section->name}"],
+            'isHomeroom' => $isHomeroom,
+            'subjects' => $subjects,
+        ]);
     }
 
     public function show(Request $request, Exam $exam, Section $section, Subject $subject): Response
@@ -76,6 +166,7 @@ class MarkBatchController extends Controller
         $request->user()->can('enter-marks') || abort(403);
         $user = $request->user();
 
+        $this->assertInScope($user, $section);
         $this->assertAssignedTeacher($user, $section, $subject);
 
         // the exam must be this school's and belong to the same academic year as the section
@@ -103,6 +194,7 @@ class MarkBatchController extends Controller
             'exam' => ['id' => $exam->id, 'name' => $exam->name],
             'section' => ['id' => $section->id, 'label' => "{$section->grade->name} {$section->name}"],
             'subject' => ['id' => $subject->id, 'name' => $subject->name],
+            'backTo' => ['route' => 'marks.section', 'params' => $section->id],
             'roster' => $enrollments->map(fn ($e) => [
                 'enrollment_id' => $e->id,
                 'student_name' => $e->student->fullName(),
@@ -139,7 +231,16 @@ class MarkBatchController extends Controller
             // ago must win over this save.
             $locked = MarkBatch::whereKey($markBatch->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->status === 'draft', 422, 'Marks can only be edited while the batch is in draft.');
-            abort_unless($locked->teacher_id === $user->id, 403);
+            Gate::forUser($user)->authorize('enterMarks', $locked);
+
+            // A homeroom teacher covering a colleague's subject is not its regular teacher of record --
+            // the moment they actually save is when they become the batch's acting teacher, same as a
+            // reassignment moving an unsubmitted sheet to whoever teaches the subject now.
+            if ($locked->teacher_id !== $user->id) {
+                $previousTeacherId = $locked->teacher_id;
+                $locked->update(['teacher_id' => $user->id]);
+                AuditLog::record($user, 'mark_batch.covered', $locked, ['teacher_id' => $previousTeacherId], ['teacher_id' => $user->id]);
+            }
 
             $validEnrollmentIds = $locked->section->enrollments()->active()->pluck('id');
 
@@ -339,13 +440,24 @@ class MarkBatchController extends Controller
         }
     }
 
+    /** The real assignment, OR covering as the section's own homeroom teacher for a colleague who
+     *  cannot use the system -- see MarkBatchPolicy::mayCoverAsHomeroom() for the exact same rule
+     *  applied again (under lock) by the Gate once a batch exists. */
     private function assertAssignedTeacher($user, Section $section, Subject $subject): void
     {
+        $assigned = $user->teachingAssignments()->where('section_id', $section->id)->where('subject_id', $subject->id)->exists();
+
         abort_unless(
-            $user->teachingAssignments()->where('section_id', $section->id)->where('subject_id', $subject->id)->exists(),
+            $assigned || MarkBatchPolicy::mayCoverAsHomeroom($user, $section),
             403,
             'You are not assigned to teach this subject for this section.'
         );
+    }
+
+    private function assertInScope($user, Section $section): void
+    {
+        abort_unless($section->branch->school_id === $user->school_id, 403);
+        abort_unless($user->isOrgWide() || $user->branch_id === $section->branch_id, 403);
     }
 
     private function assertBranchInScope($user, MarkBatch $markBatch): void

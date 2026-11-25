@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Avatar from '@/Components/Avatar';
-import CredentialsPanel from '@/Components/CredentialsPanel';
+import { CredentialsModal } from '@/Components/CredentialsPanel';
 import Pagination from '@/Components/Pagination';
 import { Alert, BackLink, Button, Card, EmptyState, FlashMessages, Input, Page, StatusBadge, SuccessPanel } from '@/Components/ui';
 import { ArrowDownTrayIcon, BanknotesIcon, IdentificationIcon, MagnifyingGlassIcon, UserPlusIcon, UsersIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -144,12 +144,12 @@ export default function Index({ students, studentsMeta, q: initialQ, justRegiste
                 {/* the panel below says it better; a warning (e.g. a phone number already used) still shows */}
                 <FlashMessages skip={justRegistered ? ['success'] : []} />
 
-                {credentials && hiddenPassword !== credentials.password && (
-                    <div data-testid="guardian-credentials">
-                        <CredentialsPanel credentials={credentials} />
-                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHiddenPassword(credentials.password)}>{t('cred.hide')}</Button></div>
-                    </div>
-                )}
+                <div data-testid="guardian-credentials">
+                    <CredentialsModal
+                        credentials={credentials && hiddenPassword !== credentials.password ? credentials : null}
+                        onClose={() => setHiddenPassword(credentials.password)}
+                    />
+                </div>
 
                 {justRegistered && (
                     <SuccessPanel

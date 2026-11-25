@@ -49,8 +49,9 @@ class ReportCardController extends Controller
         }
 
         $pdf = Pdf::loadView('reportcard.pdf', $data + ['school' => $student->school]);
+        $filename = "report-card-{$student->student_id_number}.pdf";
 
-        return $pdf->download("report-card-{$student->student_id_number}.pdf");
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     /**

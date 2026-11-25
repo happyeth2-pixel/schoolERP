@@ -326,7 +326,10 @@ class FamilyController extends Controller
     {
         Gate::authorize('viewRecords', $student);
 
-        return PaymentStatements::pdf($student)->download("statement-{$student->student_id_number}.pdf");
+        $filename = "statement-{$student->student_id_number}.pdf";
+        $pdf = PaymentStatements::pdf($student);
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     /** A hub linking each of the parent's children to their report card. */
@@ -357,5 +360,32 @@ class FamilyController extends Controller
         abort_unless($user->hasRole('parent'), 403);
 
         return Inertia::render('Family/PaymentsHub');
+    }
+
+    /** Every extra service (transport, after-school classes, ...) available at any of the parent's own
+     *  children's branches, with its price -- so a family can see what something would cost before (or
+     *  after) a child is enrolled in it, the same figure the school already bills from. */
+    public function services(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user->hasRole('parent'), 403);
+
+        $children = $user->children()->with('optionalServices:id')->orderBy('first_name')->get();
+        $branchIds = $children->pluck('branch_id')->unique();
+
+        $services = \App\Models\OptionalService::whereIn('branch_id', $branchIds)
+            ->orderBy('category')->orderBy('name')->get();
+
+        return Inertia::render('Family/Services', [
+            'services' => $services->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'category' => $s->category,
+                'amount' => (float) $s->amount,
+                'frequency' => $s->frequency,
+                'enrolled_children' => $children->filter(fn ($c) => $c->optionalServices->contains($s->id))->map->fullName()->values(),
+            ])->values(),
+            'hasChildren' => $children->isNotEmpty(),
+        ]);
     }
 }

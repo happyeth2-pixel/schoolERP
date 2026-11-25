@@ -25,17 +25,29 @@ class TeachingAssignmentController extends Controller
         $sectionsQuery = Section::query()
             ->whereIn('branch_id', $user->school->branches()->pluck('id'))
             ->whereHas('academicYear', fn ($q) => $q->where('is_current', true))
-            ->with(['grade', 'branch', 'classTeacher', 'teachingAssignments.subject', 'teachingAssignments.teacher']);
+            ->with(['grade', 'subjects', 'branch', 'classTeacher', 'teachingAssignments.subject', 'teachingAssignments.teacher']);
 
         if (! $user->isOrgWide()) {
             $sectionsQuery->where('branch_id', $user->branch_id);
         }
 
-        $teachersQuery = User::where('school_id', $user->school_id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'teacher'));
+        // Every subject the school has, for whenever a section's own curriculum is still "not configured
+        // yet" (see Section::subjects()) -- a brand new school, or a class that hasn't been curated down
+        // yet, keeps seeing every subject exactly as before.
+        $allSubjects = $user->school->subjects()->orderBy('name')->get(['id', 'name']);
+
+        $teachersQuery = User::where('school_id', $user->school_id)->where('status', 'active');
         if (! $user->isOrgWide()) {
             $teachersQuery->where('branch_id', $user->branch_id);
         }
+        // Anyone who actually holds the teacher role, PLUS any other staff member (a principal,
+        // a branch admin) whose account can enter marks -- so a teacher who cannot use the system can
+        // be covered by someone senior enough assigning the subject to themselves instead, the same way
+        // any other teaching assignment is given. Nothing here grants `enter-marks` by itself: it only
+        // widens who can be PICKED here to those who already hold it.
+        $teachers = $teachersQuery->orderBy('name')->get(['id', 'name', 'branch_id'])
+            ->filter(fn (User $u) => $u->hasRole('teacher') || $u->can('enter-marks'))
+            ->values();
 
         return Inertia::render('TeachingAssignments/Index', [
             'sections' => $sectionsQuery->orderBy('grade_id')->get()->map(fn (Section $s) => [
@@ -46,6 +58,10 @@ class TeachingAssignmentController extends Controller
                 'branch_id' => $s->branch_id,
                 'branch' => $s->branch->name,
                 'class_teacher' => $s->classTeacher?->only(['id', 'name']),
+                // 1A and 1B are not the same curriculum: offer only what THIS section actually teaches,
+                // falling back to every subject while this one's own list is still empty.
+                'subjects' => ($s->subjects->isNotEmpty() ? $s->subjects : $allSubjects)
+                    ->map(fn ($subj) => ['id' => $subj->id, 'name' => $subj->name])->sortBy('name')->values(),
                 'assignments' => $s->teachingAssignments->sortBy(fn ($a) => $a->subject->name)->values()->map(fn (TeachingAssignment $a) => [
                     'id' => $a->id,
                     'subject_id' => $a->subject_id,
@@ -53,8 +69,7 @@ class TeachingAssignmentController extends Controller
                     'teacher' => $a->teacher->name,
                 ]),
             ]),
-            'teachers' => $teachersQuery->orderBy('name')->get(['id', 'name', 'branch_id']),
-            'subjects' => $user->school->subjects()->orderBy('name')->get(['id', 'name']),
+            'teachers' => $teachers,
             'canSetClassTeacher' => $user->can('manage-classes'),
             'focus' => $request->integer('section') ?: null,
             'branchCount' => $user->school->branches()->count(),
@@ -79,14 +94,23 @@ class TeachingAssignmentController extends Controller
         $teacher = User::whereKey($validated['teacher_id'])
             ->where('school_id', $user->school_id)
             ->where('status', 'active')
-            ->whereHas('roles', fn ($q) => $q->where('name', 'teacher'))
             ->firstOrFail();
-        abort_unless($teacher->branch_id === $section->branch_id, 422, 'Teacher must belong to the same branch as the section.');
+        abort_unless($teacher->hasRole('teacher') || $teacher->can('enter-marks'), 422, 'This person cannot be given a subject to teach.');
+        // An org-wide owner has no single home branch to match -- that is exactly what "org-wide" means,
+        // not a reason to refuse giving them a subject in any one branch's section.
+        abort_unless($teacher->isOrgWide() || $teacher->branch_id === $section->branch_id, 422, 'Teacher must belong to the same branch as the section.');
 
         abort_unless(
             $user->school->subjects()->whereKey($validated['subject_id'])->exists(),
             422
         );
+
+        // The browser's own picker already only offers this section's own subjects (or, while its
+        // curriculum is still unconfigured, every subject) -- re-checked here so a crafted request can't
+        // give a class a subject outside its own curriculum once one actually IS configured. 1A and 1B
+        // are not guaranteed to share one, so this is checked per section, not per grade.
+        $sectionSubjectIds = $section->subjects()->pluck('subjects.id');
+        abort_unless($sectionSubjectIds->isEmpty() || $sectionSubjectIds->contains($validated['subject_id']), 422, 'This subject is not taught in this class.');
 
         // The identity of an assignment is (section, subject): the section already pins the academic year
         // and branch, and a subject has exactly ONE teacher per section (unique key in the database).

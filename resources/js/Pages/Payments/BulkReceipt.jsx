@@ -1,4 +1,4 @@
-import { Alert, BackLink, Button, Card, Page, SuccessPanel } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, Page, SuccessPanel, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { PrinterIcon } from '@heroicons/react/24/outline';
 import { Link } from '@inertiajs/react';
@@ -9,6 +9,8 @@ const money = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits
 // actually reached. Printing each one separately, rather than inventing a combined receipt format,
 // keeps every individual bill's own paper trail exactly the same shape payments.receipt already produces.
 export default function BulkReceipt({ student, amount, applied, leftover, payments, deskUrl }) {
+    const [openReceipt, receiptModal] = usePdfPreview();
+
     return (
         <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">Payment Recorded</h2>}>
             <Page title="Payment Recorded" width="default" back={<BackLink href={deskUrl}>Back to {student.name}</BackLink>}>
@@ -36,7 +38,7 @@ export default function BulkReceipt({ student, amount, applied, leftover, paymen
                                     <p className="font-semibold text-stone-900 dark:text-stone-100">{p.period} ({p.invoice_number})</p>
                                     <p className="text-sm text-stone-600 dark:text-stone-400">Receipt {p.receipt_number} · {money(p.amount)} ETB</p>
                                 </div>
-                                <Button as="a" href={p.receipt_url} variant="secondary" size="md" icon={PrinterIcon}>Print receipt</Button>
+                                <Button variant="secondary" size="md" icon={PrinterIcon} onClick={() => openReceipt({ url: p.receipt_url, title: `Receipt ${p.receipt_number}`, filename: `receipt-${p.receipt_number}.pdf` })}>Print receipt</Button>
                             </li>
                         ))}
                     </ul>
@@ -48,6 +50,7 @@ export default function BulkReceipt({ student, amount, applied, leftover, paymen
                     </Alert>
                 )}
             </Page>
+            {receiptModal}
         </AuthenticatedLayout>
     );
 }

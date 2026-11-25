@@ -26,7 +26,7 @@ class AcademicStructureController extends Controller
 
         $sectionsQuery = \App\Models\Section::query()
             ->whereIn('branch_id', $school->branches()->pluck('id'))
-            ->with(['branch', 'academicYear', 'classTeacher']);
+            ->with(['branch', 'academicYear', 'classTeacher', 'subjects']);
 
         if (! $user->isOrgWide()) {
             $sectionsQuery->where('branch_id', $user->branch_id);
@@ -47,11 +47,16 @@ class AcademicStructureController extends Controller
                 'branch' => $s->branch->name,
                 'academic_year' => $s->academicYear->name,
                 'is_current_year' => (bool) $s->academicYear->is_current,
+                // 1A and 1B are not the same curriculum: which subjects THIS section teaches, picked per
+                // section (not per grade) -- see Section::subjects() for the "empty = not configured yet"
+                // fallback the Teaching Assignments page relies on.
+                'subject_ids' => $s->subjects->pluck('id'),
             ])->values(),
         ]);
 
         return Inertia::render('AcademicStructure/Index', [
             'grades' => $grades,
+            'subjects' => $school->subjects()->orderBy('name')->get(['id', 'name']),
             'branches' => $user->isOrgWide()
                 ? $school->branches()->orderBy('name')->get(['id', 'name'])
                 : $school->branches()->where('id', $user->branch_id)->get(['id', 'name']),

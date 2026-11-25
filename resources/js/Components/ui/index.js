@@ -13,6 +13,6 @@ export { default as StatusBadge, STATUS_TONE } from './StatusBadge';
 export { default as ConfirmDialog, useConfirm } from './ConfirmDialog';
 export { EmptyState, SuccessPanel, Disclosure } from './States';
 export { default as ActionTile } from './ActionTile';
-export { PrintButton, PrintArea } from './Print';
+export { PrintButton, PrintArea, usePdfPreview } from './Print';
 export { useWizard, WizardShell, WizardProgress, WizardButtons, ReviewList } from './Wizard';
 export { TAP, FOCUS, TONE, PAGE_WIDTH } from './tokens';

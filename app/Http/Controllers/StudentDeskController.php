@@ -139,7 +139,10 @@ class StudentDeskController extends Controller
         abort_unless($user->isOrgWide() || $user->branch_id === $student->branch_id, 403);
         abort_unless($user->can('manage-invoices') || $user->can('view-financial-reports'), 403);
 
-        return PaymentStatements::pdf($student)->download("statement-{$student->student_id_number}.pdf");
+        $filename = "statement-{$student->student_id_number}.pdf";
+        $pdf = PaymentStatements::pdf($student);
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     /** Same formula as the parent's own attendance page: present + late out of every recorded day. */

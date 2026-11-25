@@ -14,10 +14,16 @@ use Illuminate\Auth\Access\Response;
 class MarkBatchPolicy
 {
     /**
-     * Enter or submit marks: the signed-in teacher must (1) hold enter-marks, (2) be in the section's
-     * school and branch, (3) CURRENTLY hold the teaching assignment for this section and subject
-     * (not merely have created the batch once), and (4) be the batch's owner. Whether the batch is
-     * still a draft is checked by the caller under a row lock.
+     * Enter or submit marks: the signed-in person must (1) hold enter-marks, (2) be in the section's
+     * school and branch, and (3) have a reason to be touching THIS subject in THIS section -- either
+     * they CURRENTLY hold its teaching assignment, or they are the section's own homeroom (class)
+     * teacher covering a colleague who cannot use the system (see mayCoverAsHomeroom). Whether the
+     * batch is still a draft is checked by the caller under a row lock.
+     *
+     * Ownership (4) only binds the REGULARLY assigned subject teacher -- it stops an old teacher from
+     * saving after a reassignment moved the batch to their replacement. A homeroom teacher covering a
+     * subject that isn't their own assignment may always act; the caller makes them the batch's acting
+     * teacher the moment they actually save (see MarkBatchController::store()).
      */
     public function enterMarks(User $user, MarkBatch $batch): Response
     {
@@ -40,14 +46,21 @@ class MarkBatchPolicy
             ->where('teacher_id', $user->id)
             ->exists();
 
-        if (! $assigned) {
+        if (! $assigned && ! self::mayCoverAsHomeroom($user, $section)) {
             return Response::deny('You are not currently assigned to teach this subject for this section.');
         }
 
-        if ($batch->teacher_id !== $user->id) {
+        if ($assigned && $batch->teacher_id !== $user->id) {
             return Response::deny('Another teacher owns this mark batch.');
         }
 
         return Response::allow();
+    }
+
+    /** The section's own homeroom (class) teacher may stand in for any of its subject teachers --
+     *  it is still one real person's own class, not a blanket "any admin may enter any marks" hole. */
+    public static function mayCoverAsHomeroom(User $user, \App\Models\Section $section): bool
+    {
+        return $user->id === $section->class_teacher_id;
     }
 }

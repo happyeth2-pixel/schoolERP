@@ -553,7 +553,9 @@ class PaymentController extends Controller
             'student' => $payment->invoice->student,
         ]);
 
-        return $pdf->download("receipt-{$payment->receipt_number}.pdf");
+        $filename = "receipt-{$payment->receipt_number}.pdf";
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
     }
 
     private function assertScope($user, Payment $payment): void

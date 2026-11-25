@@ -1,6 +1,7 @@
+import Modal from '@/Components/Modal';
 import { Alert, Button, PrintArea, PrintButton } from '@/Components/ui';
 import { ArrowDownTrayIcon, CheckIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // The account details an administrator hands to someone: who they are, the login (their phone number) and a temporary
@@ -9,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 export default function CredentialsPanel({ credentials, tone = 'panel' }) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
+    if (!credentials) return null;
     const login = credentials.phone ?? credentials.email;
     const role = credentials.role ? t(`staff.role_${credentials.role}`, { defaultValue: credentials.role }) : null;
     const reset = !!credentials.reset;
@@ -86,5 +88,29 @@ export default function CredentialsPanel({ credentials, tone = 'panel' }) {
                 <PrintButton label={t('cred.print')} />
             </div>
         </div>
+    );
+}
+
+/**
+ * The same one-time login details, but as a popup over whatever list or profile page triggered them --
+ * created-account and reset-password actions happen from the middle of a page (a staff list, a student's
+ * profile), and the credentials used to get inserted inline there, shoving the rest of the page down. A
+ * modal keeps that page where it was and gives the admin an explicit way to dismiss it once the details
+ * are copied, downloaded or printed, on a phone exactly as on a desktop.
+ */
+export function CredentialsModal({ credentials, tone, onClose }) {
+    const { t } = useTranslation();
+    // Modal fades out over ~200ms rather than vanishing instantly, so `credentials` going back to
+    // null on close must not blank the panel mid-fade -- keep showing whatever was last open.
+    const lastRef = useRef(credentials);
+    if (credentials) lastRef.current = credentials;
+
+    return (
+        <Modal show={!!credentials} maxWidth="lg" onClose={onClose}>
+            <div className="max-h-[85vh] overflow-y-auto p-5 sm:p-6">
+                <CredentialsPanel credentials={lastRef.current} tone={tone} />
+                <Button variant="secondary" fullWidth className="mt-4" onClick={onClose}>{t('common.close')}</Button>
+            </div>
+        </Modal>
     );
 }

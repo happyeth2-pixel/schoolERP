@@ -1,4 +1,4 @@
-import { BackLink, Button, Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Page, StatusBadge, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BanknotesIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -14,6 +14,7 @@ const money = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits
 
 export default function Invoices({ invoices, children, filters }) {
     const { t } = useTranslation();
+    const [openPdf, pdfModal] = usePdfPreview();
     const { locale } = usePage().props;
     const current = filters?.status ?? null;
     const setFilter = (status) => router.get(route('family.invoices'), status ? { status } : {}, { preserveState: true, preserveScroll: true });
@@ -55,7 +56,7 @@ export default function Invoices({ invoices, children, filters }) {
                                                 {t('invoices.my_total_paid_lifetime', { amount: money(child.total_paid) })}
                                             </p>
                                         </div>
-                                        <Button as="a" href={child.statement_url} variant="secondary" icon={PrinterIcon} data-testid="print-statement">
+                                        <Button variant="secondary" icon={PrinterIcon} data-testid="print-statement" onClick={() => openPdf({ url: child.statement_url, title: t('invoices.my_print_statement'), filename: `statement-${child.id}.pdf` })}>
                                             {t('invoices.my_print_statement')}
                                         </Button>
                                     </div>
@@ -95,6 +96,7 @@ export default function Invoices({ invoices, children, filters }) {
                     </div>
                 )}
             </Page>
+            {pdfModal}
         </AuthenticatedLayout>
     );
 }

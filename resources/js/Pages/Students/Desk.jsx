@@ -1,5 +1,5 @@
 import Avatar from '@/Components/Avatar';
-import { BackLink, Button, Card, EmptyState, Page, StatusBadge } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Page, StatusBadge, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BanknotesIcon, ClipboardDocumentCheckIcon, DocumentChartBarIcon, IdentificationIcon, PencilSquareIcon, PrinterIcon, UserCircleIcon, UserIcon } from '@heroicons/react/24/outline';
 import { Link } from '@inertiajs/react';
@@ -31,6 +31,7 @@ function AskElsewhere({ id, text }) {
 
 export default function Desk({ student, can, fees, attendance, reportCard, profileUrl, viewProfileUrl, cardUrl }) {
     const { t } = useTranslation();
+    const [openPdf, pdfModal] = usePdfPreview();
 
     return (
         <AuthenticatedLayout header={<h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">{t('desk.title')}</h2>}>
@@ -93,7 +94,7 @@ export default function Desk({ student, can, fees, attendance, reportCard, profi
                                     {fees.owed > 0 && fees.invoices.some((i) => i.record_url) && (
                                         <Button as={Link} href={route('students.record-payment.create', student.id)} icon={BanknotesIcon} data-testid="bulk-record-payment">{t('desk.record_combined_payment', 'Record a combined payment')}</Button>
                                     )}
-                                    <Button as="a" href={fees.statement_url} variant="secondary" icon={PrinterIcon} data-testid="print-statement">{t('desk.print_statement')}</Button>
+                                    <Button variant="secondary" icon={PrinterIcon} data-testid="print-statement" onClick={() => openPdf({ url: fees.statement_url, title: t('desk.print_statement'), filename: `statement-${student.student_id_number}.pdf` })}>{t('desk.print_statement')}</Button>
                                 </div>
                             </div>
 
@@ -130,7 +131,7 @@ export default function Desk({ student, can, fees, attendance, reportCard, profi
                                         {fees.recent_payments.map((p) => (
                                             <li key={p.id} className="flex flex-col gap-2 rounded-xl bg-stone-50 p-3 text-base dark:bg-stone-900/40 sm:flex-row sm:items-center sm:justify-between">
                                                 <span>{money(p.amount)} ETB · {t(`verify.method_${p.method}`)} · {p.receipt_number}{p.at_school ? ` · ${t('desk.at_school')}` : ''}<span className="block text-sm text-stone-600 dark:text-stone-400">{p.when}</span></span>
-                                                <Button as="a" href={p.receipt_url} size="md" variant="secondary" icon={PrinterIcon}>{t('desk.print_receipt')}</Button>
+                                                <Button size="md" variant="secondary" icon={PrinterIcon} onClick={() => openPdf({ url: p.receipt_url, title: `${t('desk.print_receipt')} · ${p.receipt_number}`, filename: `receipt-${p.receipt_number}.pdf` })}>{t('desk.print_receipt')}</Button>
                                             </li>
                                         ))}
                                     </ul>
@@ -177,13 +178,13 @@ export default function Desk({ student, can, fees, attendance, reportCard, profi
                             <p className="text-base text-stone-700 dark:text-stone-300">{t('desk.report_note')}</p>
                             <div className="flex flex-col gap-3 sm:flex-row">
                                 <Button as={Link} href={reportCard.view_url} icon={DocumentChartBarIcon} data-testid="report-view">{t('desk.report_view')}</Button>
-                                <Button as="a" href={reportCard.pdf_url} variant="secondary" icon={PrinterIcon} data-testid="report-pdf">{t('desk.report_pdf')}</Button>
+                                <Button variant="secondary" icon={PrinterIcon} data-testid="report-pdf" onClick={() => openPdf({ url: reportCard.pdf_url, title: t('desk.report_pdf'), filename: `report-card-${student.student_id_number}.pdf` })}>{t('desk.report_pdf')}</Button>
                             </div>
-                            <p className="text-sm text-stone-600 dark:text-stone-400">{t('ui.print_hint')}</p>
                         </div>
                     )}
                 </Section>
             </Page>
+            {pdfModal}
         </AuthenticatedLayout>
     );
 }

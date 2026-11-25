@@ -40,11 +40,12 @@ function ClassTeacher({ section, teachers, canSet }) {
     );
 }
 
-function Subjects({ section, subjects, teachers }) {
+function Subjects({ section, teachers }) {
     const { t } = useTranslation();
     const [ask, confirmDialog] = useConfirm();
     const { data, setData, post, processing, errors, transform, reset, clearErrors } = useForm({ section_id: section.id, subject_id: '', teacher_id: '', replace: false });
     const className = `${section.grade} ${section.name}`;
+    const subjects = section.subjects;
 
     const subject = subjects.find((s) => String(s.id) === String(data.subject_id));
     const teacher = teachers.find((tc) => String(tc.id) === String(data.teacher_id));
@@ -151,7 +152,7 @@ function Subjects({ section, subjects, teachers }) {
     );
 }
 
-export default function Index({ sections, teachers, subjects, canSetClassTeacher, focus, branchCount }) {
+export default function Index({ sections, teachers, canSetClassTeacher, focus, branchCount }) {
     const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState(focus && sections.some((s) => s.id === focus) ? focus : null);
     const [filter, setFilter] = useState('');
@@ -172,7 +173,7 @@ export default function Index({ sections, teachers, subjects, canSetClassTeacher
                 >
                     <FlashMessages errorKeys={['delete']} />
                     <ClassTeacher key={`${selected.id}-${selected.class_teacher?.id ?? 'none'}`} section={selected} teachers={teachersHere} canSet={canSetClassTeacher} />
-                    <Subjects key={selected.id} section={selected} subjects={subjects} teachers={teachersHere} />
+                    <Subjects key={selected.id} section={selected} teachers={teachersHere} />
                 </Page>
             </AuthenticatedLayout>
         );

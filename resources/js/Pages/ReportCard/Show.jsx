@@ -1,4 +1,4 @@
-import { BackLink, Button, PrintArea } from '@/Components/ui';
+import { BackLink, Button, PrintArea, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ArrowDownTrayIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { Head, usePage } from '@inertiajs/react';
@@ -8,6 +8,7 @@ export default function Show({ student, section, academic_year, subjects, overal
     const { t } = useTranslation();
     const { auth } = usePage().props;
     const isParent = auth.role === 'parent';
+    const [openPdf, pdfModal] = usePdfPreview();
 
     return (
         <AuthenticatedLayout
@@ -24,7 +25,7 @@ export default function Show({ student, section, academic_year, subjects, overal
                     </div>
 
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row" data-testid="report-actions">
-                        <Button as="a" href={route('report-card.pdf', student.id)} fullWidth icon={ArrowDownTrayIcon}>{t('parent.rc_download')}</Button>
+                        <Button fullWidth icon={ArrowDownTrayIcon} onClick={() => openPdf({ url: route('report-card.pdf', student.id), title: `${t('parent.rc_download')} · ${student.name}`, filename: `report-card-${student.student_id_number}.pdf` })}>{t('parent.rc_download')}</Button>
                         <Button variant="secondary" fullWidth icon={PrinterIcon} onClick={() => window.print()}>{t('parent.rc_print')}</Button>
                     </div>
 
@@ -121,6 +122,7 @@ export default function Show({ student, section, academic_year, subjects, overal
                     </PrintArea>
                 </div>
             </div>
+            {pdfModal}
         </AuthenticatedLayout>
     );
 }

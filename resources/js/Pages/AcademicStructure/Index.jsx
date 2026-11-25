@@ -1,5 +1,5 @@
 import Modal from '@/Components/Modal';
-import { BackLink, Button, Card, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
+import { BackLink, Button, Card, CheckRow, ChoiceGroup, EmptyState, Field, FlashMessages, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { IdentificationIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -68,13 +68,76 @@ function SectionForm({ grade, section, onDone }) {
     );
 }
 
-export default function Index({ grades, canManage, canAssignTeachers, canPrintIdCards }) {
+function SectionSubjectsForm({ grade, section, subjects, onDone }) {
+    const { t } = useTranslation();
+    const className = `${grade.name} ${section.name}`;
+    const otherSections = grade.sections.filter((s) => s.id !== section.id);
+    const { data, setData, put, processing } = useForm({ subject_ids: section.subject_ids, apply_to_grade: false });
+
+    const toggle = (id, checked) => {
+        setData('subject_ids', checked ? [...data.subject_ids, id] : data.subject_ids.filter((x) => x !== id));
+    };
+
+    const submit = (e) => {
+        e.preventDefault();
+        put(route('sections.subjects.update', section.id), { preserveScroll: true, onSuccess: onDone });
+    };
+
+    return (
+        <form onSubmit={submit} className="space-y-6 p-6">
+            <div>
+                <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100">{t('struct.section_subjects_title', { class: className })}</h2>
+                <p className="mt-1 text-base text-stone-600 dark:text-stone-400">{t('struct.section_subjects_desc')}</p>
+            </div>
+            {otherSections.length > 0 && (
+                <ChoiceGroup
+                    heading={t('struct.section_subjects_scope_heading')}
+                    value={data.apply_to_grade ? 'grade' : 'section'}
+                    onChange={(v) => setData('apply_to_grade', v === 'grade')}
+                    layout="segmented"
+                    options={[
+                        { value: 'section', label: t('struct.section_subjects_scope_section', { class: className }) },
+                        { value: 'grade', label: t('struct.section_subjects_scope_grade', { grade: grade.name, count: grade.sections.length }) },
+                    ]}
+                />
+            )}
+            {data.apply_to_grade && otherSections.length > 0 && (
+                <p className="rounded-xl bg-amber-50 p-4 text-base text-amber-900 dark:bg-amber-900/25 dark:text-amber-200">
+                    {t('struct.section_subjects_scope_grade_warn', { grade: grade.name, names: otherSections.map((s) => s.name).join(', ') })}
+                </p>
+            )}
+            {subjects.length === 0 ? (
+                <p className="rounded-xl bg-amber-50 p-4 text-base text-amber-900 dark:bg-amber-900/25 dark:text-amber-200">{t('struct.section_subjects_none_in_school')}</p>
+            ) : (
+                <>
+                    {section.subject_ids.length === 0 && (
+                        <p className="rounded-xl bg-stone-50 p-4 text-base text-stone-700 dark:bg-stone-900/40 dark:text-stone-300">{t('struct.section_subjects_none_picked')}</p>
+                    )}
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        {subjects.map((subj) => (
+                            <CheckRow key={subj.id} label={subj.name} checked={data.subject_ids.includes(subj.id)} onChange={(checked) => toggle(subj.id, checked)} />
+                        ))}
+                    </div>
+                </>
+            )}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={onDone}>{t('common.cancel')}</Button>
+                <Button type="submit" busy={processing} disabled={subjects.length === 0}>
+                    {data.apply_to_grade ? t('struct.section_subjects_save_grade', { grade: grade.name }) : t('struct.section_subjects_save', { class: className })}
+                </Button>
+            </div>
+        </form>
+    );
+}
+
+export default function Index({ grades, subjects, canManage, canAssignTeachers, canPrintIdCards }) {
     const { t } = useTranslation();
     const { auth } = usePage().props;
     const isTeacher = auth.role === 'teacher';
     const [ask, confirmDialog] = useConfirm();
     const [gradeForm, setGradeForm] = useState(null);   // null | 'new' | a grade
     const [editing, setEditing] = useState(null);       // { grade, section }
+    const [subjectsFor, setSubjectsFor] = useState(null); // { grade, section }
 
     const removeGrade = async (grade) => {
         const ok = await ask({
@@ -149,6 +212,13 @@ export default function Index({ grades, canManage, canAssignTeachers, canPrintId
                                                         {s.class_teacher ? t('struct.class_teacher', { name: s.class_teacher }) : <span className="text-amber-800 dark:text-amber-300">{t('struct.no_class_teacher')}</span>}
                                                         {canAssignTeachers && <> · <Link href={route('teaching-assignments.index', { section: s.id })} className="font-medium text-brand-700 underline dark:text-brand-300">{s.class_teacher ? t('struct.manage_teachers') : t('struct.choose_teacher')}</Link></>}
                                                     </p>
+                                                    {canManage && (
+                                                        <p className="mt-1 text-sm text-stone-600 dark:text-stone-400" data-testid="section-subjects-summary">
+                                                            {s.subject_ids.length === 0
+                                                                ? t('struct.section_subjects_summary_all')
+                                                                : t('struct.section_subjects_summary', { count: s.subject_ids.length, names: subjects.filter((subj) => s.subject_ids.includes(subj.id)).map((subj) => subj.name).join(', ') })}
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
                                                     {canPrintIdCards && (
@@ -156,6 +226,9 @@ export default function Index({ grades, canManage, canAssignTeachers, canPrintId
                                                     )}
                                                     {canManage && (
                                                         <Button size="md" variant="secondary" as={Link} href={route('sections.ranking', s.id)}>{t('struct.class_ranking', 'Class Ranking')}</Button>
+                                                    )}
+                                                    {canManage && (
+                                                        <Button size="md" variant="secondary" onClick={() => setSubjectsFor({ grade, section: s })}>{t('struct.section_subjects_button')}</Button>
                                                     )}
                                                     {canManage && (
                                                         <>
@@ -179,6 +252,9 @@ export default function Index({ grades, canManage, canAssignTeachers, canPrintId
             </Modal>
             <Modal show={!!editing} onClose={() => setEditing(null)}>
                 {editing && <SectionForm key={editing.section.id} grade={editing.grade} section={editing.section} onDone={() => setEditing(null)} />}
+            </Modal>
+            <Modal show={!!subjectsFor} maxWidth="lg" onClose={() => setSubjectsFor(null)}>
+                {subjectsFor && <SectionSubjectsForm key={subjectsFor.section.id} grade={subjectsFor.grade} section={subjectsFor.section} subjects={subjects} onDone={() => setSubjectsFor(null)} />}
             </Modal>
             {confirmDialog}
         </AuthenticatedLayout>

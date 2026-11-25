@@ -306,6 +306,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy');
 
     Route::get('/marks', [MarkBatchController::class, 'index'])->name('marks.index');
+    Route::get('/marks/section/{section}', [MarkBatchController::class, 'forSection'])->name('marks.section');
     Route::get('/marks/{exam}/{section}/{subject}', [MarkBatchController::class, 'show'])->name('marks.show');
     Route::post('/mark-batches/{markBatch}', [MarkBatchController::class, 'store'])->name('mark-batches.store');
     Route::post('/mark-batches/{markBatch}/submit', [MarkBatchController::class, 'submit'])->name('mark-batches.submit');
@@ -321,6 +322,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
 
     Route::get('/sections/{section}/ranking', [\App\Http\Controllers\ClassRankingController::class, 'show'])->name('sections.ranking');
     Route::post('/sections/{section}/required-subjects', [\App\Http\Controllers\ClassRankingController::class, 'setRequiredSubjects'])->name('sections.required-subjects');
+    Route::put('/sections/{section}/subjects', [\App\Http\Controllers\SectionSubjectController::class, 'update'])->name('sections.subjects.update');
     Route::get('/sections/{section}/ranking.xlsx', [\App\Http\Controllers\ClassRankingController::class, 'exportExcel'])->name('sections.ranking.export');
     Route::get('/sections/{section}/class-codes', [\App\Http\Controllers\ClassRankingController::class, 'classCodes'])->name('sections.class-codes');
     Route::get('/sections/{section}/certificates.pdf', [\App\Http\Controllers\CertificateController::class, 'forSection'])->middleware('throttle:pdf')->name('sections.certificates');
@@ -339,6 +341,7 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::get('/my/invoices', [FamilyController::class, 'invoices'])->name('family.invoices');
     Route::get('/my/invoices/{student}/statement', [FamilyController::class, 'statement'])->middleware('throttle:pdf')->whereNumber('student')->name('family.invoices.statement');
     Route::get('/my/payments', [FamilyController::class, 'paymentsHub'])->name('family.payments');
+    Route::get('/my/services', [FamilyController::class, 'services'])->name('family.services');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/new', [AnnouncementController::class, 'create'])->name('announcements.create');
@@ -615,6 +618,8 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::post('/invoices/{invoice}/record-payment', [PaymentController::class, 'record'])->name('payments.record');
     Route::get('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'create'])->name('students.record-payment.create');
     Route::post('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'store'])->name('students.record-payment.store');
+    Route::get('/payments/collect', [\App\Http\Controllers\PaymentCollectionController::class, 'index'])->name('payments.collect');
+    Route::post('/payments/collect/{section}', [\App\Http\Controllers\PaymentCollectionController::class, 'store'])->name('payments.collect.store');
     Route::get('/payments/pending', [PaymentController::class, 'index'])->name('payments.pending');
     Route::get('/payments/{payment}', [PaymentController::class, 'review'])->whereNumber('payment')->name('payments.review');
     Route::post('/payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');

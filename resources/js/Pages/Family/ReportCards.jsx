@@ -1,5 +1,5 @@
 import { Avatar } from '@/Components/ParentParts';
-import { BackLink, Button, Card, EmptyState, Page } from '@/Components/ui';
+import { BackLink, Button, Card, EmptyState, Page, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { DocumentChartBarIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { Link } from '@inertiajs/react';
@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function ReportCards({ children }) {
     const { t } = useTranslation();
+    const [openPdf, pdfModal] = usePdfPreview();
     const title = t('parent.report_page_title');
 
     return (
@@ -26,11 +27,12 @@ export default function ReportCards({ children }) {
                         </div>
                         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                             <Button as={Link} href={route('report-card.show', c.id)} fullWidth icon={DocumentChartBarIcon}>{t('parent.report_view')}</Button>
-                            <Button as="a" href={route('report-card.pdf', c.id)} variant="secondary" fullWidth>{t('parent.report_download')}</Button>
+                            <Button variant="secondary" fullWidth onClick={() => openPdf({ url: route('report-card.pdf', c.id), title: `${t('parent.report_download')} · ${c.name}`, filename: `report-card-${c.id}.pdf` })}>{t('parent.report_download')}</Button>
                         </div>
                     </Card>
                 ))}
             </Page>
+            {pdfModal}
         </AuthenticatedLayout>
     );
 }

@@ -1,5 +1,5 @@
 import ProofViewer from '@/Components/ProofViewer';
-import { Alert, BackLink, Button, Card, ChoiceGroup, Disclosure, Field, FlashMessages, Input, Page, StatusBadge, SuccessPanel, TextArea, useConfirm } from '@/Components/ui';
+import { Alert, BackLink, Button, Card, ChoiceGroup, Disclosure, Field, FlashMessages, Input, Page, StatusBadge, SuccessPanel, TextArea, useConfirm, usePdfPreview } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BanknotesIcon, BuildingLibraryIcon, CheckCircleIcon, DevicePhoneMobileIcon, PrinterIcon, QuestionMarkCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { Link, router, useForm } from '@inertiajs/react';
@@ -106,6 +106,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
     const [ask, confirmDialog] = useConfirm();
     const [rejecting, setRejecting] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [openReceipt, receiptModal] = usePdfPreview();
     const pending = payment.status === 'pending';
     const verified = payment.status === 'verified';
     const rejected = payment.status === 'rejected';
@@ -165,7 +166,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                         }
                         actions={
                             <div className="flex w-full flex-col gap-3">
-                                {payment.receipt_url && <Button as="a" href={payment.receipt_url} fullWidth icon={PrinterIcon} data-testid="print-receipt">{t('rec.print_confirmation')}</Button>}
+                                {payment.receipt_url && <Button fullWidth icon={PrinterIcon} data-testid="print-receipt" onClick={() => openReceipt({ url: payment.receipt_url, title: t('verify.receipt_number') + ' ' + payment.receipt_number, filename: `receipt-${payment.receipt_number}.pdf` })}>{t('rec.print_confirmation')}</Button>}
                                 <Button as={Link} href={doneUrl} variant="secondary" fullWidth data-testid="recorded-done">{t('rec.done')}</Button>
                             </div>
                         }
@@ -188,7 +189,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                         }
                         actions={
                             <div className="flex w-full flex-col gap-3">
-                                {payment.receipt_url && <Button as="a" href={payment.receipt_url} fullWidth icon={PrinterIcon} data-testid="print-receipt">{t('verify.print_receipt')}</Button>}
+                                {payment.receipt_url && <Button fullWidth icon={PrinterIcon} data-testid="print-receipt" onClick={() => openReceipt({ url: payment.receipt_url, title: t('verify.receipt_number') + ' ' + payment.receipt_number, filename: `receipt-${payment.receipt_number}.pdf` })}>{t('verify.print_receipt')}</Button>}
                                 {nextButton}
                                 {!next && <p className="text-base text-emerald-950 dark:text-emerald-100">{t('verify.none_waiting')}</p>}
                                 <Button as={Link} href={route('payments.pending')} variant="secondary" fullWidth>{t('verify.back_to_list')}</Button>
@@ -317,6 +318,7 @@ export default function Review({ payment, student, invoice, blocked, duplicates,
                 )}
             </Page>
             {confirmDialog}
+            {receiptModal}
         </AuthenticatedLayout>
     );
 }

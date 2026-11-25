@@ -144,12 +144,136 @@ class AdminStructureWorkflowTest extends TestCase
         $this->assertTrue($page['canSetClassTeacher']);
         $a = collect($page['sections'])->firstWhere('id', $this->sectionA->id);
         $this->assertSame(['G1', 'A', $this->branchA->id, 1], [$a['grade'], $a['name'], $a['branch_id'], count($a['assignments'])]);
-        $this->assertEqualsCanonicalizing([[$tA->id, $this->branchA->id], [$tB->id, $this->branchB->id]], array_map(fn ($t) => [$t['id'], $t['branch_id']], $page['teachers']));
+        // The owner appears too, not just role=teacher accounts -- holding enter-marks is what makes
+        // someone pickable here, so an owner or branch admin can take over a subject for a teacher who
+        // cannot use the system by assigning it to themselves, the same as any other teacher.
+        $this->assertEqualsCanonicalizing([[$tA->id, $this->branchA->id], [$tB->id, $this->branchB->id], [$this->owner->id, null]], array_map(fn ($t) => [$t['id'], $t['branch_id']], $page['teachers']));
 
         $mine = $this->page($this->actingAs($this->admin(['manage-teachers']))->get('/teaching-assignments')->assertOk());
         $this->assertSame([$this->sectionA->id], array_column($mine['sections'], 'id'));
         $this->assertSame([$tA->id], array_column($mine['teachers'], 'id'));
         $this->assertFalse($mine['canSetClassTeacher'], 'changing a class teacher is the classes permission');
+    }
+
+    /** Some teachers cannot use the system at all; the principal (owner, or a branch admin holding
+     *  enter-marks) must be able to give a subject to THEMSELVES, same as giving it to any other teacher,
+     *  so they can enter its marks directly instead of being stuck behind someone who never will. */
+    public function test_an_owner_or_admin_with_enter_marks_can_assign_a_subject_to_themselves(): void
+    {
+        $body = ['section_id' => $this->sectionA->id, 'subject_id' => $this->maths->id, 'teacher_id' => $this->owner->id];
+        $this->actingAs($this->owner)->post('/teaching-assignments', $body)->assertSessionHasNoErrors();
+        $this->assertSame($this->owner->id, TeachingAssignment::first()->teacher_id);
+
+        TeachingAssignment::query()->delete();
+        $admin = $this->admin(['manage-teachers', 'enter-marks']);
+        $this->actingAs($admin)->post('/teaching-assignments', ['section_id' => $this->sectionA->id, 'subject_id' => $this->maths->id, 'teacher_id' => $admin->id])->assertSessionHasNoErrors();
+        $this->assertSame($admin->id, TeachingAssignment::first()->teacher_id);
+    }
+
+    public function test_a_branch_admin_without_enter_marks_cannot_be_given_a_subject(): void
+    {
+        $admin = $this->admin(['manage-teachers']);
+        $r = $this->actingAs($this->owner)->post('/teaching-assignments', ['section_id' => $this->sectionA->id, 'subject_id' => $this->maths->id, 'teacher_id' => $admin->id]);
+        $this->assertSame(422, $r->getStatusCode());
+        $this->assertSame(0, TeachingAssignment::count());
+    }
+
+    // ------------------------------------------------------------------ per-section curriculum
+
+    public function test_the_academic_structure_page_carries_each_sections_subject_ids_and_the_school_catalog(): void
+    {
+        $science = Subject::create(['school_id' => $this->school->id, 'name' => 'Science']);
+        $this->sectionA->subjects()->sync([$this->maths->id]);
+
+        $page = $this->page($this->actingAs($this->owner)->get('/academic-structure')->assertOk());
+        $g = collect($page['grades'])->firstWhere('id', $this->grade->id);
+        $s = collect($g['sections'])->firstWhere('id', $this->sectionA->id);
+
+        $this->assertSame([$this->maths->id], $s['subject_ids']);
+        $this->assertEqualsCanonicalizing([$this->maths->id, $science->id], array_column($page['subjects'], 'id'));
+    }
+
+    public function test_an_owner_can_set_a_sections_subjects_and_it_is_audited(): void
+    {
+        $science = Subject::create(['school_id' => $this->school->id, 'name' => 'Science']);
+
+        $this->actingAs($this->owner)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$this->maths->id, $science->id]])->assertSessionHasNoErrors();
+        $this->assertEqualsCanonicalizing([$this->maths->id, $science->id], $this->sectionA->subjects()->pluck('subjects.id')->all());
+
+        $this->actingAs($this->owner)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$this->maths->id]])->assertSessionHasNoErrors();
+        $this->assertSame([$this->maths->id], $this->sectionA->subjects()->pluck('subjects.id')->all());
+
+        $log = AuditLog::where('action', 'section.subjects_set')->latest('id')->firstOrFail();
+        $this->assertEqualsCanonicalizing(['Maths', 'Science'], $log->before['subjects']);
+        $this->assertSame(['Maths'], $log->after['subjects']);
+    }
+
+    public function test_only_manage_classes_can_set_a_sections_subjects_and_only_the_schools_own(): void
+    {
+        $noPermission = $this->makeUser('branch_admin', $this->branchA->id, []);
+        $this->actingAs($noPermission)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => []])->assertForbidden();
+
+        $otherSchool = \App\Models\School::create(['name' => 'Other', 'code' => 'OTH']);
+        $otherSubject = Subject::create(['school_id' => $otherSchool->id, 'name' => 'Alien Subject']);
+        $this->actingAs($this->owner)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$otherSubject->id]])->assertStatus(422);
+        $this->assertSame(0, $this->sectionA->subjects()->count());
+    }
+
+    public function test_an_unconfigured_section_offers_every_subject_but_a_configured_one_offers_only_its_own(): void
+    {
+        $science = Subject::create(['school_id' => $this->school->id, 'name' => 'Science']);
+
+        // not configured yet -- both subjects are offered for this class, exactly like before
+        $page = $this->page($this->actingAs($this->owner)->get('/teaching-assignments')->assertOk());
+        $section = collect($page['sections'])->firstWhere('id', $this->sectionA->id);
+        $this->assertEqualsCanonicalizing([$this->maths->id, $science->id], array_column($section['subjects'], 'id'));
+
+        // curated down to Maths only -- this class no longer offers Science
+        $this->sectionA->subjects()->sync([$this->maths->id]);
+        $page = $this->page($this->actingAs($this->owner)->get('/teaching-assignments')->assertOk());
+        $section = collect($page['sections'])->firstWhere('id', $this->sectionA->id);
+        $this->assertSame([$this->maths->id], array_column($section['subjects'], 'id'));
+
+        // and giving THAT class a subject outside its own curriculum is refused server-side too
+        $teacher = $this->makeUser('teacher', $this->branchA->id);
+        $r = $this->actingAs($this->owner)->post('/teaching-assignments', ['section_id' => $this->sectionA->id, 'subject_id' => $science->id, 'teacher_id' => $teacher->id]);
+        $this->assertSame(422, $r->getStatusCode());
+        $this->assertSame(0, TeachingAssignment::count());
+
+        // Maths itself still works fine
+        $this->actingAs($this->owner)->post('/teaching-assignments', ['section_id' => $this->sectionA->id, 'subject_id' => $this->maths->id, 'teacher_id' => $teacher->id])->assertSessionHasNoErrors();
+    }
+
+    public function test_a_different_section_of_the_same_grade_keeps_its_own_subjects_unless_applied_to_the_whole_grade(): void
+    {
+        // BuildsSchool already gives this grade a second section of its own (sectionB, in branchB) --
+        // a third one (sectionC) pins that the "whole grade" really does mean every section of it.
+        $science = Subject::create(['school_id' => $this->school->id, 'name' => 'Science']);
+        $sectionC = Section::create(['branch_id' => $this->branchA->id, 'grade_id' => $this->grade->id, 'academic_year_id' => $this->year->id, 'name' => 'C']);
+        $sectionC->subjects()->sync([$science->id]);
+
+        // 1A gets only Maths, saved for 1A alone -- 1C's own Science list must be untouched
+        $this->actingAs($this->owner)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$this->maths->id]])->assertSessionHasNoErrors();
+        $this->assertSame([$this->maths->id], $this->sectionA->subjects()->pluck('subjects.id')->all());
+        $this->assertSame([$science->id], $sectionC->subjects()->pluck('subjects.id')->all());
+
+        // now apply Maths to the WHOLE grade -- an org-wide owner reaches every branch's section of it,
+        // so 1C's list (and the other-branch sectionB's) is replaced too
+        $this->actingAs($this->owner)->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$this->maths->id], 'apply_to_grade' => true])->assertSessionHasNoErrors();
+        $this->assertSame([$this->maths->id], $sectionC->subjects()->pluck('subjects.id')->all());
+        $this->assertSame([$this->maths->id], $this->sectionB->subjects()->pluck('subjects.id')->all());
+
+        $log = AuditLog::where('action', 'section.subjects_set')->latest('id')->firstOrFail();
+        $this->assertEqualsCanonicalizing([$this->sectionA->id, $this->sectionB->id, $sectionC->id], $log->after['applied_to_sections']);
+    }
+
+    public function test_applying_to_the_whole_grade_never_crosses_branches(): void
+    {
+        $gradeInBranchB = Section::create(['branch_id' => $this->branchB->id, 'grade_id' => $this->grade->id, 'academic_year_id' => $this->year->id, 'name' => 'Z']);
+
+        $this->actingAs($this->admin(['manage-classes']))->put("/sections/{$this->sectionA->id}/subjects", ['subject_ids' => [$this->maths->id], 'apply_to_grade' => true])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $gradeInBranchB->subjects()->count(), "a branch-scoped admin applying to \"the whole grade\" must never reach another branch's section");
     }
 
     public function test_giving_a_subject_to_a_teacher_then_replacing_needs_a_deliberate_yes(): void

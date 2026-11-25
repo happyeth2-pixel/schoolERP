@@ -1,5 +1,5 @@
 import Avatar from '@/Components/Avatar';
-import CredentialsPanel from '@/Components/CredentialsPanel';
+import { CredentialsModal } from '@/Components/CredentialsPanel';
 import Modal from '@/Components/Modal';
 import Pagination from '@/Components/Pagination';
 import { Alert, BackLink, Button, Card, EmptyState, Input, Page, StatusBadge, useConfirm } from '@/Components/ui';
@@ -127,12 +127,12 @@ export default function Index({ parents, parentsMeta, search: initialSearch, can
                 actions={canManage && <Button as={Link} href={route('parents.create')} icon={UserPlusIcon}>{t('parents.add_button')}</Button>}
             >
                 {flash?.success && <Alert tone="success">{flash.success}</Alert>}
-                {credentials && hidden !== credentials.password && (
-                    <div data-testid="reset-result">
-                        <CredentialsPanel credentials={credentials} />
-                        <div className="mt-3"><Button variant="secondary" size="md" onClick={() => setHidden(credentials.password)}>{t('cred.hide')}</Button></div>
-                    </div>
-                )}
+                <div data-testid="reset-result">
+                    <CredentialsModal
+                        credentials={credentials && hidden !== credentials.password ? credentials : null}
+                        onClose={() => setHidden(credentials.password)}
+                    />
+                </div>
 
                 <div className="rounded-2xl border-2 border-brand-300 bg-brand-50 p-4 sm:p-6 dark:border-brand-700 dark:bg-brand-900/20">
                     <label htmlFor="parent-search" className="mb-3 block text-2xl font-bold text-stone-900 dark:text-stone-100">{t('parents.label')}</label>

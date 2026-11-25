@@ -68,6 +68,27 @@ class Section extends Model
             || $user->hasPermissionTo('manage-classes');
     }
 
+    /** The subjects THIS section actually teaches -- 1A and 1B are not guaranteed to share a curriculum,
+     *  so this is picked per section, not per grade. Empty means "not configured yet": the Teaching
+     *  Assignments "give a subject to a teacher" picker then falls back to every subject the school has,
+     *  so existing sections keep working unchanged until someone actually curates one down. Deliberately
+     *  a separate pivot from requiredSubjects() above -- "what this class teaches" and "what counts toward
+     *  its ranking" are different questions that can go out of step (a subject taught but not yet graded
+     *  this term, say), and conflating them would make either one lie about the other. */
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'section_subjects')->withTimestamps();
+    }
+
+    /** Same "homeroom teacher of THIS section, or an admin" shape canManageRequiredSubjectsBy() already
+     *  uses -- deciding what a class teaches is exactly as sensitive as deciding what counts for ranking. */
+    public function canManageSubjectsBy(User $user): bool
+    {
+        return $user->id === $this->class_teacher_id
+            || $user->hasRole('owner')
+            || $user->hasPermissionTo('manage-classes');
+    }
+
     public function timetableSlots(): HasMany
     {
         return $this->hasMany(TimetableSlot::class);
