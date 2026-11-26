@@ -95,10 +95,10 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
             label: s('settings', 'Settings'),
             items: [
                 { label: m('school_details', 'School Details'), route: 'school-settings.edit', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: Cog6ToothIcon },
-                { label: n('contact_inquiries', 'Contact Messages'), route: 'contact-inquiries.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: ChatBubbleLeftRightIcon },
-                { label: n('website_gallery', 'Website Gallery'), route: 'gallery.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PhotoIcon },
-                { label: n('website_text', 'Website Text'), route: 'site-content.edit', params: { page: 'home' }, enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PencilSquareIcon },
-                { label: n('website_banner', 'Website Banner'), route: 'site-announcements.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: SpeakerWaveIcon },
+                { label: m('contact_inquiries', 'Contact Messages'), route: 'contact-inquiries.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: ChatBubbleLeftRightIcon },
+                { label: m('website_gallery', 'Website Gallery'), route: 'gallery.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PhotoIcon },
+                { label: m('website_text', 'Website Text'), route: 'site-content.edit', params: { page: 'home' }, enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: PencilSquareIcon },
+                { label: m('website_banner', 'Website Banner'), route: 'site-announcements.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: SpeakerWaveIcon },
                 { label: m('school_year', 'School Year & Terms'), route: 'academic-years.index', enabled: has('manage-school-settings'), show: has('manage-school-settings'), icon: CalendarIcon },
                 { label: n('grading_scale', 'Grading Scale'), route: 'grade-bands.index', enabled: has('manage-grading-scale'), show: has('manage-grading-scale'), icon: ChartBarIcon },
             ].filter((i) => i.show !== false),
@@ -205,7 +205,7 @@ export function buildNavSections({ role, permissions = [], t = (key, fallback) =
                 { label: m('collect_by_class', 'Collect Payments by Class'), route: 'payments.collect', enabled: has('verify-payments'), show: has('verify-payments'), icon: BanknotesIcon },
                 { label: m('school_fees', 'School Fees'), route: 'fee-structures.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: CurrencyDollarIcon },
                 { label: m('extra_services', 'Extra Services'), route: 'optional-services.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: TruckIcon },
-                { label: n('books', 'Books'), route: 'books.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: BookOpenIcon },
+                { label: m('books', 'Books'), route: 'books.index', enabled: has('manage-fee-structures'), show: has('manage-fee-structures'), icon: BookOpenIcon },
             ].filter((i) => i.show !== false),
         });
     }

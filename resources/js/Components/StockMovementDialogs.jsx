@@ -1,6 +1,6 @@
 import Modal from '@/Components/Modal';
 import { Alert, Button, Field, Input, Select, TextArea } from '@/Components/ui';
-import { useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +16,28 @@ const StoreSelect = ({ id, stores, value, onChange, excludeId }) => (
     </Select>
 );
 
+// Every one of these dialogs is reached from a store picker that only ever shows "--" when the school
+// has not created a store yet -- with no other hint, that looks like a dead end, not a missing setup
+// step. Shown instead of the form itself so there is nothing to fill in that can't actually be saved.
+function NoStoresNotice({ onClose }) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="space-y-6 p-6">
+            <Alert
+                tone="warning"
+                title={t('inv.no_stores_title')}
+                action={<Button as={Link} href={route('inventory-stores.index')} variant="secondary">{t('inv.add_store_button')}</Button>}
+            >
+                {t('inv.no_stores_dialog_body')}
+            </Alert>
+            <div className="flex justify-end">
+                <Button type="button" variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
+            </div>
+        </div>
+    );
+}
+
 export function ReceiveDialog({ open, item, stores, onClose }) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({ item_id: item?.id ?? '', store_id: stores[0]?.id ?? '', quantity: '', reference_number: '', reason: '' });
@@ -24,6 +46,14 @@ export function ReceiveDialog({ open, item, stores, onClose }) {
         e.preventDefault();
         post(route('stock-movements.receive'), { preserveScroll: true, onSuccess: () => { reset(); onClose(); } });
     };
+
+    if (open && stores.length === 0) {
+        return (
+            <Modal show={open} onClose={onClose} maxWidth="lg">
+                <NoStoresNotice onClose={onClose} />
+            </Modal>
+        );
+    }
 
     return (
         <Modal show={open} onClose={onClose} maxWidth="lg">
@@ -61,6 +91,14 @@ export function IssueDialog({ open, item, stores, onClose }) {
         post(route('stock-movements.issue'), { preserveScroll: true, onSuccess: () => { reset(); onClose(); } });
     };
 
+    if (open && stores.length === 0) {
+        return (
+            <Modal show={open} onClose={onClose} maxWidth="lg">
+                <NoStoresNotice onClose={onClose} />
+            </Modal>
+        );
+    }
+
     return (
         <Modal show={open} onClose={onClose} maxWidth="lg">
             {open && (
@@ -93,6 +131,14 @@ export function TransferDialog({ open, item, stores, onClose }) {
         e.preventDefault();
         post(route('stock-movements.transfer'), { preserveScroll: true, onSuccess: () => { reset(); onClose(); } });
     };
+
+    if (open && stores.length === 0) {
+        return (
+            <Modal show={open} onClose={onClose} maxWidth="lg">
+                <NoStoresNotice onClose={onClose} />
+            </Modal>
+        );
+    }
 
     return (
         <Modal show={open} onClose={onClose} maxWidth="lg">
@@ -132,6 +178,14 @@ export function AdjustDialog({ open, item, stores, balances, onClose }) {
         e.preventDefault();
         post(route('stock-movements.adjust'), { preserveScroll: true, onSuccess: () => { reset(); onClose(); } });
     };
+
+    if (open && stores.length === 0) {
+        return (
+            <Modal show={open} onClose={onClose} maxWidth="lg">
+                <NoStoresNotice onClose={onClose} />
+            </Modal>
+        );
+    }
 
     return (
         <Modal show={open} onClose={onClose} maxWidth="lg">
