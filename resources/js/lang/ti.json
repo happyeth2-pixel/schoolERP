@@ -2727,6 +2727,7 @@
         "students_count_one": "1 ተመሃራይ",
         "students_count_other": "{{count}} ተማሃሮ",
         "partial_hint": "ካብ ምሉእ መጠን ዝነኣሰ ከተእቱ ትኽእል — ዝተረፈ ከም ናይ ስድራ ዕዳ ይቕጽል፣ ከም ማንኛውም ክፍሊት።",
+        "scroll_hint": "እዚ ሰሌዳ ካብ መስኮትኩም ይገፍሕ። ኩሉ ዓንድታት ንምርኣይ ናብ ጎድኒ ኣንሸራትቱ።",
         "search_placeholder": "ብስም ድለ…",
         "col_student": "ተመሃራይ",
         "col_tuition": "ናይ ትምህርቲ ክፍሊት",

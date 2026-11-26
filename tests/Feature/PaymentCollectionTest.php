@@ -174,7 +174,7 @@ class PaymentCollectionTest extends TestCase
         $this->actingAs($this->accountant)->post("/payments/collect/{$this->sectionA->id}", [
             'method' => 'cash',
             'rows' => [['student_id' => $this->studentA->id, 'tuition' => 5000, 'book' => 0, 'services' => []]],
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasErrors('rows'); // must read as a real, visible failure -- never a silent no-op
 
         $this->assertSame(0, Payment::count(), 'more than everything currently billed must not be recorded at all');
     }
@@ -186,7 +186,7 @@ class PaymentCollectionTest extends TestCase
         $this->actingAs($this->accountant)->post("/payments/collect/{$this->sectionA->id}", [
             'method' => 'cash',
             'rows' => [['student_id' => $this->studentA->id, 'tuition' => 0, 'book' => 0, 'services' => []]],
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasErrors('rows');
 
         $this->assertSame(0, Payment::count());
     }
@@ -203,5 +203,29 @@ class PaymentCollectionTest extends TestCase
         $log = AuditLog::where('action', 'payment.recorded')->firstOrFail();
         $this->assertTrue($log->after['part_of_class_collection']);
         $this->assertSame('G1 A', $log->after['section']);
+    }
+
+    /** A real bug found by a live UX audit: when ONE student in a mixed submission is over their balance
+     *  while another succeeds, the whole thing must not quietly look like total success -- the student(s)
+     *  it skipped need their own clearly separate (amber) message, distinct from the (green) success one. */
+    public function test_a_partly_successful_submission_shows_a_separate_warning_for_who_was_skipped(): void
+    {
+        $second = $this->makeStudent($this->branchA, $this->sectionA, 'Second', 'STU-A2');
+        $this->invoiceWithItems([['description' => 'Tuition', 'amount' => 500, 'item_type' => 'fee']], $this->studentA);
+        $this->invoiceWithItems([['description' => 'Tuition', 'amount' => 100, 'item_type' => 'fee']], $second);
+
+        $response = $this->actingAs($this->accountant)->post("/payments/collect/{$this->sectionA->id}", [
+            'method' => 'cash',
+            'rows' => [
+                ['student_id' => $this->studentA->id, 'tuition' => 500, 'book' => 0, 'services' => []],
+                ['student_id' => $second->id, 'tuition' => 9999, 'book' => 0, 'services' => []], // way over their 100
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+        $response->assertSessionHas('warning');
+        $this->assertStringContainsString('Second', session('warning'));
+        $this->assertSame(1, Payment::count());
     }
 }

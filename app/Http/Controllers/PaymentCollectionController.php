@@ -188,14 +188,24 @@ class PaymentCollectionController extends Controller
         }
 
         $studentsCount = collect($recorded)->pluck('invoice.student_id')->unique()->count();
-        $message = $studentsCount > 0
-            ? number_format($recordedTotal, 2)." ETB recorded for {$studentsCount} student(s)."
-            : 'Nothing was recorded -- type an amount for at least one student first.';
-        if (! empty($skipped)) {
-            $message .= ' Skipped (more than owed, or nothing billed yet): '.implode(', ', array_unique($skipped)).'.';
+        $skipped = array_unique($skipped);
+
+        // Nothing recorded, even though at least one box had an amount in it: this must read as a real,
+        // visible failure (a red banner the registrar cannot miss and the typed amount stays on screen to
+        // fix), never a quiet "success" message that looks the same as money actually being taken.
+        if ($studentsCount === 0) {
+            return back()->withErrors(['rows' => empty($skipped)
+                ? 'Nothing was recorded -- type an amount for at least one student first.'
+                : 'Nothing was recorded. '.count($skipped).' student(s) were more than what they currently owe, or have no open bill at all: '.implode(', ', $skipped).'. Lower the amount and try again.',
+            ]);
         }
 
-        return back()->with('success', $message);
+        $redirect = back()->with('success', number_format($recordedTotal, 2)." ETB recorded for {$studentsCount} student(s).");
+        if (! empty($skipped)) {
+            $redirect->with('warning', count($skipped).' other student(s) were skipped (more than they owe, or nothing billed yet): '.implode(', ', $skipped).'.');
+        }
+
+        return $redirect;
     }
 
     private function buildGrid(Section $section): array

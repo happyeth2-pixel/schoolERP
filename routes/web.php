@@ -618,8 +618,12 @@ Route::middleware(['auth', 'throttle:web'])->group(function () {
     Route::post('/invoices/{invoice}/record-payment', [PaymentController::class, 'record'])->name('payments.record');
     Route::get('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'create'])->name('students.record-payment.create');
     Route::post('/students/{student}/record-payment', [\App\Http\Controllers\StudentPaymentController::class, 'store'])->name('students.record-payment.store');
-    Route::get('/payments/collect', [\App\Http\Controllers\PaymentCollectionController::class, 'index'])->name('payments.collect');
-    Route::post('/payments/collect/{section}', [\App\Http\Controllers\PaymentCollectionController::class, 'store'])->name('payments.collect.store');
+    // The grid computes a live, per-student, per-category balance (StudentBillingSnapshot) across every
+    // open invoice -- not paginated, same "live DB aggregation" shape as the accounting reports below, so it
+    // shares their limiter. Submitting it writes a counter payment per student in one request -- the same
+    // "many rows in a loop" shape as invoices.generate/promotions.store, so it shares `bulk` instead.
+    Route::get('/payments/collect', [\App\Http\Controllers\PaymentCollectionController::class, 'index'])->middleware('throttle:reports')->name('payments.collect');
+    Route::post('/payments/collect/{section}', [\App\Http\Controllers\PaymentCollectionController::class, 'store'])->middleware('throttle:bulk')->name('payments.collect.store');
     Route::get('/payments/pending', [PaymentController::class, 'index'])->name('payments.pending');
     Route::get('/payments/{payment}', [PaymentController::class, 'review'])->whereNumber('payment')->name('payments.review');
     Route::post('/payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');

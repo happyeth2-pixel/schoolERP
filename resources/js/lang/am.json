@@ -2727,6 +2727,7 @@
         "students_count_one": "1 ተማሪ",
         "students_count_other": "{{count}} ተማሪዎች",
         "partial_hint": "ከጠቅላላው መጠን ያነሰ ማስገባት ይችላሉ — የቀረው እንደ ተሰብዓዊው ዕዳ ይቆያል፣ እንደ ማንኛውም ክፍያ።",
+        "scroll_hint": "ይህ ሰንጠረዥ ከማያ ገጽዎ ይሰፋል። ሁሉንም አምዶች ለማየት ወደ ጎን ያንሸራትቱ።",
         "search_placeholder": "በስም ፈልግ…",
         "col_student": "ተማሪ",
         "col_tuition": "ትምህርት ክፍያ",

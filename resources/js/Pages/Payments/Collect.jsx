@@ -1,4 +1,4 @@
-import { Alert, BackLink, Button, Card, ChoiceGroup, EmptyState, FlashMessages, Page } from '@/Components/ui';
+import { BackLink, Button, Card, ChoiceGroup, EmptyState, FlashMessages, Page } from '@/Components/ui';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { BanknotesIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { router, useForm } from '@inertiajs/react';
@@ -49,7 +49,8 @@ function Grid({ section, grid, sections }) {
         { tuition: '', book: '', services: Object.fromEntries(s.services.map((sv) => [sv.service_id, ''])) },
     ])), [grid]);
     const [rows, setRows] = useState(initialRows);
-    const { data, setData, post, processing, errors } = useForm({ method: 'cash' });
+    const { data, setData } = useForm({ method: 'cash' });
+    const [processing, setProcessing] = useState(false);
 
     const setCell = (studentId, key, value) => setRows((r) => ({ ...r, [studentId]: { ...r[studentId], [key]: value } }));
     const setServiceCell = (studentId, serviceId, value) => setRows((r) => ({
@@ -80,6 +81,8 @@ function Grid({ section, grid, sections }) {
 
         router.post(route('payments.collect.store', section.id), { method: data.method, rows: rowsPayload }, {
             preserveScroll: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
             onSuccess: () => setRows(initialRows),
         });
     };
@@ -106,7 +109,11 @@ function Grid({ section, grid, sections }) {
             {grid.students.length === 0 ? (
                 <Card><EmptyState title={t('collect.empty_title')}>{t('collect.empty_body')}</EmptyState></Card>
             ) : (
-                <Card className="overflow-x-auto">
+                <Card>
+                    <p className="mb-3 flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2 text-sm font-medium text-stone-700 dark:bg-stone-900/40 dark:text-stone-300 sm:hidden">
+                        {t('collect.scroll_hint')} <span aria-hidden="true">&rarr;</span>
+                    </p>
+                    <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] border-collapse">
                         <thead>
                             <tr className="border-b-2 border-stone-200 text-left text-sm font-semibold text-stone-700 dark:border-stone-700 dark:text-stone-300">
@@ -154,6 +161,7 @@ function Grid({ section, grid, sections }) {
                             })}
                         </tbody>
                     </table>
+                    </div>
                 </Card>
             )}
 
@@ -166,7 +174,6 @@ function Grid({ section, grid, sections }) {
                         onChange={(v) => setData('method', v)}
                         options={METHODS.map((m) => ({ value: m, label: t(`verify.method_${m}`) }))}
                     />
-                    {errors.rows && <Alert tone="danger" className="mt-4">{errors.rows}</Alert>}
                     <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-stone-200 pt-4 dark:border-stone-700">
                         <p className="text-lg font-bold text-stone-900 dark:text-stone-100" data-testid="grand-total">{t('collect.grand_total', { amount: money(grandTotal) })}</p>
                         <Button icon={BanknotesIcon} busy={processing} disabled={studentsWithAmount === 0} onClick={submit}>
@@ -199,7 +206,7 @@ export default function Collect({ sections, focus, grid, branchCount }) {
                     description={t('collect.page_desc')}
                     back={<BackLink href={route('payments.collect')}>{t('collect.back_to_classes')}</BackLink>}
                 >
-                    <FlashMessages />
+                    <FlashMessages errorKeys={['rows']} />
                     <Grid key={grid.section.id} section={grid.section} grid={grid} sections={sections} />
                 </Page>
             </AuthenticatedLayout>

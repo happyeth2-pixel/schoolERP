@@ -2751,6 +2751,7 @@
         "students_count_one": "1 student",
         "students_count_other": "{{count}} students",
         "partial_hint": "You can enter less than the full amount -- the rest stays as what the family owes, same as any other payment.",
+        "scroll_hint": "This table is wider than your screen. Swipe sideways to see every column.",
         "search_placeholder": "Search by name…",
         "col_student": "Student",
         "col_tuition": "Tuition",

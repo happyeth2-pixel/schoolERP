@@ -2727,6 +2727,7 @@
         "students_count_one": "Barataa 1",
         "students_count_other": "Barattoota {{count}}",
         "partial_hint": "Baay'ina guutuu caalaa xiqqaa galchuu ni dandeessa -- hafaan akkuma kaffaltii biraa idaa maatichaa ta'ee hafa.",
+        "scroll_hint": "Tarreen kun iskiriinii keessanii caalaa balʼina qaba. Qaree hunda arguuf gara cinaatti harkisaa.",
         "search_placeholder": "Maqaa barbaadi…",
         "col_student": "Barataa",
         "col_tuition": "Kaffaltii barnootaa",

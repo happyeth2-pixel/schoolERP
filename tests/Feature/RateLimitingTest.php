@@ -197,7 +197,29 @@ class RateLimitingTest extends TestCase
             ->assertStatus(429);
     }
 
+    public function test_the_class_collection_grids_submit_is_throttled_as_bulk(): void
+    {
+        config(['rate_limits.bulk.per_minute' => 2]);
+        $owner = $this->owner;
+        $body = ['method' => 'cash', 'rows' => [['student_id' => $this->studentA->id, 'tuition' => 0, 'book' => 0, 'services' => []]]];
+
+        $this->actingAs($owner)->post("/payments/collect/{$this->sectionA->id}", $body);
+        $this->actingAs($owner)->post("/payments/collect/{$this->sectionA->id}", $body);
+        $this->actingAs($owner)->post("/payments/collect/{$this->sectionA->id}", $body)
+            ->assertStatus(429);
+    }
+
     // ------------------------------------------------------------------ reports
+
+    public function test_the_class_collection_grid_itself_is_throttled_as_reports(): void
+    {
+        config(['rate_limits.reports.per_minute' => 2]);
+        $owner = $this->owner;
+
+        $this->actingAs($owner)->get("/payments/collect?section={$this->sectionA->id}")->assertOk();
+        $this->actingAs($owner)->get("/payments/collect?section={$this->sectionA->id}")->assertOk();
+        $this->actingAs($owner)->get("/payments/collect?section={$this->sectionA->id}")->assertStatus(429);
+    }
 
     public function test_financial_reports_share_one_reports_budget_across_all_eight(): void
     {
@@ -224,6 +246,8 @@ class RateLimitingTest extends TestCase
             'dashboard' => ['get', '/dashboard', 'dashboard'],
             'notifications' => ['get', '/notifications', 'notifications'],
             'parents search' => ['get', '/parents/search', 'search'],
+            'payments collect grid' => ['get', '/payments/collect', 'reports'],
+            'payments collect submit' => ['post', '/payments/collect/{section}', 'bulk'],
         ];
     }
 
